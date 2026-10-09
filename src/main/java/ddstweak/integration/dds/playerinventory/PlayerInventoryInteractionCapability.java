@@ -1,0 +1,2 @@
+package ddstweak.integration.dds.playerinventory;
+public enum PlayerInventoryInteractionCapability{SORT_MAIN,SORT_HOTBAR,SORT_VIEWER,CARRIED_SCRATCH_SWAP,QUICK_MOVE_PREDICTION,CONTROL_SLOT_BINDING,RETURN_PARENT}

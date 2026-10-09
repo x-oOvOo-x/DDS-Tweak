@@ -1,0 +1,212 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+final int mcVersion = project.mcVersion
+final boolean unobfuscated = mcVersion >= 26_00_00
+final boolean canonicalTarget = project.name == rootProject.ext.ddsTweakCoreVersion
+ext.releaseJarTaskName = unobfuscated ? 'jar' : 'remapJar'
+
+final def versionCapabilityContract = new JsonSlurper().parse(rootProject.file('config/version-capability-boundaries.json'))
+final def unavailableVersionFeatures = (versionCapabilityContract.features ?: []).findAll {
+    mcVersion < (it.minMcVersionCode as int)
+}
+final def unavailableJavaPrefixes = unavailableVersionFeatures.collectMany { feature ->
+    (feature.javaPrefixes ?: []).collect { it.toString() }
+}
+
+apply plugin: 'maven-publish'
+apply plugin: unobfuscated ? 'net.fabricmc.fabric-loom' : 'net.fabricmc.fabric-loom-remap'
+
+apply plugin: 'com.replaymod.preprocess'
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://masa.dy.fi/maven' }
+    maven {
+        url = 'https://masa.dy.fi/maven/sakura-ryoko'
+        content { includeGroupAndSubgroups('fi.dy.masa') }
+    }
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup('maven.modrinth') }
+    }
+    maven {
+        url = 'https://maven.fallenbreath.me/releases'
+        content { includeGroupAndSubgroups('me.fallenbreath') }
+    }
+}
+
+def runtimeModConfiguration = unobfuscated ? 'implementation' : 'modImplementation'
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    if (!unobfuscated) mappings loom.officialMojangMappings()
+    add(runtimeModConfiguration, "net.fabricmc:fabric-loader:${project.loader_version}")
+    add(runtimeModConfiguration, "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}")
+    add(runtimeModConfiguration, project.malilib_coordinate)
+
+    compileOnly('org.anti-ad.mc:inventory-profiles-next:fabric-1.17.1-1.1.0') { transitive = false }
+
+    if (mcVersion >= 1_21_11) {
+        compileOnly 'io.github.llamalad7:mixinextras-common:0.5.5'
+        annotationProcessor 'io.github.llamalad7:mixinextras-common:0.5.5'
+    }
+
+    if (canonicalTarget) {
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+}
+
+JavaVersion javaCompatibility
+if (mcVersion >= 26_00_00) javaCompatibility = JavaVersion.VERSION_25
+else if (mcVersion >= 1_20_05) javaCompatibility = JavaVersion.VERSION_21
+else if (mcVersion >= 1_18_00) javaCompatibility = JavaVersion.VERSION_17
+else if (mcVersion >= 1_17_00) javaCompatibility = JavaVersion.VERSION_16
+else javaCompatibility = JavaVersion.VERSION_1_8
+final int javaLevel = Integer.parseInt(javaCompatibility.majorVersion)
+final def gameJavaLauncher = javaToolchains.launcherFor {
+    languageVersion = org.gradle.jvm.toolchain.JavaLanguageVersion.of(javaLevel)
+    vendor = org.gradle.jvm.toolchain.JvmVendorSpec.AZUL
+}
+
+group = project.maven_group
+version = "v${project.mod_version}-mc${project.minecraft_version}"
+base { archivesName = project.archives_base_name }
+
+java {
+    sourceCompatibility = javaCompatibility
+    targetCompatibility = javaCompatibility
+    withSourcesJar()
+}
+
+// Keep the legal notices inside every remapped release JAR as well as in the source tree.
+tasks.named('jar', Jar).configure {
+    from(rootProject.file('LICENSE')) {
+        into 'META-INF'
+        rename { 'LICENSE-LGPL-3.0.txt' }
+    }
+    from(rootProject.file('THIRD_PARTY_NOTICES.md')) {
+        into 'META-INF'
+    }
+}
+tasks.withType(JavaCompile).configureEach {
+    options.release = javaLevel
+    options.encoding = 'UTF-8'
+}
+
+sourceSets {
+    main {
+        java {
+            unavailableJavaPrefixes.each { prefix -> exclude "${prefix}**" }
+        }
+    }
+    test {
+        java.setSrcDirs(canonicalTarget ? [rootProject.file('src/test/java')] : [])
+        resources.setSrcDirs([])
+    }
+}
+if (canonicalTarget) {
+    tasks.named('test', Test).configure {
+        useJUnitPlatform()
+        javaLauncher.set(gameJavaLauncher)
+        workingDir rootProject.projectDir
+        systemProperty 'dds.testBuildDir', layout.buildDirectory.get().asFile.absolutePath
+    }
+}
+
+final def resourcePackFormat = mcVersion >= 26_03_00 ? [97, 1]
+        : mcVersion >= 26_02_00 ? 88
+        : mcVersion >= 26_01_02 ? 84
+        : mcVersion >= 1_21_11 ? 75
+        : mcVersion >= 1_21_09 ? 69
+        : mcVersion >= 1_21_07 ? 64
+        : mcVersion >= 1_21_06 ? 63
+        : mcVersion >= 1_21_05 ? 55
+        : mcVersion >= 1_21_04 ? 46
+        : mcVersion >= 1_21_02 ? 42
+        : mcVersion >= 1_21_00 ? 34
+        : mcVersion >= 1_20_05 ? 32
+        : mcVersion >= 1_20_03 ? 22
+        : mcVersion >= 1_20_02 ? 18
+        : mcVersion >= 1_20_00 ? 15
+        : mcVersion >= 1_19_04 ? 13
+        : mcVersion >= 1_19_03 ? 12
+        : mcVersion >= 1_19_00 ? 9
+        : mcVersion >= 1_18_00 ? 8
+        : mcVersion >= 1_17_00 ? 7
+        : mcVersion >= 1_16_02 ? 6
+        : mcVersion >= 1_15_00 ? 5 : 4
+final def resourcePackMinFormat = mcVersion >= 26_03_00 ? [97, 0] : mcVersion == 1_21_08 ? 63 : resourcePackFormat
+
+processResources {
+    def props = [
+            version            : project.mod_version,
+            minecraft_version  : project.minecraft_version,
+            minecraft_dependency: project.minecraft_dependency,
+            loader_dependency  : project.loader_dependency,
+            fabric_api_dependency: project.fabric_api_dependency,
+            java_dependency    : project.java_dependency,
+            malilib_dependency : project.malilib_dependency,
+            mixin_compatibility: "JAVA_${javaLevel}",
+    ]
+    inputs.properties(props)
+    filesMatching('fabric.mod.json') { expand(props) }
+    filesMatching('dds-tweak.mixins.json') { expand(props) }
+    doLast {
+        def packFile = new File(destinationDir, 'resourcepacks/dds_fake_player_ui/pack.mcmeta')
+        def packMeta = [pack:[description:'DDS Tweak Fake Player UI - CozyUI+']]
+        if (mcVersion >= 1_21_09) {
+            packMeta.pack.min_format = resourcePackMinFormat
+            packMeta.pack.max_format = resourcePackFormat
+        } else {
+            packMeta.pack.pack_format = resourcePackFormat
+            if (resourcePackMinFormat != resourcePackFormat) packMeta.pack.supported_formats = [resourcePackMinFormat, resourcePackFormat]
+        }
+        packFile.setText(JsonOutput.prettyPrint(JsonOutput.toJson(packMeta)) + System.lineSeparator(), 'UTF-8')
+
+        if (mcVersion < 1_16_00) {
+            copy {
+                from new File(destinationDir, 'resourcepacks/dds_fake_player_ui/assets')
+                into new File(destinationDir, 'assets')
+            }
+        }
+
+        def unavailable = [] as Set
+        unavailableVersionFeatures.each { feature ->
+            unavailable.addAll((feature.mixins ?: []).collect { it.toString() })
+        }
+        if (mcVersion < 1_16_00) unavailable.add('feature.helpfulhitboxes.BlockStateBaseMixin')
+        else unavailable.add('feature.helpfulhitboxes.LegacyBlockShapeMixin')
+        if (mcVersion > 1_20_06) unavailable.add('config.LegacyConfigSelectorMixin')
+        if (mcVersion >= 1_18_00) unavailable.addAll(['config.LegacyHotkeyedBooleanWidgetMixin','config.LegacyConfigBooleanHotkeyedMixin'])
+        def compactLegacy = ['feature.compactstatuseffects.GuiAccessor','feature.compactstatuseffects.EffectRenderingInventoryScreenMixin','feature.compactstatuseffects.JeiInventoryEffectAreaMixin','feature.compactstatuseffects.ReiPotionEffectExclusionMixin']
+        def compactModern = ['feature.compactstatuseffects.CompactAbstractContainerScreenAccessor','feature.compactstatuseffects.EffectsInInventoryMixin','feature.compactstatuseffects.ModernJeiInventoryEffectAreaMixin','feature.compactstatuseffects.ModernReiPotionEffectExclusionMixin']
+        def compactCommon = ['feature.compactstatuseffects.EmiExclusionAreasMixin']
+        if (mcVersion < 1_21_01) unavailable.addAll(compactLegacy + compactModern + compactCommon)
+        else if (mcVersion < 1_21_02) unavailable.addAll(compactModern)
+        else unavailable.addAll(compactLegacy)
+        if (!unavailable.isEmpty()) {
+            def mixinFile = new File(destinationDir, 'dds-tweak.mixins.json')
+            def mixinConfig = new JsonSlurper().parse(mixinFile)
+            mixinConfig.client = (mixinConfig.client ?: []).findAll { !unavailable.contains(it) }
+            mixinFile.setText(JsonOutput.prettyPrint(JsonOutput.toJson(mixinConfig)) + System.lineSeparator(), 'UTF-8')
+        }
+    }
+}
+
+loom {
+    mixin { useLegacyMixinAp = !unobfuscated }
+    runConfigs.configureEach {
+        runDir "../../run/${project.name}"
+        ideConfigGenerated = canonicalTarget
+    }
+    runs { client { client() } }
+}
+
+tasks.withType(JavaExec).configureEach {
+    if (name == 'runClient') javaLauncher.set(gameJavaLauncher)
+}
+
+if (!unobfuscated) tasks.named('build').configure { dependsOn tasks.named('remapJar') }

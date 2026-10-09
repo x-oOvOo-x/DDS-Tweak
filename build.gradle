@@ -1,0 +1,357 @@
+import groovy.json.JsonSlurper
+import java.util.Properties
+
+plugins {
+    id 'maven-publish'
+    id 'net.fabricmc.fabric-loom' version '1.17-SNAPSHOT' apply false
+    id 'net.fabricmc.fabric-loom-remap' version '1.17-SNAPSHOT' apply false
+    id 'com.replaymod.preprocess' version 'dds-dev-0.3.3'
+}
+
+def cfg = new JsonSlurper().parseText(file('settings.json').getText('UTF-8'))
+def supportedVersions = (cfg.activeVersions ?: cfg.versions).collect { it.toString() }
+def versionCapabilityContract = new JsonSlurper().parseText(
+        file('config/version-capability-boundaries.json').getText('UTF-8')
+)
+def versionCapabilityFeatures = versionCapabilityContract.features ?: []
+
+def clientOwnershipContract = new JsonSlurper().parseText(
+        file('config/dds-client-ownership-contract.json').getText('UTF-8')
+)
+def ownershipTargets = clientOwnershipContract.targets ?: []
+ext.ddsTweakCoreVersion = cfg.coreVersion.toString()
+ext.ddsTweakPreprocessMainProject = cfg.preprocessMainProject.toString()
+
+preprocess {
+    strictExtraMappings = false
+    def mc1144 = createNode('1.14.4', 1_14_04, '')
+    def mc1152 = createNode('1.15.2', 1_15_02, '')
+    def mc1165 = createNode('1.16.5', 1_16_05, '')
+    def mc1171 = createNode('1.17.1', 1_17_01, '')
+    def mc1182 = createNode('1.18.2', 1_18_02, '')
+    def mc1194 = createNode('1.19.4', 1_19_04, '')
+    def mc1201 = createNode('1.20.1', 1_20_01, '')
+    def mc1202 = createNode('1.20.2', 1_20_02, '')
+    def mc1204 = createNode('1.20.4', 1_20_04, '')
+    def mc1206 = createNode('1.20.6', 1_20_06, '')
+    def mc1211 = createNode('1.21.1', 1_21_01, '')
+    def mc1213 = createNode('1.21.3', 1_21_03, '')
+    def mc1214 = createNode('1.21.4', 1_21_04, '')
+    def mc1215 = createNode('1.21.5', 1_21_05, '')
+    def mc1218 = createNode('1.21.8', 1_21_08, '')
+    def mc1219 = createNode('1.21.9', 1_21_09, '')
+    def mc12110 = createNode('1.21.10', 1_21_10, '')
+    def mc263 = createNode('26.3', 26_03_00, null)
+    def mc262 = createNode('26.2', 26_02_00, null)
+    def mc2612 = createNode('26.1.2', 26_01_02, null)
+    def mc12111 = createNode('1.21.11', 1_21_11, '')
+    mc1144.link(mc1152, file('versions/mapping-1.14.4-1.15.2.txt'))
+    mc1152.link(mc1165, file('versions/mapping-1.15.2-1.16.5.txt'))
+    mc1165.link(mc1171, file('versions/mapping-1.16.5-1.17.1.txt'))
+    mc1171.link(mc1182, file('versions/mapping-1.17.1-1.18.2.txt'))
+    mc1182.link(mc1194, file('versions/mapping-1.18.2-1.19.4.txt'))
+    mc1194.link(mc1201, file('versions/mapping-1.19.4-1.20.1.txt'))
+    mc1201.link(mc1202, file('versions/mapping-1.20.1-1.20.2.txt'))
+    mc1202.link(mc1204, file('versions/mapping-1.20.2-1.20.4.txt'))
+    mc1204.link(mc1206, file('versions/mapping-1.20.4-1.20.6.txt'))
+    mc1206.link(mc1211, file('versions/mapping-1.20.6-1.21.1.txt'))
+    mc1211.link(mc1213, file('versions/mapping-1.21.1-1.21.3.txt'))
+    mc1213.link(mc1214, file('versions/mapping-1.21.3-1.21.4.txt'))
+    mc1214.link(mc1215, file('versions/mapping-1.21.4-1.21.5.txt'))
+    mc1215.link(mc1218, file('versions/mapping-1.21.5-1.21.8.txt'))
+    mc1218.link(mc1219, file('versions/mapping-1.21.8-1.21.9.txt'))
+    mc1219.link(mc12110, file('versions/mapping-1.21.9-1.21.10.txt'))
+
+    /*
+     * dds-dev-0.3.3 does not seed the configured root into its visited set.
+     * With 1.21.11 as the preprocess root, register the 26.x edge first so
+     * the mapped -> unobfuscated boundary remains directly visible to the
+     * root and Mojang mappings are prepared on 1.21.11.
+     */
+    mc12111.link(mc2612, file('versions/mapping-1.21.11-26.1.2.txt'))
+    mc2612.link(mc262, file('versions/mapping-26.1.2-26.2.txt'))
+    mc262.link(mc263, file('versions/mapping-26.2-26.3.txt'))
+
+    mc12110.link(mc12111, file('versions/mapping-1.21.10-1.21.11.txt'))
+    for (final def node in getNodes()) findProject(node.project).ext.mcVersion = node.mcVersion
+}
+
+tasks.register('verifyDDSTweak') {
+    group = 'verification'
+    description = 'Verifies DDS Tweak multi-version, ownership and protocol invariants.'
+    doLast {
+        def required = [
+                'src/main/java/ddstweak/DDSTweak.java',
+                'src/main/java/ddstweak/DDSTweakReference.java',
+                'src/main/java/ddstweak/DDSTweakInitHandler.java',
+                'src/main/java/ddstweak/gui/DDSTweakConfigScreen.java',
+                'src/main/java/ddstweak/network/DdsClientCapabilityRegistry.java',
+                'src/main/java/ddstweak/network/DdsWirePayloadBridge.java',
+                'src/main/java/ddstweak/network/ownership/DdsLocalOwnershipResolver.java',
+                'src/main/java/ddstweak/integration/dds/DdsIntegrationBootstrap.java',
+                'src/main/java/ddstweak/integration/dds/qca/DdsQcaClientNetwork.java',
+                'src/main/java/ddstweak/integration/dds/undoredo/DdsUndoRedoClientNetwork.java',
+                'src/main/java/ddstweak/integration/dds/fakeplayer/DdsFakePlayerMenuOpenState.java',
+                'src/main/java/ddstweak/mixin/DdsTweakMixinConfigPlugin.java',
+                'src/main/resources/fabric.mod.json',
+                'src/main/resources/dds-tweak.mixins.json',
+                'common.gradle',
+                'gradlew',
+                'gradlew.bat',
+                'gradle/wrapper/gradle-wrapper.jar',
+                'gradle/wrapper/gradle-wrapper.properties',
+                'src/main/java/ddstweak/platform/minecraft/MinecraftCompat.java',
+                'src/main/java/ddstweak/platform/malilib/MalilibCompat.java',
+                'settings.json',
+                'config/dds-client-ownership-contract.json',
+                'config/version-capability-boundaries.json',
+                'docs/VERSION_CAPABILITY_BOUNDARIES.md',
+                'tools/sync-dds-client-ownership-contract.py',
+                'versions/mainProject'
+        ]
+        required.each { p -> if (!file(p).isFile()) throw new GradleException("Missing required file: ${p}") }
+        def wrapperProps = file('gradle/wrapper/gradle-wrapper.properties').getText('UTF-8')
+        if (!wrapperProps.contains('gradle-9.6.0-bin.zip'))
+            throw new GradleException('Gradle Wrapper must remain pinned to 9.6.0')
+
+        if (file('versions/mainProject').getText('UTF-8').trim() != cfg.preprocessMainProject.toString())
+            throw new GradleException('versions/mainProject must match settings.json preprocessMainProject')
+        if (!cfg.versions.contains(cfg.coreVersion) || !cfg.versions.contains(cfg.preprocessMainProject))
+            throw new GradleException('coreVersion and preprocessMainProject must exist in versions')
+        if (!cfg.versions.containsAll(supportedVersions))
+            throw new GradleException('activeVersions must be a subset of versions')
+
+        if (versionCapabilityContract.schema?.toString() != '1')
+            throw new GradleException('Invalid version capability boundary contract schema')
+        def boundaryIds = versionCapabilityFeatures.collect { it.id?.toString() }
+        if (boundaryIds.any { !it } || boundaryIds.toSet().size() != boundaryIds.size())
+            throw new GradleException('Version capability boundary ids must be non-empty and unique')
+        def configsSource = file('src/main/java/ddstweak/config/Configs.java').getText('UTF-8')
+        def mixinsSource = file('src/main/resources/dds-tweak.mixins.json').getText('UTF-8')
+        versionCapabilityFeatures.each { feature ->
+            def id = feature.id?.toString()
+            def minMinecraft = feature.minMinecraft?.toString()
+            def minCode = feature.minMcVersionCode as Integer
+            def prefixes = (feature.javaPrefixes ?: []).collect { it.toString() }
+            def mixins = (feature.mixins ?: []).collect { it.toString() }
+            def configOwner = feature.configOwner?.toString()
+            def configKey = feature.configKey?.toString()
+            if (!minMinecraft || minCode <= 0 || prefixes.isEmpty() || !configOwner || !configKey)
+                throw new GradleException("Incomplete version capability boundary: ${id}")
+            prefixes.each { prefix ->
+                if (!prefix.startsWith('ddstweak/') || !file("src/main/java/${prefix}").isDirectory())
+                    throw new GradleException("Invalid Java prefix for version capability ${id}: ${prefix}")
+            }
+            if (!configsSource.contains("\"${configKey}\""))
+                throw new GradleException("Config key for version capability ${id} is missing from Configs.java: ${configKey}")
+            mixins.each { mixin ->
+                if (!mixinsSource.contains("\"${mixin}\""))
+                    throw new GradleException("Mixin for version capability ${id} is missing from dds-tweak.mixins.json: ${mixin}")
+            }
+        }
+
+        if (clientOwnershipContract.schema?.toString() != '1'
+                || clientOwnershipContract.canonicalSource?.toString()
+                != 'x-oOvOo-x/Carpet-DDS-Addition-Dev:config/dds-client-ownership-contract.json') {
+            throw new GradleException('Invalid DDS client ownership contract snapshot identity')
+        }
+
+        def ownershipVersions = ownershipTargets.collect { it.minecraft.toString() }
+        if (ownershipVersions.toSet().size() != ownershipVersions.size())
+            throw new GradleException('DDS client ownership contract snapshot contains duplicate Minecraft targets')
+
+        def contractTweakActive = ownershipTargets.findAll {
+            it.tweakNodeStatus == 'active'
+        }.collect {
+            it.minecraft.toString()
+        } as Set
+        if ((supportedVersions as Set) != contractTweakActive)
+            throw new GradleException('Tweak activeVersions drifted from DDS client ownership contract snapshot')
+
+        def publishedOwnership = ownershipTargets.findAll {
+            it.ddsPublishesTweakOwnership == true
+        }.collect {
+            it.minecraft.toString()
+        } as Set
+        def pairedHandoff = ownershipTargets.findAll {
+            it.pairedHandoffVerified == true
+        }.collect {
+            it.minecraft.toString()
+        } as Set
+        if (!publishedOwnership.containsAll(pairedHandoff))
+            throw new GradleException('Verified handoff target must publish DDS Tweak ownership')
+        if (!contractTweakActive.containsAll(pairedHandoff))
+            throw new GradleException('Verified handoff target must have an active Tweak node')
+        if (ownershipTargets.any {
+            it.pairedHandoffVerified == true
+                    && (it.ddsStatus != 'active' || it.tweakNodeStatus != 'active')
+        }) {
+            throw new GradleException('Verified handoff target must be active in both repositories')
+        }
+
+        def loadProps = { String version ->
+            def props = new Properties()
+            file("versions/${version}/gradle.properties").withInputStream { props.load(it) }
+            props
+        }
+        supportedVersions.each { version ->
+            def props = loadProps(version)
+            ['minecraft_version','minecraft_dependency','fabric_api_version','fabric_api_dependency','malilib_version','malilib_coordinate','malilib_dependency','loader_dependency','java_dependency'].each { key ->
+                if (!props.getProperty(key)) throw new GradleException("Missing ${key} for Minecraft ${version}")
+            }
+            if (props.getProperty('minecraft_version') != version)
+                throw new GradleException("Version node ${version} has mismatched minecraft_version")
+        }
+
+        def commonText = file('common.gradle').getText('UTF-8')
+        for (def token : ['project.malilib_coordinate','project.fabric_api_version','project.mcVersion','net.fabricmc.fabric-loom-remap','com.replaymod.preprocess'])
+            if (!commonText.contains(token)) throw new GradleException("Shared multi-version build contract missing: ${token}")
+        if (!commonText.contains('net.fabricmc.fabric-api:fabric-api:') || commonText.contains('fabricApi.module(') || commonText.contains('include module'))
+            throw new GradleException('Fabric API must be an external full-mod dependency and must not be embedded by module')
+
+        def invalidPreprocessMarkers = []
+        [fileTree('src') { include '**/*.java' }, fileTree('versions') { include '**/src/**/*.java' }].each { tree ->
+            tree.each { f ->
+                f.readLines('UTF-8').eachWithIndex { line, index ->
+                    def stripped = line.stripLeading()
+                    if (stripped.startsWith('//$') && !stripped.startsWith('//$$'))
+                        invalidPreprocessMarkers << "${projectDir.toPath().relativize(f.toPath())}:${index + 1}"
+                }
+            }
+        }
+        if (!invalidPreprocessMarkers.isEmpty())
+            throw new GradleException('Invalid single-dollar ReplayMod preprocess marker. Files: ' + invalidPreprocessMarkers.join(', '))
+
+        def stale = fileTree('src/main') { include '**/*.java', '**/*.json' }.findAll { f ->
+            def t = f.getText('UTF-8')
+            t.contains('dev.ys.ddsclient') || t.contains('"dds-client"') || t.contains('dds-client.mixins.json') || t.contains('FAKE_PLAYER_SORT_C2S')
+        }
+        if (!stale.isEmpty()) throw new GradleException("Stale DDS Client/protocol identity remains in: ${stale*.path.join(', ')}")
+        if (file('src/main/java/ddstweak/fakeplayer').exists()) throw new GradleException('Legacy ddstweak.fakeplayer package must not exist')
+
+        def modJson = file('src/main/resources/fabric.mod.json').getText('UTF-8')
+        if (!modJson.contains('"id": "dds-tweak"') || !modJson.contains('"ddstweak.DDSTweak"')) throw new GradleException('fabric.mod.json identity changed')
+        if (!modJson.contains('"minecraft": "${minecraft_dependency}"')) throw new GradleException('Minecraft runtime compatibility must use per-target minecraft_dependency, not the build minecraft_version')
+        if (!modJson.contains('"fabric-api": "${fabric_api_dependency}"')) throw new GradleException('Fabric API must remain a required per-target dependency')
+        if (!modJson.contains('"malilib": "${malilib_dependency}"')) throw new GradleException('MaLiLib must remain a required per-target dependency')
+        if (modJson.contains('"carpet-dds-addition"')) throw new GradleException('DDS Tweak must not require DDS at mod-load time')
+
+        def protocol = file('src/main/java/ddstweak/network/DdsProtocol.java').getText('UTF-8')
+        if (!protocol.contains('VERSION=1') || !protocol.contains('MinecraftCompat.id("carpet-dds-addition","network/v1")'))
+            throw new GradleException('DDS Protocol v1 core contract changed unexpectedly')
+        for (def token : ['fake_player_action_c2s','fake_player_open_menu_s2c','qca_open_slot_c2s','qca_storage_click_c2s','undo_c2s','redo_c2s'])
+            if (protocol.contains(token)) throw new GradleException("Feature packet id leaked into generic protocol: ${token}")
+
+        def network = file('src/main/java/ddstweak/network/DdsClientNetwork.java').getText('UTF-8')
+        if (network.contains('integration.dds.fakeplayer') || network.contains('integration.dds.qca') || network.contains('integration.dds.undoredo'))
+            throw new GradleException('Generic DdsClientNetwork must remain feature-agnostic')
+        def hardDdsImports = fileTree('src/main/java') { include '**/*.java' }.findAll { it.getText('UTF-8') =~ /(?m)^import\s+carpetddsaddition\./ }
+        if (!hardDdsImports.isEmpty()) throw new GradleException("DDS Tweak must not compile against DDS classes: ${hardDdsImports*.path.join(', ')}")
+        def hardGcaImports = fileTree('src/main/java') { include '**/*.java' }.findAll { it.getText('UTF-8') =~ /(?m)^import\s+dev\.dubhe\.gugle\./ }
+        if (!hardGcaImports.isEmpty()) throw new GradleException("DDS Tweak GCA integration must remain optional and protocol/menu based: ${hardGcaImports*.path.join(', ')}")
+
+        def bootstrap = file('src/main/java/ddstweak/integration/dds/DdsIntegrationBootstrap.java').getText('UTF-8')
+        def plugin = file('src/main/java/ddstweak/mixin/DdsTweakMixinConfigPlugin.java').getText('UTF-8')
+        if (!bootstrap.contains('tweakOwnsFeatureClient()') || !plugin.contains('tweakOwnsFeatureClient()'))
+            throw new GradleException('Feature bootstrap/Mixin ownership gate missing')
+        def ownership = file('src/main/java/ddstweak/network/ownership/DdsLocalOwnershipResolver.java').getText('UTF-8')
+        def decision = file('src/main/java/ddstweak/network/ownership/DdsLocalOwnershipDecision.java').getText('UTF-8')
+        def bridge = file('src/main/java/ddstweak/network/DdsWirePayloadBridge.java').getText('UTF-8')
+        if (!ownership.contains('dds:network_ownership') || !ownership.contains('logical_client_owner') || !ownership.contains('wire_mode'))
+            throw new GradleException('DDS loader ownership metadata contract missing')
+        if (!decision.contains('HANDOFF_DDS_PAYLOAD_CODEC') || !decision.contains('disableTweakCodecMixins'))
+            throw new GradleException('DDS payload-codec handoff decision missing')
+        if (!bridge.contains('HANDOFF_DDS_PAYLOAD_CODEC') || !bridge.contains('carpetddsaddition.network.DdsProtocol$Payload'))
+            throw new GradleException('DDS same-JVM payload bridge contract missing')
+    }
+}
+
+tasks.register('test') {
+    group = 'verification'
+    dependsOn ":${ddsTweakCoreVersion}:test"
+}
+tasks.register('buildAll') {
+    group = 'build'
+    dependsOn 'verifyDDSTweak'
+    dependsOn supportedVersions.collect { ":${it}:build" }
+}
+tasks.register('build') {
+    group = 'build'
+    dependsOn 'buildAll'
+}
+tasks.register('buildAndGather') {
+    group = 'build'
+    dependsOn 'buildAll'
+    doLast {
+        def out = layout.buildDirectory.dir('releases').get().asFile
+        delete out
+        out.mkdirs()
+        supportedVersions.each { version ->
+            def target = project(":${version}")
+            def jar = target.tasks.named(target.ext.releaseJarTaskName).get().archiveFile.get().asFile
+            copy { from jar; into out }
+
+            def processedModFile = target.layout.buildDirectory.file('resources/main/fabric.mod.json').get().asFile
+            if (!processedModFile.isFile()) throw new GradleException("Missing processed fabric.mod.json for ${version}")
+            def processedMod = new JsonSlurper().parse(processedModFile)
+            if (processedMod.depends?.minecraft?.toString() != target.minecraft_dependency.toString())
+                throw new GradleException("Processed Minecraft dependency mismatch for ${version}: expected ${target.minecraft_dependency}, found ${processedMod.depends?.minecraft}")
+            def processedFabricApiDependency = processedMod.depends?.get('fabric-api')?.toString()
+            if (processedFabricApiDependency != target.fabric_api_dependency.toString())
+                throw new GradleException("Processed Fabric API dependency mismatch for ${version}: expected ${target.fabric_api_dependency}, found ${processedFabricApiDependency}")
+
+            def mixinFile = target.layout.buildDirectory.file('resources/main/dds-tweak.mixins.json').get().asFile
+            if (!mixinFile.isFile()) throw new GradleException("Missing processed mixin config for ${version}")
+            def clientMixins = (new JsonSlurper().parse(mixinFile).client ?: []) as Set
+            def modernHelpfulHitboxes = 'feature.helpfulhitboxes.BlockStateBaseMixin'
+            def legacyHelpfulHitboxes = 'feature.helpfulhitboxes.LegacyBlockShapeMixin'
+            if (target.mcVersion < 1_16_00) {
+                if (clientMixins.contains(modernHelpfulHitboxes) || !clientMixins.contains(legacyHelpfulHitboxes))
+                    throw new GradleException("Helpful Hitboxes must use only the legacy outline hook before 1.16: ${version}")
+            } else if (!clientMixins.contains(modernHelpfulHitboxes) || clientMixins.contains(legacyHelpfulHitboxes)) {
+                throw new GradleException("Helpful Hitboxes must use only the BlockStateBase outline hook from 1.16 onward: ${version}")
+            }
+            def releaseJar = new java.util.jar.JarFile(jar)
+            try {
+                def entryNames = [] as Set
+                def entries = releaseJar.entries()
+                while (entries.hasMoreElements()) entryNames.add(entries.nextElement().name)
+
+                def embeddedFabricApi = entryNames.findAll { name ->
+                    name.startsWith('META-INF/jars/') && name.toLowerCase().contains('fabric-')
+                }
+                if (!embeddedFabricApi.isEmpty())
+                    throw new GradleException("Release JAR must not embed Fabric API modules for ${version}: ${embeddedFabricApi.sort().join(', ')}")
+
+                versionCapabilityFeatures.each { feature ->
+                    def id = feature.id.toString()
+                    def available = target.mcVersion >= (feature.minMcVersionCode as int)
+                    (feature.javaPrefixes ?: []).each { rawPrefix ->
+                        def prefix = rawPrefix.toString()
+                        def present = entryNames.any { it.startsWith(prefix) }
+                        if (present != available)
+                            throw new GradleException("Version capability Java boundary mismatch for ${id} on ${version}: prefix ${prefix}, expected present=${available}")
+                    }
+
+                    def configClass = 'ddstweak/config/Configs$' + feature.configOwner.toString() + '.class'
+                    def configEntry = releaseJar.getJarEntry(configClass)
+                    if (configEntry == null)
+                        throw new GradleException("Missing config class while checking version capability ${id} on ${version}: ${configClass}")
+                    def configClassText = new String(releaseJar.getInputStream(configEntry).bytes, java.nio.charset.StandardCharsets.ISO_8859_1)
+                    def configPresent = configClassText.contains(feature.configKey.toString())
+                    if (configPresent != available)
+                        throw new GradleException("Version capability config boundary mismatch for ${id} on ${version}: key ${feature.configKey}, expected present=${available}")
+
+                    (feature.mixins ?: []).each { rawMixin ->
+                        def mixin = rawMixin.toString()
+                        def present = clientMixins.contains(mixin)
+                        if (present != available)
+                            throw new GradleException("Version capability Mixin boundary mismatch for ${id} on ${version}: ${mixin}, expected present=${available}")
+                    }
+                }
+            } finally {
+                releaseJar.close()
+            }
+        }
+    }
+}

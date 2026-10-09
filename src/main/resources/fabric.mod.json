@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "dds-tweak",
+  "version": "${version}",
+  "name": "DDS Tweak",
+  "description": "Client-side tweaks and the optional companion UI for Carpet DDS Addition.",
+  "authors": ["_xoO_Oox_"],
+  "icon": "assets/dds-tweak/icon.png",
+  "license": "LGPL-3.0-only",
+  "environment": "client",
+  "entrypoints": {"client": ["ddstweak.DDSTweak"]},
+  "mixins": ["dds-tweak.mixins.json"],
+  "depends": {
+    "fabricloader": "${loader_dependency}",
+    "fabric-api": "${fabric_api_dependency}",
+    "minecraft": "${minecraft_dependency}",
+    "java": "${java_dependency}",
+    "malilib": "${malilib_dependency}"
+  }
+}

@@ -1,0 +1,2 @@
+package ddstweak.integration.dds.playerinventory;
+public enum PlayerInventoryFallbackPolicy{KEEP_SOURCE_SCREEN,REJECT_INCOMPATIBLE_CONTAINER}

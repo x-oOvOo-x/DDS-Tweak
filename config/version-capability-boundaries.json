@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "features": [
+    {
+      "id": "chatTooltipOcclusion",
+      "minMinecraft": "1.15.2",
+      "minMcVersionCode": 11502,
+      "configOwner": "Tweaks",
+      "configKey": "chatTooltipOcclusion",
+      "javaPrefixes": [
+        "ddstweak/feature/chattooltip/",
+        "ddstweak/mixin/feature/chattooltip/"
+      ],
+      "mixins": [
+        "feature.chattooltip.ChatScreenAccessor",
+        "feature.chattooltip.CommandSuggestionsAccessor",
+        "feature.chattooltip.SuggestionsListAccessor",
+        "feature.chattooltip.ChatTooltipRenderMixin"
+      ]
+    },
+    {
+      "id": "compactStatusEffects",
+      "minMinecraft": "1.21.1",
+      "minMcVersionCode": 12101,
+      "configOwner": "Visual",
+      "configKey": "compactStatusEffects",
+      "javaPrefixes": [
+        "ddstweak/feature/compactstatuseffects/",
+        "ddstweak/mixin/feature/compactstatuseffects/"
+      ],
+      "mixins": []
+    },
+    {
+      "id": "noCommandConfirm",
+      "minMinecraft": "1.21.6",
+      "minMcVersionCode": 12106,
+      "configOwner": "Tweaks",
+      "configKey": "noCommandConfirm",
+      "javaPrefixes": [
+        "ddstweak/feature/nocommandconfirm/",
+        "ddstweak/mixin/feature/nocommandconfirm/"
+      ],
+      "mixins": [
+        "feature.nocommandconfirm.ClientPacketListenerMixin"
+      ]
+    },
+    {
+      "id": "disableEndFlash",
+      "minMinecraft": "1.21.9",
+      "minMcVersionCode": 12109,
+      "configOwner": "Visual",
+      "configKey": "disableEndFlash",
+      "javaPrefixes": [
+        "ddstweak/feature/disableendflash/",
+        "ddstweak/mixin/feature/disableendflash/"
+      ],
+      "mixins": [
+        "feature.disableendflash.SkyRendererMixin",
+        "feature.disableendflash.LightTextureMixin"
+      ]
+    },
+    {
+      "id": "betterSnowCoverage",
+      "minMinecraft": "1.21.11",
+      "minMcVersionCode": 12111,
+      "configOwner": "Visual",
+      "configKey": "betterSnowCoverage",
+      "javaPrefixes": [
+        "ddstweak/feature/bettersnowcoverage/"
+      ],
+      "mixins": []
+    }
+  ]
+}
