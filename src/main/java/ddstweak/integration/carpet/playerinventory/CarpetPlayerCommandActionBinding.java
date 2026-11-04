@@ -28,15 +28,25 @@ public final class CarpetPlayerCommandActionBinding implements PlayerInventoryAc
     }
 
     @Override public boolean canSend(){
-        return menu!=null&&menu.context().targetState()==PlayerInventoryTargetState.ONLINE
-                &&menu.targetType()!=PlayerInventoryTargetType.REAL&&CarpetPlayerCommandBridge.available();
+        //#if MC >= 12111
+        return menu!=null&&menu.context().targetState()!=PlayerInventoryTargetState.OFFLINE
+                &&CarpetPlayerCommandBridge.available();
+        //#else
+        //$$ return menu!=null&&menu.context().targetState()==PlayerInventoryTargetState.ONLINE
+        //$$         &&menu.targetType()!=PlayerInventoryTargetType.REAL&&CarpetPlayerCommandBridge.available();
+        //#endif
     }
 
     @Override public boolean supports(PlayerInventoryAction action){
         if(!canSend()||action==null||!action.allowedIn(menu.kind())||!CarpetPlayerCommandBridge.supports(action))return false;
         if(action==PlayerInventoryAction.ENDER_DROP_ALL||action==PlayerInventoryAction.ENDER_STORE_ALL||action==PlayerInventoryAction.ENDER_TAKE_ALL)return false;
-        if(action==PlayerInventoryAction.DROP_ALL||action==PlayerInventoryAction.DISCONNECT||action==PlayerInventoryAction.TOGGLE_SNEAK)
-            return PlayerIdentityResolver.isAuthoritativeFake(menu.context());
+        //#if MC >= 12111
+        // Standard Carpet commands, including kill, are target-validated by the server.
+        // Never use local REAL/FAKE classification as a substitute for authorization.
+        //#else
+        //$$ if(action==PlayerInventoryAction.DROP_ALL||action==PlayerInventoryAction.DISCONNECT||action==PlayerInventoryAction.TOGGLE_SNEAK)
+        //$$     return PlayerIdentityResolver.isAuthoritativeFake(menu.context());
+        //#endif
         return true;
     }
 

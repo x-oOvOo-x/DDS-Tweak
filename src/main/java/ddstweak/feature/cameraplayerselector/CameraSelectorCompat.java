@@ -2,7 +2,6 @@ package ddstweak.feature.cameraplayerselector;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.tree.CommandNode;
 import ddstweak.integration.provider.PlayerIdentityResolver;
 import ddstweak.platform.minecraft.MinecraftCompat;
 //#if MC >= 260300
@@ -12,7 +11,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 final class CameraSelectorCompat {
@@ -35,17 +33,17 @@ final class CameraSelectorCompat {
         return Collections.unmodifiableList(result);
     }
 
-    static boolean supports(Minecraft minecraft,String... path){
-        try{
-            ClientPacketListener connection=minecraft==null?null:minecraft.getConnection();
-            CommandNode<?> node=connection==null?null:connection.getCommands().getRoot().getChild("c");
-            for(String child:path){if(node==null)return false;node=node.getChild(child);}
-            return node!=null;
-        }catch(RuntimeException ignored){return false;}
+    /** A configured template can be submitted; only the server decides permission. */
+    static boolean configured(CameraCommandProfile profile,CameraCommandProfile.Action action){
+        return profile!=null&&CameraCommandProfile.validate(action,profile.get(action))==null
+                &&profile.get(action)!=null&&!profile.get(action).isEmpty();
     }
 
-    static boolean supportsDestinationTeleport(Minecraft minecraft){
-        return supports(minecraft,"tp","dimension","dimension","pos");
+    /** Command arguments use names, so reject stale name/UUID snapshots before dispatch. */
+    static boolean matchesSnapshot(Minecraft minecraft,CameraPlayerEntry entry){
+        if(entry==null)return false;
+        PlayerInfo current=info(minecraft,entry.uuid);
+        return current!=null&&entry.name.equals(MinecraftCompat.gameProfileName(current.getProfile()));
     }
 
     static boolean online(Minecraft minecraft,UUID uuid){return info(minecraft,uuid)!=null;}
@@ -79,23 +77,25 @@ final class CameraSelectorCompat {
         //#endif
     }
 
-    static boolean toggleCamera(Minecraft minecraft){return send(minecraft,"c");}
-    static boolean backCamera(Minecraft minecraft){return send(minecraft,"c back");}
-    static String tpCommand(String name){return "c tp "+StringArgumentType.escapeIfRequired(name);}
-    static boolean tpPlayer(Minecraft minecraft,String name){return send(minecraft,tpCommand(name));}
-    static String followCommand(String name){return "c follow "+StringArgumentType.escapeIfRequired(name);}
-    static boolean followPlayer(Minecraft minecraft,String name){return send(minecraft,followCommand(name));}
-    static boolean tpDimension(Minecraft minecraft,String dimension){return send(minecraft,"c tp dimension "+dimension);}
-
-    static String destinationCommand(CameraDestination destination){
-        return "c tp dimension "+destination.dimension()+" "
-                +formatNumber(destination.x())+" "
-                +formatNumber(destination.y())+" "
-                +formatNumber(destination.z());
+    static boolean sendAction(Minecraft minecraft,CameraCommandProfile profile,CameraCommandProfile.Action action){
+        if(!configured(profile,action))return false;
+        return CameraCommandSyntax.send(minecraft,profile.render(action));
     }
-
-    static boolean tpDestination(Minecraft minecraft,CameraDestination destination){
-        return destination!=null&&destination.isValid()&&send(minecraft,destinationCommand(destination));
+    static boolean sendPlayer(Minecraft minecraft,CameraCommandProfile profile,CameraCommandProfile.Action action,String name){
+        if(!configured(profile,action))return false;
+        return CameraCommandSyntax.send(minecraft,profile.renderPlayer(action,name));
+    }
+    static boolean sendDimension(Minecraft minecraft,CameraCommandProfile profile,String dimension){
+        if(!configured(profile,CameraCommandProfile.Action.DIMENSION))return false;
+        return CameraCommandSyntax.send(minecraft,profile.renderDimension(CameraCommandProfile.Action.DIMENSION,dimension));
+    }
+    static boolean sendDestination(Minecraft minecraft,CameraCommandProfile profile,CameraDestination destination){
+        if(destination==null||!destination.isValid()||!configured(profile,CameraCommandProfile.Action.DESTINATION))return false;
+        return CameraCommandSyntax.send(minecraft,profile.renderDestination(destination));
+    }
+    static String preview(CameraCommandProfile profile,CameraCommandProfile.Action action,String player){
+        String command=profile.renderPlayer(action,player);
+        return command==null?"":CameraCommandSyntax.display(command);
     }
 
     static String coordinateText(CameraDestination destination){
@@ -108,7 +108,7 @@ final class CameraSelectorCompat {
     }
 
     static String formatCapturedCoordinate(double value){
-        return BigDecimal.valueOf(value).setScale(2,RoundingMode.DOWN).toPlainString();
+        return Long.toString((long)Math.floor(value));
     }
 
     static double playerX(Minecraft minecraft){
@@ -151,5 +151,4 @@ final class CameraSelectorCompat {
         //#endif
     }
 
-    private static boolean send(Minecraft minecraft,String command){return MinecraftCompat.sendServerCommandSilently(minecraft,command);}
 }

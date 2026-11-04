@@ -19,6 +19,95 @@ final class GcaPlayerInventoryAdapterTest{
         assertTrue(adapter.contains("的末影箱"));
     }
 
+    @Test void remoteGcaRenderedTitlesMatchOnlineProfilesExactly(){
+        java.util.List<String> online=java.util.Arrays.asList("Alex","Alexa");
+        assertEquals("Alex",GcaPlayerInventoryAdapter.matchingRenderedTarget("Alex's Inventory",online));
+        assertEquals("Alexa",GcaPlayerInventoryAdapter.matchingRenderedTarget("Alexa's Ender Chest",online));
+        assertEquals("Alex",GcaPlayerInventoryAdapter.matchingRenderedTarget("Alex的末影箱",online));
+        assertEquals("Alex",GcaPlayerInventoryAdapter.matchingRenderedTarget("Alex's Other Controller",online));
+        assertEquals("",GcaPlayerInventoryAdapter.matchingRenderedTarget("Alex's Inventory",java.util.Collections.singletonList("Alexa")));
+        assertEquals("",GcaPlayerInventoryAdapter.matchingRenderedTarget("Alex's Shulker Box",online));
+        assertEquals("",GcaPlayerInventoryAdapter.matchingRenderedTarget("Inventory",online));
+    }
+
+    @Test void onlyUniqueAccountEvidenceCanBecomeACarpetTarget(){
+        java.util.List<String> online=java.util.Arrays.asList("Log","Alex","Bot_Alex");
+        java.util.Map<String,String> displays=new java.util.LinkedHashMap<>();
+        displays.put("Log","[Log head] 假的Log");
+        displays.put("Alex","假的Alex");
+        assertEquals("Log",GcaPlayerInventoryAdapter.verifiedAccountName("Log",online,displays));
+        assertEquals("Log",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "[Log head] 假的Log",online,displays));
+        assertEquals("Alex",GcaPlayerInventoryAdapter.verifiedAccountName("假的Alex",online,displays));
+        assertEquals("Bot_Alex",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "Bot_Alex",online,java.util.Collections.emptyMap()));
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "假的Log",online,java.util.Collections.emptyMap()));
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "fake_Alex",online,java.util.Collections.emptyMap()));
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "Alex_Bot",online,java.util.Collections.emptyMap()));
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "[Log head] 假的Log",online,java.util.Collections.emptyMap()));
+    }
+
+    @Test void differentProfilesWithSameDisplayOrNameConflictAreRejected(){
+        java.util.Map<String,String> displays=new java.util.LinkedHashMap<>();
+        displays.put("Alex","Bot_Alex");
+        displays.put("Bot_Alex","Different");
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "Bot_Alex",java.util.Arrays.asList("Alex","Bot_Alex"),displays));
+        displays.put("Bot_Alex","Bot_Alex");
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "Bot_Alex",java.util.Arrays.asList("Alex","Bot_Alex"),displays));
+        displays.clear();
+        displays.put("Alex","假的玩家");
+        displays.put("Steve","假的玩家");
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "假的玩家",java.util.Arrays.asList("Alex","Steve"),displays));
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "Alex",java.util.Collections.emptyList(),java.util.Collections.emptyMap()));
+    }
+
+    @Test void arbitraryAccountNamesAndChineseProfilesAreNeverRewritten(){
+        java.util.List<String> online=java.util.Arrays.asList(
+                "假的Alex","Bot_Alex","Alex_bots","测试员");
+        java.util.Map<String,String> noDisplay=java.util.Collections.emptyMap();
+        for(String name:online)
+            assertEquals(name,GcaPlayerInventoryAdapter.verifiedAccountName(name,online,noDisplay));
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "假的测试员",online,noDisplay));
+        assertEquals("",GcaPlayerInventoryAdapter.verifiedAccountName(
+                "bot_测试员",online,noDisplay));
+        assertTrue(GcaPlayerInventoryAdapter.isPlainPlayerName("Log_123"));
+        assertTrue(GcaPlayerInventoryAdapter.isPlainPlayerName("中文角色"));
+        assertFalse(GcaPlayerInventoryAdapter.isPlainPlayerName("中文 角色"));
+        assertFalse(GcaPlayerInventoryAdapter.isPlainPlayerName("[Log head] 假的Log"));
+    }
+
+    @Test void gcaIdentityFallbackDoesNotInferProfilesFromTitles()throws IOException{
+        String source=read("ddstweak/integration/gca/playerinventory/GcaPlayerInventoryAdapter.java");
+        assertTrue(source.contains("verifiedAccountName(fallback,online,loadedDisplays)"));
+        assertTrue(source.contains("if(name.isEmpty())return new Identity(null,\"\",PlayerInventoryTargetType.UNKNOWN)"));
+        assertFalse(source.contains("removeKnownAffix("));
+        assertFalse(source.contains("decoratedTargetName("));
+        assertFalse(source.contains("structuredPlayerName("));
+        assertFalse(source.contains("displayTargetName("));
+        assertTrue(source.contains("GcaPlayerInteractionIntent.consume(containerId,title,kind)"));
+    }
+
+    @Test void remoteTargetDiscoveryDoesNotUseTitlesForFakeAuthorization()throws IOException{
+        String adapter=read("ddstweak/integration/gca/playerinventory/GcaPlayerInventoryAdapter.java");
+        assertTrue(adapter.contains("getOnlinePlayers()"));
+        assertTrue(adapter.contains("matchingRenderedTarget(title,candidates)"));
+        assertTrue(adapter.contains("PlayerIdentityResolver.resolve(uuid)"));
+        String modern=adapter.substring(adapter.indexOf("private static String findTargetName("),
+                adapter.indexOf("//#else",adapter.indexOf("private static String findTargetName(")));
+        assertFalse(modern.contains("title.contains(name)"));
+        assertFalse(modern.contains("title.contains(display)"));
+        assertTrue(adapter.contains("//#if MC >= 12111"));
+    }
+
     @Test void unknownIdentityKeepsOnlyServerValidatedOrdinaryActions()throws IOException{
         String adapter=read("ddstweak/integration/gca/playerinventory/GcaPlayerInventoryAdapter.java");
         assertTrue(adapter.contains("if(type==PlayerInventoryTargetType.REAL)return Collections.emptySet()"));
@@ -32,34 +121,51 @@ final class GcaPlayerInventoryAdapterTest{
         assertTrue(adapter.contains("actions.remove(PlayerInventoryAction.TOGGLE_SNEAK)"));
     }
 
-    @Test void commandBridgeSupportsArbitraryCarpetIntervalsAndStandardControls()throws IOException{
+    @Test void carpetCommandsNeverContainDecoratedGcaDisplayNames(){
+        assertFalse(ddstweak.integration.carpet.playerinventory.CarpetPlayerCommandBridge
+                .validTargetName("[Log head] 假的Log"));
+        assertNull(ddstweak.integration.carpet.playerinventory.CarpetPlayerCommandBridge.commandFor(
+                "[Log head] 假的Log",ddstweak.integration.dds.playerinventory.PlayerInventoryAction.SELECT_HOTBAR,1));
+        assertEquals("player Log hotbar 1",
+                ddstweak.integration.carpet.playerinventory.CarpetPlayerCommandBridge.commandFor(
+                        "Log",ddstweak.integration.dds.playerinventory.PlayerInventoryAction.SELECT_HOTBAR,1));
+    }
+
+    @Test void gcaMainhandHotbarAndOffhandKeepTheirUpstreamSlotIds()throws IOException{
+        String menu=read("ddstweak/integration/dds/playerinventory/menu/UnifiedPlayerInventoryMirrorMenu.java");
+        assertTrue(menu.contains("GCA_EQUIPMENT_MAPPING={1,2,3,4,7}"));
+        assertTrue(menu.contains("GCA_HOTBAR_MAPPING=createMapping(45,9)"));
+        assertTrue(menu.contains("new EquipmentClientSlot(equipment,4,77,62,false,shieldIcon())"));
+        assertTrue(menu.contains("addSlot(new Slot(hotbar,i,8+i*18,142))"));
+    }
+
+    @Test void commandBridgeKeepsCarpetSyntaxWithoutUsingPermissionFilteredTree()throws IOException{
         String bridge=read("ddstweak/integration/carpet/playerinventory/CarpetPlayerCommandBridge.java");
         assertTrue(bridge.contains("attack interval "));
         assertTrue(bridge.contains("use interval "));
         assertTrue(bridge.contains("attack continuous"));
         assertTrue(bridge.contains("use continuous"));
         assertTrue(bridge.contains(" hotbar "));
-        assertTrue(bridge.contains("child(drop,\"all\")"));
         assertTrue(bridge.contains(" kill"));
         assertTrue(bridge.contains("PlayerInventoryBehaviorV1.clampInterval(value)"));
-        assertTrue(bridge.contains("path(target,\"attack\",\"interval\")"));
-        assertTrue(bridge.contains("path(target,\"use\",\"interval\")"));
-        assertTrue(bridge.contains("path(target,\"attack\",\"stop\")"));
-        assertTrue(bridge.contains("path(target,\"use\",\"stop\")"));
-        assertTrue(bridge.contains("path(target,\"attack\",\"once\")"));
-        assertTrue(bridge.contains("path(target,\"use\",\"once\")"));
         assertTrue(bridge.contains("attack once"));
         assertTrue(bridge.contains("use once"));
-        assertTrue(bridge.contains("child(target,\"sneak\")"));
-        assertTrue(bridge.contains("child(target,\"kill\")"));
+        assertTrue(bridge.contains("path(targetNode(),\"attack\",\"stop\")"));
+        assertTrue(bridge.contains("path(targetNode(),\"use\",\"stop\")"));
+        int start=bridge.indexOf("public static boolean supports(PlayerInventoryAction action)");
+        int end=bridge.indexOf("public static Set<PlayerInventoryAction> supportedActions()",start);
+        assertTrue(start>=0&&end>start);
+        String standard=bridge.substring(start,end);
+        assertTrue(standard.contains("return true;"));
+        assertFalse(standard.contains("path(target,\"attack\",\"interval\")"));
+        assertFalse(standard.contains("path(target,\"use\",\"interval\")"));
     }
 
-    @Test void dropAllPrefersExplicitInventoryScopeWhenProviderAddsIt()throws IOException{
+    @Test void dropAllUsesInventoryScopeWhenKnownAndVanillaAllOtherwise()throws IOException{
         String bridge=read("ddstweak/integration/carpet/playerinventory/CarpetPlayerCommandBridge.java");
-        assertTrue(bridge.contains("dropAllArgument(target)!=null"));
-        assertTrue(bridge.contains("child(drop,\"inventory\")"));
+        assertTrue(bridge.contains("child(drop,\"inventory\")!=null?\"inventory\":\"all\""));
         assertTrue(bridge.contains("\"player \"+target+\" dropStack \"+argument"));
-        assertFalse(bridge.contains("case DROP_ALL:return \"player \"+target+\" dropStack all\""));
+        assertFalse(bridge.contains("dropAllArgument(target)!=null"));
     }
 
     @Test void unknownTargetsNeverFallBackToNativeControlSlots()throws IOException{

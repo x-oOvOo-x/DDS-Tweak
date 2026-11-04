@@ -59,13 +59,19 @@ public final class EnhancedStorageScreen extends AbstractContainerScreen<Abstrac
     //#if MC >= 260100
     //$$ @Override public void extractRenderState(GuiGraphicsExtractor g,int mouseX,int mouseY,float partialTick){super.extractRenderState(g,mouseX,mouseY,partialTick);}
     //#elseif MC >= 12000
-    @Override public void render(GuiGraphics g,int mouseX,int mouseY,float partialTick){super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);}
+    @Override public void render(GuiGraphics g,int mouseX,int mouseY,float partialTick){
+        //#if MC < 12002
+        //$$ renderBackground(g);
+        //#endif
+        super.render(g,mouseX,mouseY,partialTick);
+        renderTooltip(g,mouseX,mouseY);
+    }
     //#elseif MC >= 11700
-    //$$ @Override public void render(PoseStack g,int mouseX,int mouseY,float partialTick){super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);}
+    //$$ @Override public void render(PoseStack g,int mouseX,int mouseY,float partialTick){renderBackground(g);super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);}
     //#elseif MC >= 11600
-    //$$ @Override public void render(PoseStack g,int mouseX,int mouseY,float partialTick){super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);}
+    //$$ @Override public void render(PoseStack g,int mouseX,int mouseY,float partialTick){renderBackground(g);super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);}
     //#else
-    //$$ @Override public void render(int mouseX,int mouseY,float partialTick){super.render(mouseX,mouseY,partialTick);renderTooltip(mouseX,mouseY);}
+    //$$ @Override public void render(int mouseX,int mouseY,float partialTick){renderBackground();super.render(mouseX,mouseY,partialTick);renderTooltip(mouseX,mouseY);}
     //#endif
 
     //#if MC >= 260100

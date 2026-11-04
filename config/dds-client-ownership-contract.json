@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "revision": 10,
+  "revision": 12,
   "canonicalSource": "x-oOvOo-x/Carpet-DDS-Addition-Dev:config/dds-client-ownership-contract.json",
   "logicalClientOwner": "dds-tweak",
   "targets": [
     {
       "minecraft": "26.3",
-      "ddsStatus": "planned",
+      "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "DDS_PAYLOAD_CODEC",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -17,7 +17,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "DDS_PAYLOAD_CODEC",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -25,7 +25,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "DDS_PAYLOAD_CODEC",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -105,7 +105,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "DDS_PAYLOAD_READER_MAP",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -113,7 +113,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "DDS_PAYLOAD_READER_MAP",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -121,7 +121,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "LEGACY_CUSTOM_PAYLOAD",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -129,7 +129,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "LEGACY_CUSTOM_PAYLOAD",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -137,7 +137,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "LEGACY_CUSTOM_PAYLOAD",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -145,7 +145,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "LEGACY_CUSTOM_PAYLOAD",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -153,7 +153,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "LEGACY_CUSTOM_PAYLOAD",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -161,7 +161,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "LEGACY_CUSTOM_PAYLOAD",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     },
     {
@@ -169,7 +169,7 @@
       "ddsStatus": "active",
       "tweakNodeStatus": "active",
       "wireMode": "LEGACY_CUSTOM_PAYLOAD",
-      "ddsPublishesTweakOwnership": false,
+      "ddsPublishesTweakOwnership": true,
       "pairedHandoffVerified": false
     }
   ]

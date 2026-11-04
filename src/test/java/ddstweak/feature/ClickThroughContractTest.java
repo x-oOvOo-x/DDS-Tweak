@@ -107,6 +107,18 @@ final class ClickThroughContractTest {
         assertFalse(mixin.contains("PRESS_SHIFT_KEY"));
     }
 
+    @Test void signRedirectRequiresInteractiveSupportAndRealFrontRay() throws Exception {
+        String resolver=read("src/main/java/ddstweak/feature/clickthrough/ClickThroughTargetResolver.java");
+        String geometry=read("src/main/java/ddstweak/feature/clickthrough/ClickThroughGeometry.java");
+        assertTrue(resolver.contains("hit.getDirection()!=side"));
+        assertTrue(resolver.contains("ClickThroughGeometry.isFrontFace("));
+        assertTrue(resolver.contains("ClickThroughGeometry.supportHit("));
+        assertTrue(resolver.contains("redirected!=null&&ClickThroughSupportPolicy.canClickThrough"));
+        assertTrue(geometry.contains("shape.clip(eye,end,support)"));
+        assertFalse(geometry.contains("new BlockHitResult(new Vec3("));
+        assertTrue(resolver.contains("block instanceof WallBannerBlock"));
+    }
+
     @Test void existingMarkerAndSneakSemanticsRemainRegistered() throws Exception {
         String resolver=read("src/main/java/ddstweak/feature/clickthrough/ClickThroughTargetResolver.java");
         String mixin=read("src/main/java/ddstweak/mixin/feature/clickthrough/MinecraftUseItemMixin.java");

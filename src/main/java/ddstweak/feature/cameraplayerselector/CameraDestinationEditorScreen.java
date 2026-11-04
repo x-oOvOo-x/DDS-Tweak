@@ -1,6 +1,6 @@
 package ddstweak.feature.cameraplayerselector;
 
-import ddstweak.feature.dropconfirmation.DropConfirmationItemScreen;
+import ddstweak.gui.itempicker.ItemPicker;
 import ddstweak.feature.dropconfirmation.ItemRegistryCompat;
 import ddstweak.platform.minecraft.MinecraftCompat;
 import ddstweak.platform.minecraft.ScreenRenderCompat;
@@ -49,9 +49,9 @@ final class CameraDestinationEditorScreen extends Screen {
         this.parent=parent;
         this.existingId=destination==null?null:destination.id();
         this.draftName=destination==null?"":destination.name();
-        this.draftX=destination==null?"":CameraSelectorCompat.formatNumber(destination.x());
-        this.draftY=destination==null?"":CameraSelectorCompat.formatNumber(destination.y());
-        this.draftZ=destination==null?"":CameraSelectorCompat.formatNumber(destination.z());
+        this.draftX=destination==null?"":CameraSelectorCompat.formatCapturedCoordinate(destination.x());
+        this.draftY=destination==null?"":CameraSelectorCompat.formatCapturedCoordinate(destination.y());
+        this.draftZ=destination==null?"":CameraSelectorCompat.formatCapturedCoordinate(destination.z());
         this.selectedDimension=destination==null?"":destination.dimension();
         setIcon(destination==null?CameraDestination.DEFAULT_ICON_ID:destination.iconId());
     }
@@ -113,10 +113,16 @@ final class CameraDestinationEditorScreen extends Screen {
     }
 
     //#if MC >= 260100
-    //$$ @Override public void extractBackground(GuiGraphicsExtractor graphics,int mouseX,int mouseY,float partialTick){extractTransparentBackground(graphics);}
+    //$$ @Override public void extractBackground(GuiGraphicsExtractor graphics,int mouseX,int mouseY,float partialTick){super.extractBackground(graphics,mouseX,mouseY,partialTick);}
     //$$ @Override public void extractRenderState(GuiGraphicsExtractor graphics,int mouseX,int mouseY,float partialTick){renderBase(graphics);super.extractRenderState(graphics,mouseX,mouseY,partialTick);renderOverlay(graphics,mouseX,mouseY);}
     //#elseif MC >= 12002
-    @Override public void renderBackground(GuiGraphics graphics,int mouseX,int mouseY,float partialTick){renderTransparentBackground(graphics);}
+    @Override public void renderBackground(GuiGraphics graphics,int mouseX,int mouseY,float partialTick){
+        //#if MC >= 12005
+        super.renderBackground(graphics,mouseX,mouseY,partialTick);
+        //#else
+        //$$ renderTransparentBackground(graphics);
+        //#endif
+    }
     @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float partialTick){renderBase(graphics);super.render(graphics,mouseX,mouseY,partialTick);renderOverlay(graphics,mouseX,mouseY);}
     //#elseif MC >= 12000
     //$$ @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float partialTick){renderBackground(graphics);renderBase(graphics);super.render(graphics,mouseX,mouseY,partialTick);renderOverlay(graphics,mouseX,mouseY);}
@@ -138,8 +144,7 @@ final class CameraDestinationEditorScreen extends Screen {
             //#endif
     ){
         Layout l=layout();
-        ScreenRenderCompat.fill(graphics,l.left,l.top,l.left+l.width,l.top+l.height,0xEE101010);
-        outline(graphics,l.left,l.top,l.width,l.height,0xFF707070);
+        CameraBackground.draw(graphics,width,height,CameraBackground.navigationTop(height)-8,CameraBackground.navigationTop(height)+CameraBackground.NAV_HEIGHT+8);
     }
 
     private void renderOverlay(
@@ -154,7 +159,8 @@ final class CameraDestinationEditorScreen extends Screen {
             //#endif
             int mouseX,int mouseY){
         Layout l=layout();
-        centered(graphics,title.getString(),l.left+l.width/2,l.top+8,0xFFFFFFFF);
+        centered(graphics,title.getString(),l.left+l.width/2,CameraBackground.navigationTop(height),0xFFFFFFFF);
+        CameraBackground.drawNavigationRules(graphics,width,l.top);
 
         text(graphics,tr("dds-tweak.camera.destination.field.name"),l.innerLeft,l.nameRowY-11,0xFFD0D0D0);
         int iconInsetX=(ICON_SLOT-16)/2;
@@ -172,11 +178,11 @@ final class CameraDestinationEditorScreen extends Screen {
             boolean selected=DIMENSIONS[i].equals(selectedDimension);
             boolean hover=inside(mouseX,mouseY,x,l.dimensionY,DIM_SLOT,DIM_SLOT);
             if(selected){
-                ScreenRenderCompat.fill(graphics,x+1,l.dimensionY+1,x+DIM_SLOT-1,l.dimensionY+DIM_SLOT-1,0x30000000);
-                outline(graphics,x,l.dimensionY,DIM_SLOT,DIM_SLOT,0xFFFFFFFF);
+                CameraSlotRender.fill(graphics,x,l.dimensionY,DIM_SLOT,DIM_SLOT,0x30000000);
+                CameraSlotRender.outline(graphics,x,l.dimensionY,DIM_SLOT,DIM_SLOT,0xFFFFFFFF);
             }else if(hover){
-                ScreenRenderCompat.fill(graphics,x+1,l.dimensionY+1,x+DIM_SLOT-1,l.dimensionY+DIM_SLOT-1,0x50505050);
-                outline(graphics,x,l.dimensionY,DIM_SLOT,DIM_SLOT,0xFFAAAAAA);
+                CameraSlotRender.fill(graphics,x,l.dimensionY,DIM_SLOT,DIM_SLOT,0x50505050);
+                CameraSlotRender.outline(graphics,x,l.dimensionY,DIM_SLOT,DIM_SLOT,0xFFAAAAAA);
             }
             ScreenRenderCompat.item(graphics,DIMENSION_ICONS[i],x+(DIM_SLOT-16)/2,l.dimensionY+(DIM_SLOT-16)/2);
         }
@@ -188,7 +194,7 @@ final class CameraDestinationEditorScreen extends Screen {
             ScreenRenderCompat.crossButton(graphics,deleteX,deleteY,shift&&hover,shift);
             if(hover&&status.isEmpty()){
                 String hint=tr(shift?"dds-tweak.camera.destination.delete_ready":"dds-tweak.camera.destination.delete_shift");
-                int hintY=deleteY+(DELETE_ICON-font.lineHeight)/2;
+                int hintY=deleteY+(DELETE_ICON-font.lineHeight)/2+1;
                 text(graphics,hint,deleteX+DELETE_ICON+6,hintY,shift?0xFFFF8080:0xFFB8B8B8);
             }
         }
@@ -261,8 +267,8 @@ final class CameraDestinationEditorScreen extends Screen {
     }
 
     private void openIconPicker(){
-        MinecraftCompat.setScreen(minecraft,new DropConfirmationItemScreen(
-                this,iconId,this::setIcon,"dds-tweak.camera.destination.icon_picker"
+        MinecraftCompat.setScreen(minecraft,ItemPicker.single(
+                this,iconId,CameraDestination.DEFAULT_ICON_ID,this::setIcon,"dds-tweak.camera.destination.icon_picker"
         ));
     }
 
@@ -271,9 +277,9 @@ final class CameraDestinationEditorScreen extends Screen {
         if(name.isEmpty()){error("dds-tweak.camera.destination.error.name");return;}
         double x,y,z;
         try{
-            x=Double.parseDouble(draftX.trim());
-            y=Double.parseDouble(draftY.trim());
-            z=Double.parseDouble(draftZ.trim());
+            x=Long.parseLong(draftX.trim());
+            y=Long.parseLong(draftY.trim());
+            z=Long.parseLong(draftZ.trim());
         }catch(RuntimeException exception){
             error("dds-tweak.camera.destination.error.coordinates");
             return;
@@ -282,15 +288,25 @@ final class CameraDestinationEditorScreen extends Screen {
         CameraDestination destination=new CameraDestination(existingId,name,dimension,x,y,z,iconId);
         if(!CameraDestination.validResourceId(dimension)){error("dds-tweak.camera.destination.error.dimension");return;}
         if(!destination.isValid()){error("dds-tweak.camera.destination.error.coordinates");return;}
-        CameraDestinationStore.upsert(destination);
-        parent.reloadDestinations();
-        MinecraftCompat.setScreen(minecraft,parent);
+        try{
+            CameraDestinationStore.upsert(destination);
+            parent.reloadDestinations();
+            MinecraftCompat.setScreen(minecraft,parent);
+        }catch(IllegalStateException failure){
+            error("dds-tweak.camera.destination.error.saveFailed");
+            System.err.println("[DDS Tweak] "+failure.getMessage());
+        }
     }
 
     private void deleteDestination(){
-        CameraDestinationStore.delete(existingId);
-        parent.reloadDestinations();
-        MinecraftCompat.setScreen(minecraft,parent);
+        try{
+            CameraDestinationStore.delete(existingId);
+            parent.reloadDestinations();
+            MinecraftCompat.setScreen(minecraft,parent);
+        }catch(IllegalStateException failure){
+            error("dds-tweak.camera.destination.error.saveFailed");
+            System.err.println("[DDS Tweak] "+failure.getMessage());
+        }
     }
 
     private void setIcon(String id){
@@ -323,31 +339,16 @@ final class CameraDestinationEditorScreen extends Screen {
 
     private Layout layout(){
         int panelWidth=Math.min(380,Math.max(250,width-24));
-        int panelHeight=Math.min(198,Math.max(184,height-16));
-        int left=(width-panelWidth)/2,top=(height-panelHeight)/2;
+        int panelHeight=CameraBackground.NAV_HEIGHT;
+        int left=(width-panelWidth)/2,top=CameraBackground.navigationTop(height);
         int innerLeft=left+10,innerWidth=panelWidth-20;
-        int nameRowY=top+38,iconX=innerLeft,nameFieldX=iconX+ICON_SLOT+GAP,nameFieldY=nameRowY+2,nameFieldWidth=Math.max(80,innerWidth-ICON_SLOT-GAP);
+        int nameRowY=top+50,iconX=innerLeft,nameFieldX=iconX+ICON_SLOT+GAP,nameFieldY=nameRowY+2,nameFieldWidth=Math.max(80,innerWidth-ICON_SLOT-GAP);
         int coordY=nameRowY+43,buttonWidth=92;
         int coordButtonX=innerLeft+innerWidth-buttonWidth,coordButtonY=coordY-1;
         int coordAreaWidth=Math.max(126,coordButtonX-innerLeft-GAP);
         int coordW=Math.max(38,(coordAreaWidth-2*GAP)/3);
-        int dimensionY=coordY+43,statusY=dimensionY+31,bottomY=top+panelHeight-25;
+        int dimensionY=coordY+43,statusY=dimensionY+31,bottomY=top+CameraBackground.FOOTER_ROW_Y;
         return new Layout(left,top,panelWidth,panelHeight,innerLeft,innerWidth,nameRowY,iconX,nameFieldX,nameFieldY,nameFieldWidth,coordY,coordW,coordButtonX,coordButtonY,buttonWidth,dimensionY,statusY,bottomY);
-    }
-
-    private void outline(
-            //#if MC >= 260100
-            //$$ GuiGraphicsExtractor graphics,
-            //#elseif MC >= 12000
-            GuiGraphics graphics,
-            //#elseif MC >= 11600
-            //$$ PoseStack graphics,
-            //#else
-            //$$ Object graphics,
-            //#endif
-            int x,int y,int w,int h,int color){
-        ScreenRenderCompat.fill(graphics,x,y,x+w,y+1,color);ScreenRenderCompat.fill(graphics,x,y+h-1,x+w,y+h,color);
-        ScreenRenderCompat.fill(graphics,x,y,x+1,y+h,color);ScreenRenderCompat.fill(graphics,x+w-1,y,x+w,y+h,color);
     }
 
     private void text(

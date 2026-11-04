@@ -105,11 +105,11 @@ final class BetterSnowCoverageContractTest {
     }
 
     @Test void blacklistAndWhitelistUseSharedCompactBlockPicker() throws Exception {
-        String mixin=read("src/main/java/ddstweak/mixin/feature/dropconfirmation/DropConfirmStringListButtonMixin.java");
+        String bindings=read("src/main/java/ddstweak/gui/itempicker/ItemPickerConfigBindings.java");
         String picker=read("src/main/java/ddstweak/feature/dropconfirmation/DropConfirmationItemScreen.java");
-        assertTrue(mixin.contains("\"betterSnowCoverageBlacklist\""));
-        assertTrue(mixin.contains("\"betterSnowCoverageWhitelist\""));
-        assertTrue(mixin.contains("DropConfirmationItemScreen.Kind.BLOCK"));
+        assertTrue(bindings.contains("Configs.Visual.BETTER_SNOW_COVERAGE_BLACKLIST"));
+        assertTrue(bindings.contains("Configs.Visual.BETTER_SNOW_COVERAGE_WHITELIST"));
+        assertTrue(bindings.contains("ItemPickerKind.BLOCK"));
         assertTrue(picker.contains("item instanceof BlockItem"));
         assertTrue(picker.contains("value.startsWith(\"#\")"));
         assertTrue(picker.contains("key()==257&&addQueryEntry()"));

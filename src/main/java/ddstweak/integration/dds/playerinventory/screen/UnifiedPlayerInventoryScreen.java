@@ -3,6 +3,9 @@ package ddstweak.integration.dds.playerinventory.screen;
 import ddstweak.DDSTweak;
 import ddstweak.integration.dds.playerinventory.*;
 import ddstweak.integration.dds.playerinventory.menu.UnifiedPlayerInventoryMirrorMenu;
+//#if MC >= 12108
+import ddstweak.integration.dds.playerinventory.ItemScrollerDirectTransfer;
+//#endif
 import ddstweak.platform.minecraft.MinecraftCompat;
 import ddstweak.platform.minecraft.ScreenRenderCompat;
 import ddstweak.playerinventory.PlayerInventoryClientActionState;
@@ -31,6 +34,9 @@ import java.util.function.BooleanSupplier;
 
 /** Shared player-inventory client UI. Source-specific adapters provide context and action binding; vanilla packets own item/data state. */
 public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<UnifiedPlayerInventoryMirrorMenu>{
+    private static final boolean TRACE=Boolean.getBoolean("ddstweak.playerinventory.trace");
+    private static final org.apache.logging.log4j.Logger TRACE_LOG=
+            org.apache.logging.log4j.LogManager.getLogger("ddstweak.playerinventory");
     private static final int IMAGE_WIDTH=176,INVENTORY_HEIGHT=267,FIELD_X=77,FIELD_WIDTH=34,FIELD_HEIGHT=18,FIELD_EDIT_HEIGHT=14,FIELD_EDIT_Y=5,ARROW_X=111,ARROW_WIDTH=9,ARROW_HEIGHT=9,ACTION_RIGHT_X=151,ACTION_STEP=22,ATTACK_Y=7,USE_Y=29,INTERVAL_BUTTON_X=ACTION_RIGHT_X-ACTION_STEP,CONTINUOUS_BUTTON_X=ACTION_RIGHT_X,PERSISTENT_Y=61,STOP_X=ACTION_RIGHT_X-ACTION_STEP*2,DROP_ALL_X=ACTION_RIGHT_X-ACTION_STEP,DISCONNECT_X=ACTION_RIGHT_X,HOTBAR_NUMBER_X=7,HOTBAR_NUMBER_Y=161,HOTBAR_NUMBER_WIDTH=18,HOTBAR_NUMBER_HEIGHT=6;
     private static final int TOOLBAR_HEIGHT=8,ENDER_BUTTON_Y=-3,ENDER_SNEAK_X=7,ENDER_DISCONNECT_X=29;
     private static final int BUTTON_WIDTH=18,BUTTON_HEIGHT=18,BUTTON_RENDER_SIZE=20,BUTTON_RENDER_OFFSET=1,ICON_SIZE=16,ICON_ATLAS_WIDTH=160,ICON_ATTACK_INTERVAL=0,ICON_ATTACK_CONTINUOUS=1,ICON_USE_INTERVAL=2,ICON_USE_CONTINUOUS=3,ICON_STOP=4,ICON_DROP=5,ICON_DISCONNECT=6,ICON_SNEAK=9;
@@ -119,16 +125,24 @@ public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<Unifie
     //$$ @Override public void extractRenderState(GuiGraphicsExtractor g,int mouseX,int mouseY,float partialTick){super.extractRenderState(g,mouseX,mouseY,partialTick);List<Component> tooltip=controlTooltip(mouseX,mouseY);if(tooltip!=null)g.setTooltipForNextFrame(font,tooltip,Optional.empty(),mouseX,mouseY);}
     //$$ @Override public void extractBackground(GuiGraphicsExtractor g,int mouseX,int mouseY,float partialTick){super.extractBackground(g,mouseX,mouseY,partialTick);if(isEnder())renderEnderBg(g,mouseX,mouseY);else renderInventoryBg(g,mouseX,mouseY);}
     //#elseif MC >= 12000
-    @Override public void render(GuiGraphics g,int mouseX,int mouseY,float partialTick){super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);List<Component> tooltip=controlTooltip(mouseX,mouseY);if(tooltip!=null)g.setTooltipForNextFrame(font,tooltip,Optional.empty(),mouseX,mouseY);}
+    @Override public void render(GuiGraphics g,int mouseX,int mouseY,float partialTick){
+        //#if MC < 12002
+        //$$ renderBackground(g);
+        //#endif
+        super.render(g,mouseX,mouseY,partialTick);
+        renderTooltip(g,mouseX,mouseY);
+        List<Component> tooltip=controlTooltip(mouseX,mouseY);
+        if(tooltip!=null)g.setTooltipForNextFrame(font,tooltip,Optional.empty(),mouseX,mouseY);
+    }
     @Override protected void renderBg(GuiGraphics g,float partialTick,int mouseX,int mouseY){if(isEnder())renderEnderBg(g,mouseX,mouseY);else renderInventoryBg(g,mouseX,mouseY);}
     //#elseif MC >= 11700
-    //$$ @Override public void render(PoseStack g,int mouseX,int mouseY,float partialTick){super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);List<Component> tooltip=controlTooltip(mouseX,mouseY);if(tooltip!=null)renderTooltip(g,tooltip,Optional.empty(),mouseX,mouseY);}
+    //$$ @Override public void render(PoseStack g,int mouseX,int mouseY,float partialTick){renderBackground(g);super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);List<Component> tooltip=controlTooltip(mouseX,mouseY);if(tooltip!=null)renderTooltip(g,tooltip,Optional.empty(),mouseX,mouseY);}
     //$$ @Override protected void renderBg(PoseStack g,float partialTick,int mouseX,int mouseY){if(isEnder())renderEnderBg(g,mouseX,mouseY);else renderInventoryBg(g,mouseX,mouseY);}
     //#elseif MC >= 11600
-    //$$ @Override public void render(PoseStack g,int mouseX,int mouseY,float partialTick){super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);List<Component> tooltip=controlTooltip(mouseX,mouseY);if(tooltip!=null)renderComponentTooltip(g,tooltip,mouseX,mouseY);}
+    //$$ @Override public void render(PoseStack g,int mouseX,int mouseY,float partialTick){renderBackground(g);super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY);List<Component> tooltip=controlTooltip(mouseX,mouseY);if(tooltip!=null)renderComponentTooltip(g,tooltip,mouseX,mouseY);}
     //$$ @Override protected void renderBg(PoseStack g,float partialTick,int mouseX,int mouseY){if(isEnder())renderEnderBg(g,mouseX,mouseY);else renderInventoryBg(g,mouseX,mouseY);}
     //#else
-    //$$ @Override public void render(int mouseX,int mouseY,float partialTick){super.render(mouseX,mouseY,partialTick);renderTooltip(mouseX,mouseY);List<Component> tooltip=controlTooltip(mouseX,mouseY);if(tooltip!=null)renderTooltip(legacyTooltip(tooltip),mouseX,mouseY);}
+    //$$ @Override public void render(int mouseX,int mouseY,float partialTick){renderBackground();super.render(mouseX,mouseY,partialTick);renderTooltip(mouseX,mouseY);List<Component> tooltip=controlTooltip(mouseX,mouseY);if(tooltip!=null)renderTooltip(legacyTooltip(tooltip),mouseX,mouseY);}
     //$$ @Override protected void renderBg(float partialTick,int mouseX,int mouseY){if(isEnder())renderEnderBg(null,mouseX,mouseY);else renderInventoryBg(null,mouseX,mouseY);}
     //#endif
     private void renderInventoryBg(
@@ -186,7 +200,14 @@ public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<Unifie
         //#else
         //$$ Object g,
         //#endif
-        int mouseX,int mouseY){if(attackInterval!=null&&attackInterval.visible){blit(g,attackInterval.isFocused()?INTERVAL_INPUT_FOCUSED:INTERVAL_INPUT,leftPos+FIELD_X,topPos+ATTACK_Y,FIELD_WIDTH,FIELD_HEIGHT);renderArrows(g,ATTACK_Y,0);}if(useInterval!=null&&useInterval.visible){blit(g,useInterval.isFocused()?INTERVAL_INPUT_FOCUSED:INTERVAL_INPUT,leftPos+FIELD_X,topPos+USE_Y,FIELD_WIDTH,FIELD_HEIGHT);renderArrows(g,USE_Y,2);}if(canUse(PlayerInventoryAction.SELECT_HOTBAR))for(int i=0;i<9;i++){int x=leftPos+HOTBAR_NUMBER_X+i*18,y=topPos+HOTBAR_NUMBER_Y,state=menu.selectedTargetHotbarSlot()==i?2:inside(mouseX,mouseY,x,y,HOTBAR_NUMBER_WIDTH,HOTBAR_NUMBER_HEIGHT)?1:0;blitRegion(g,HOTBAR_NUMBERS,x,y,i*HOTBAR_NUMBER_WIDTH,state*HOTBAR_NUMBER_HEIGHT,HOTBAR_NUMBER_WIDTH,HOTBAR_NUMBER_HEIGHT,162,18);}}
+        int mouseX,int mouseY){if(attackInterval!=null&&attackInterval.visible){blit(g,attackInterval.isFocused()?INTERVAL_INPUT_FOCUSED:INTERVAL_INPUT,leftPos+FIELD_X,topPos+ATTACK_Y,FIELD_WIDTH,FIELD_HEIGHT);renderArrows(g,ATTACK_Y,0);}if(useInterval!=null&&useInterval.visible){blit(g,useInterval.isFocused()?INTERVAL_INPUT_FOCUSED:INTERVAL_INPUT,leftPos+FIELD_X,topPos+USE_Y,FIELD_WIDTH,FIELD_HEIGHT);renderArrows(g,USE_Y,2);}if(showHotbarControls())for(int i=0;i<9;i++){int x=leftPos+HOTBAR_NUMBER_X+i*18,y=topPos+HOTBAR_NUMBER_Y,state=menu.selectedTargetHotbarSlot()==i?2:inside(mouseX,mouseY,x,y,HOTBAR_NUMBER_WIDTH,HOTBAR_NUMBER_HEIGHT)?1:0;blitRegion(g,HOTBAR_NUMBERS,x,y,i*HOTBAR_NUMBER_WIDTH,state*HOTBAR_NUMBER_HEIGHT,HOTBAR_NUMBER_WIDTH,HOTBAR_NUMBER_HEIGHT,162,18);}}
+    private boolean showHotbarControls(){
+        //#if MC >= 12111
+        return menu.kind()==PlayerInventoryKind.INVENTORY||menu.kind()==PlayerInventoryKind.CONTROLLER;
+        //#else
+        //$$ return canUse(PlayerInventoryAction.SELECT_HOTBAR);
+        //#endif
+    }
     private void renderArrows(
         //#if MC >= 260100
         //$$ GuiGraphicsExtractor g,
@@ -229,7 +250,13 @@ public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<Unifie
         //#else
         //$$ Object g,
         //#endif
-        int mouseX,int mouseY){for(ActionButton b:buttons){if(!visible(b))continue;boolean enabled=supported(b),active=enabled&&b.isSelected(),pulse=enabled&&onceFeedback(b),hovered=enabled&&!active&&!pulse&&b.contains(mouseX,mouseY);Identifier background=pulse?(active?BUTTON_NORMAL:BUTTON_ACTIVE):active?BUTTON_ACTIVE:hovered?BUTTON_HOVER:BUTTON_NORMAL;int o=BUTTON_RENDER_OFFSET;blit(g,background,b.x-o,b.y-o,BUTTON_RENDER_SIZE,BUTTON_RENDER_SIZE);renderActionIcon(g,b.icon,b.x+1,b.y+1);}}
+        int mouseX,int mouseY){for(ActionButton b:buttons){if(!visible(b))continue;
+        //#if MC >= 12111
+        boolean enabled=supported(b),active=b.isSelected(),pulse=onceFeedback(b)&&canUse(onceAction(b)),hovered=enabled&&!active&&!pulse&&b.contains(mouseX,mouseY);
+        //#else
+        //$$ boolean enabled=supported(b),active=enabled&&b.isSelected(),pulse=enabled&&onceFeedback(b),hovered=enabled&&!active&&!pulse&&b.contains(mouseX,mouseY);
+        //#endif
+        Identifier background=pulse?(active?BUTTON_NORMAL:BUTTON_ACTIVE):active?BUTTON_ACTIVE:hovered?BUTTON_HOVER:BUTTON_NORMAL;int o=BUTTON_RENDER_OFFSET;blit(g,background,b.x-o,b.y-o,BUTTON_RENDER_SIZE,BUTTON_RENDER_SIZE);renderActionIcon(g,b.icon,b.x+1,b.y+1);}}
     private void drawSelectedHotbar(
         //#if MC >= 260100
         //$$ GuiGraphicsExtractor g
@@ -242,16 +269,78 @@ public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<Unifie
         //#endif
     ){Slot slot=selectedTargetHotbarSlot();if(slot!=null)blit(g,HOTBAR_SELECTED,leftPos+slot.x-2,topPos+slot.y-2,20,20);}
 
+    // The preprocess root is 1.21.11 (GLFW: left=0, right=1).
+    // Minecraft 26.3 uses SDL mouse ids (left=1, right=3).
+    private static boolean leftClick(int button){
+        //#if MC >= 260300
+        //$$ return button==1;
+        //#else
+        return button==0;
+        //#endif
+    }
+    private static boolean rightClick(int button){
+        //#if MC >= 260300
+        //$$ return button==3;
+        //#else
+        return button==1;
+        //#endif
+    }
+
     //#if MC >= 12109
-    @Override public boolean mouseClicked(MouseButtonEvent e,boolean doubleClick){int button=e.button();if(button==0&&isInventory()&&(pressIntervalStepper(e.x(),e.y())||pressHotbarNumber(e.x(),e.y())))return true;if((button==0||button==1)&&pressActionButton(e.x(),e.y(),button))return true;return super.mouseClicked(e,doubleClick);}@Override public boolean mouseReleased(MouseButtonEvent e){if(e.button()==0)pressedStepper=-1;return super.mouseReleased(e);}@Override public boolean keyPressed(KeyEvent e){if(isInventory()&&isIntervalFieldEditing())return super.keyPressed(e);if(isInventory()&&trySelectHotbar(e))return true;return super.keyPressed(e);}
+    @Override public boolean mouseClicked(MouseButtonEvent e,boolean doubleClick){
+        if(TRACE)TRACE_LOG.info("ui_pointer source={} target={} x={} y={} button={} focused={}",
+                menu.context().source(),menu.context().targetName(),e.x(),e.y(),e.button(),isIntervalFieldEditing());
+        //#if MC >= 12108
+        ItemScrollerDirectTransfer.cancelOnManualClick(menu);
+        //#endif
+        int button=e.button();
+        if(leftClick(button)&&isInventory()&&(pressIntervalStepper(e.x(),e.y())||pressHotbarNumber(e.x(),e.y())))return true;
+        if((leftClick(button)||rightClick(button))&&pressActionButton(e.x(),e.y(),button))return true;
+        return super.mouseClicked(e,doubleClick);
+    }@Override public boolean mouseReleased(MouseButtonEvent e){if(leftClick(e.button()))pressedStepper=-1;return super.mouseReleased(e);}@Override public boolean keyPressed(KeyEvent e){if(isInventory()&&isIntervalFieldEditing())return super.keyPressed(e);if(isInventory()&&trySelectHotbar(e))return true;return super.keyPressed(e);}
     private boolean trySelectHotbar(KeyEvent e){if(hoveredSlot!=null||!canUse(PlayerInventoryAction.SELECT_HOTBAR))return false;for(int i=0;i<minecraft.options.keyHotbarSlots.length;i++)if(minecraft.options.keyHotbarSlots[i].matches(e)){selectHotbar(i);return true;}return false;}
     //#else
-    //$$ @Override public boolean mouseClicked(double x,double y,int button){if(button==0&&isInventory()&&(pressIntervalStepper(x,y)||pressHotbarNumber(x,y)))return true;if((button==0||button==1)&&pressActionButton(x,y,button))return true;return super.mouseClicked(x,y,button);}@Override public boolean mouseReleased(double x,double y,int button){if(button==0)pressedStepper=-1;return super.mouseReleased(x,y,button);}@Override public boolean keyPressed(int key,int scan,int modifiers){if(isInventory()&&isIntervalFieldEditing())return super.keyPressed(key,scan,modifiers);if(isInventory()&&trySelectHotbar(key,scan))return true;return super.keyPressed(key,scan,modifiers);}
+    //$$ @Override public boolean mouseClicked(double x,double y,int button){
+    //$$     if(TRACE)TRACE_LOG.info("ui_pointer source={} target={} x={} y={} button={} focused={}",
+    //$$             menu.context().source(),menu.context().targetName(),x,y,button,isIntervalFieldEditing());
+    //#if MC >= 12108
+    //$$     ItemScrollerDirectTransfer.cancelOnManualClick(menu);
+    //#endif
+    //$$     if(leftClick(button)&&isInventory()&&(pressIntervalStepper(x,y)||pressHotbarNumber(x,y)))return true;
+    //$$     if((leftClick(button)||rightClick(button))&&pressActionButton(x,y,button))return true;
+    //$$     return super.mouseClicked(x,y,button);
+    //$$ }
+    //$$ @Override public boolean mouseReleased(double x,double y,int button){
+    //$$     if(leftClick(button))pressedStepper=-1;
+    //$$     return super.mouseReleased(x,y,button);
+    //$$ }
+    //$$ @Override public boolean keyPressed(int key,int scan,int modifiers){
+    //$$     if(isInventory()&&isIntervalFieldEditing())return super.keyPressed(key,scan,modifiers);
+    //$$     if(isInventory()&&trySelectHotbar(key,scan))return true;
+    //$$     return super.keyPressed(key,scan,modifiers);
+    //$$ }
     //$$ private boolean trySelectHotbar(int key,int scan){if(hoveredSlot!=null||!canUse(PlayerInventoryAction.SELECT_HOTBAR))return false;for(int i=0;i<minecraft.options.keyHotbarSlots.length;i++)if(minecraft.options.keyHotbarSlots[i].matches(key,scan)){selectHotbar(i);return true;}return false;}
     //#endif
 
     private boolean pressIntervalStepper(double x,double y){return attackInterval!=null&&attackInterval.active&&pressStepper(x,y,ATTACK_Y,true,0)||useInterval!=null&&useInterval.active&&pressStepper(x,y,USE_Y,false,2);}private boolean pressStepper(double mx,double my,int rowY,boolean attack,int base){int x=leftPos+ARROW_X,y=topPos+rowY;if(inside(mx,my,x,y,ARROW_WIDTH,ARROW_HEIGHT)){pressedStepper=base;stepInterval(attack,1);return true;}if(inside(mx,my,x,y+ARROW_HEIGHT,ARROW_WIDTH,ARROW_HEIGHT)){pressedStepper=base+1;stepInterval(attack,-1);return true;}return false;}
-    private void stepInterval(boolean attack,int delta){EditBox box=attack?attackInterval:useInterval;long next=(long)readInterval(box)+delta;int v=(int)Math.max(PlayerInventoryBehaviorV1.MIN_INTERVAL,Math.min((long)PlayerInventoryBehaviorV1.MAX_INTERVAL,next));setFieldValue(box,v);rememberInterval(attack,v);if(attack)lastAttackInterval=v;else lastUseInterval=v;}private boolean pressHotbarNumber(double mx,double my){if(!canUse(PlayerInventoryAction.SELECT_HOTBAR))return false;for(int i=0;i<9;i++)if(inside(mx,my,leftPos+HOTBAR_NUMBER_X+i*18,topPos+HOTBAR_NUMBER_Y,HOTBAR_NUMBER_WIDTH,HOTBAR_NUMBER_HEIGHT)){selectHotbar(i);return true;}return false;}private boolean pressActionButton(double mx,double my,int button){for(ActionButton b:buttons)if(visible(b)&&b.contains(mx,my)){if(button==0){if(supported(b))b.press();return true;}PlayerInventoryAction once=onceAction(b);if(once!=null&&canUse(once))sendOnce(once);return true;}return false;}private static PlayerInventoryAction onceAction(ActionButton b){if(b==null)return null;return b.icon==ICON_ATTACK_CONTINUOUS?PlayerInventoryAction.ATTACK_ONCE:b.icon==ICON_USE_CONTINUOUS?PlayerInventoryAction.USE_ONCE:null;}private void sendOnce(PlayerInventoryAction action){if(!send(action,0))return;long until=System.nanoTime()+ONCE_FEEDBACK_NANOS;if(action==PlayerInventoryAction.ATTACK_ONCE){attackOnceFeedbackUntil=until;menu.predictAttackOnce();}else if(action==PlayerInventoryAction.USE_ONCE){useOnceFeedbackUntil=until;menu.predictUseOnce();}}private boolean onceFeedback(ActionButton button){long now=System.nanoTime();return button.icon==ICON_ATTACK_CONTINUOUS?now<attackOnceFeedbackUntil:button.icon==ICON_USE_CONTINUOUS&&now<useOnceFeedbackUntil;}
+    private void stepInterval(boolean attack,int delta){EditBox box=attack?attackInterval:useInterval;long next=(long)readInterval(box)+delta;int v=(int)Math.max(PlayerInventoryBehaviorV1.MIN_INTERVAL,Math.min((long)PlayerInventoryBehaviorV1.MAX_INTERVAL,next));setFieldValue(box,v);rememberInterval(attack,v);if(attack)lastAttackInterval=v;else lastUseInterval=v;}private boolean pressHotbarNumber(double mx,double my){if(!canUse(PlayerInventoryAction.SELECT_HOTBAR))return false;for(int i=0;i<9;i++)if(inside(mx,my,leftPos+HOTBAR_NUMBER_X+i*18,topPos+HOTBAR_NUMBER_Y,HOTBAR_NUMBER_WIDTH,HOTBAR_NUMBER_HEIGHT)){selectHotbar(i);return true;}return false;}private boolean pressActionButton(double mx,double my,int button){
+        for(ActionButton b:buttons){
+            if(!visible(b)||!b.contains(mx,my))continue;
+            if(TRACE){
+                PlayerInventoryAction action=leftClick(button)?buttonAction(b):onceAction(b);
+                TRACE_LOG.info("ui_click source={} kind={} target={} identity={} mouse_button={} icon={} selected={} action={} menu_supported={} carpet_supported={} transport={} attack_mode={} use_mode={}",
+                        menu.context().source(),menu.kind(),menu.context().targetName(),menu.targetType(),button,b.icon,
+                        b.isSelected(),action,action!=null&&menu.supports(action),
+                        action!=null&&ddstweak.integration.carpet.playerinventory.CarpetPlayerCommandBridge.supports(action),
+                        menu.canSendActions(),menu.attackMode(),menu.useMode());
+            }
+            if(leftClick(button)){if(supported(b))b.press();return true;}
+            PlayerInventoryAction once=onceAction(b);
+            if(once!=null&&canUse(once))sendOnce(once);
+            return true;
+        }
+        return false;
+    }private static PlayerInventoryAction onceAction(ActionButton b){if(b==null)return null;return b.icon==ICON_ATTACK_CONTINUOUS?PlayerInventoryAction.ATTACK_ONCE:b.icon==ICON_USE_CONTINUOUS?PlayerInventoryAction.USE_ONCE:null;}private void sendOnce(PlayerInventoryAction action){if(!send(action,0))return;long until=System.nanoTime()+ONCE_FEEDBACK_NANOS;if(action==PlayerInventoryAction.ATTACK_ONCE){attackOnceFeedbackUntil=until;menu.predictAttackOnce();}else if(action==PlayerInventoryAction.USE_ONCE){useOnceFeedbackUntil=until;menu.predictUseOnce();}}private boolean onceFeedback(ActionButton button){long now=System.nanoTime();return button.icon==ICON_ATTACK_CONTINUOUS?now<attackOnceFeedbackUntil:button.icon==ICON_USE_CONTINUOUS&&now<useOnceFeedbackUntil;}
     private boolean isIntervalFieldEditing(){return attackInterval!=null&&attackInterval.canConsumeInput()||useInterval!=null&&useInterval.canConsumeInput();}private void selectHotbar(int slot){if(send(PlayerInventoryAction.SELECT_HOTBAR,slot+1))menu.predictSelectedHotbar(slot);}
     private List<Component> controlTooltip(int mx,int my){
         if(isInventory()){
@@ -267,17 +356,23 @@ public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<Unifie
                 if(inside(mx,my,leftPos+HOTBAR_NUMBER_X+i*18,topPos+HOTBAR_NUMBER_Y,HOTBAR_NUMBER_WIDTH,HOTBAR_NUMBER_HEIGHT))
                     return commandTooltip(tr("dds-tweak.fakeplayer.hotbar.select",i+1),PlayerInventoryAction.SELECT_HOTBAR,i+1);
         }
-        for(ActionButton b:buttons)if(visible(b)&&b.contains(mx,my))
-            return supported(b)?actionTooltip(b):Arrays.asList(b.tooltip(),MinecraftCompat.grayTranslatable("dds-tweak.fakeplayer.action.unavailable"));
+        for(ActionButton b:buttons)if(visible(b)&&b.contains(mx,my)){
+            //#if MC >= 12111
+            return supported(b)||b.isSelected()||onceAction(b)!=null&&canUse(onceAction(b))
+                    ?actionTooltip(b):Arrays.asList(b.tooltip(),unavailableReason(buttonAction(b)));
+            //#else
+            //$$ return supported(b)?actionTooltip(b):Arrays.asList(b.tooltip(),MinecraftCompat.grayTranslatable("dds-tweak.fakeplayer.action.unavailable"));
+            //#endif
+        }
         return null;
     }
     private List<Component> actionTooltip(ActionButton button){
         PlayerInventoryAction action;
         switch(button.icon){
-            case ICON_ATTACK_INTERVAL:action=button.isSelected()?PlayerInventoryAction.STOP_ATTACK:PlayerInventoryAction.ATTACK_INTERVAL;break;
-            case ICON_ATTACK_CONTINUOUS:action=button.isSelected()?PlayerInventoryAction.STOP_ATTACK:PlayerInventoryAction.ATTACK_CONTINUOUS;break;
-            case ICON_USE_INTERVAL:action=button.isSelected()?PlayerInventoryAction.STOP_USE:PlayerInventoryAction.USE_INTERVAL;break;
-            case ICON_USE_CONTINUOUS:action=button.isSelected()?PlayerInventoryAction.STOP_USE:PlayerInventoryAction.USE_CONTINUOUS;break;
+            case ICON_ATTACK_INTERVAL:action=buttonAction(button);break;
+            case ICON_ATTACK_CONTINUOUS:action=buttonAction(button);break;
+            case ICON_USE_INTERVAL:action=buttonAction(button);break;
+            case ICON_USE_CONTINUOUS:action=buttonAction(button);break;
             case ICON_STOP:action=PlayerInventoryAction.STOP_ALL;break;
             case ICON_DROP:action=isEnder()?null:PlayerInventoryAction.DROP_ALL;break;
             case ICON_DISCONNECT:action=PlayerInventoryAction.DISCONNECT;break;
@@ -291,18 +386,50 @@ public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<Unifie
             case ICON_SNEAK:value=menu.isSneakingActive()?0:1;break;
             default:value=0;
         }
-        List<Component> lines=new ArrayList<>();lines.add(button.tooltip());
+        List<Component> lines=new ArrayList<>();
+        //#if MC >= 12111
+        boolean noExactStop=button.isSelected()
+                &&(action==PlayerInventoryAction.STOP_ATTACK||action==PlayerInventoryAction.STOP_USE)
+                &&!canUse(action);
+        lines.add(noExactStop?tr(canUse(PlayerInventoryAction.STOP_ALL)
+                ?"dds-tweak.fakeplayer.action.active_stop_all_only"
+                :"dds-tweak.fakeplayer.action.active_no_stop"):button.tooltip());
+        if(!supported(button)&&!noExactStop)lines.add(unavailableReason(action));
+        //#else
+        //$$ lines.add(button.tooltip());
+        //#endif
         PlayerInventoryAction once=onceAction(button);
         if(once!=null&&canUse(once)){
             PlayerInventoryAction continuous=button.icon==ICON_ATTACK_CONTINUOUS?PlayerInventoryAction.ATTACK_CONTINUOUS:PlayerInventoryAction.USE_CONTINUOUS;
-            appendCommandTooltip(lines,continuous,0);
+            //#if MC >= 12111
+            appendCommandTooltip(lines,noExactStop?PlayerInventoryAction.STOP_ALL:button.isSelected()?action:continuous,0);
+            //#else
+            //$$ appendCommandTooltip(lines,button.isSelected()?action:continuous,0);
+            //#endif
             lines.add(tr("dds-tweak.fakeplayer.action.once_hint",tr(button.icon==ICON_ATTACK_CONTINUOUS?"dds-tweak.fakeplayer.action.attack_once":"dds-tweak.fakeplayer.action.use_once")));
             appendCommandTooltip(lines,once,0);
             return lines;
         }
-        appendCommandTooltip(lines,action,value);
+        //#if MC >= 12111
+        appendCommandTooltip(lines,noExactStop?PlayerInventoryAction.STOP_ALL:action,value);
+        //#else
+        //$$ appendCommandTooltip(lines,action,value);
+        //#endif
         return lines;
     }
+    private Component unavailableReason(PlayerInventoryAction action){
+        //#if MC >= 12111
+        if(menu.context().targetState()==PlayerInventoryTargetState.OFFLINE)
+            return MinecraftCompat.grayTranslatable("dds-tweak.fakeplayer.action.target_offline");
+        if(!ddstweak.integration.carpet.playerinventory.CarpetPlayerCommandBridge.validTargetName(menu.context().targetName()))
+            return MinecraftCompat.grayTranslatable("dds-tweak.fakeplayer.action.target_unresolved");
+        if((action==PlayerInventoryAction.STOP_ATTACK||action==PlayerInventoryAction.STOP_USE)
+                &&!ddstweak.integration.carpet.playerinventory.CarpetPlayerCommandBridge.supports(action))
+            return MinecraftCompat.grayTranslatable("dds-tweak.fakeplayer.action.exact_stop_unavailable");
+        //#endif
+        return MinecraftCompat.grayTranslatable("dds-tweak.fakeplayer.action.unavailable");
+    }
+
     private List<Component> commandTooltip(Component base,PlayerInventoryAction action,int value){
         List<Component> lines=new ArrayList<>();lines.add(base);appendCommandTooltip(lines,action,value);return lines;
     }
@@ -321,9 +448,53 @@ public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<Unifie
         //#endif
         Integer v=parseInterval(text);if(v==null)return;rememberInterval(attack,v);if(attack)lastAttackInterval=v;else lastUseInterval=v;int mode=attack?menu.attackMode():menu.useMode();if(mode!=PlayerInventoryBehaviorV1.MODE_NONE)selectInterval(attack,v);
     }
-    private void toggleAttackInterval(){toggleInterval(true);}private void toggleUseInterval(){toggleInterval(false);}private void toggleInterval(boolean attack){boolean active=attack?menu.isAttackIntervalActive():menu.isUseIntervalActive();if(active){PlayerInventoryAction action=attack?PlayerInventoryAction.STOP_ATTACK:PlayerInventoryAction.STOP_USE;if(send(action,0)){if(attack)menu.predictStopAttack();else menu.predictStopUse();}return;}selectInterval(attack,currentInterval(attack));}private void toggleAttackContinuous(){toggleContinuous(true);}private void toggleUseContinuous(){toggleContinuous(false);}private void toggleContinuous(boolean attack){boolean active=attack?menu.isAttackContinuousActive():menu.isUseContinuousActive();if(active){PlayerInventoryAction action=attack?PlayerInventoryAction.STOP_ATTACK:PlayerInventoryAction.STOP_USE;if(send(action,0)){if(attack)menu.predictStopAttack();else menu.predictStopUse();}return;}PlayerInventoryAction action=attack?PlayerInventoryAction.ATTACK_CONTINUOUS:PlayerInventoryAction.USE_CONTINUOUS;if(send(action,0)){if(attack)menu.predictAttackContinuous();else menu.predictUseContinuous();}}
+    private void toggleAttackInterval(){toggleInterval(true);}private void toggleUseInterval(){toggleInterval(false);}
+    private void toggleInterval(boolean attack){
+        if(attack?menu.isAttackIntervalActive():menu.isUseIntervalActive()){stopActive(attack);return;}
+        selectInterval(attack,currentInterval(attack));
+    }
+    private void toggleAttackContinuous(){toggleContinuous(true);}private void toggleUseContinuous(){toggleContinuous(false);}
+    private void toggleContinuous(boolean attack){
+        if(attack?menu.isAttackContinuousActive():menu.isUseContinuousActive()){stopActive(attack);return;}
+        PlayerInventoryAction action=attack?PlayerInventoryAction.ATTACK_CONTINUOUS:PlayerInventoryAction.USE_CONTINUOUS;
+        if(send(action,0)){if(attack)menu.predictAttackContinuous();else menu.predictUseContinuous();}
+    }
+    private void stopActive(boolean attack){
+        PlayerInventoryAction action=stopAction(attack);
+        if(!canUse(action)||!send(action,0))return;
+        if(attack)menu.predictStopAttack();
+        else menu.predictStopUse();
+    }
     private void selectInterval(boolean attack,int interval){int v=PlayerInventoryBehaviorV1.clampInterval(interval);PlayerInventoryAction action=attack?PlayerInventoryAction.ATTACK_INTERVAL:PlayerInventoryAction.USE_INTERVAL;if(send(action,v)){if(attack)menu.predictAttackInterval(v);else menu.predictUseInterval(v);}}private void stopAll(){if(send(PlayerInventoryAction.STOP_ALL,0))menu.predictStopAll();}private void toggleSneak(){boolean next=!menu.isSneakingActive();if(send(PlayerInventoryAction.TOGGLE_SNEAK,next?1:0))menu.predictSneaking(next);}
-    private void syncActionAvailability(){boolean transport=menu.canSendActions();if(attackInterval!=null){boolean enabled=transport&&menu.supports(PlayerInventoryAction.ATTACK_INTERVAL);attackInterval.active=enabled;attackInterval.visible=enabled;}if(useInterval!=null){boolean enabled=transport&&menu.supports(PlayerInventoryAction.USE_INTERVAL);useInterval.active=enabled;useInterval.visible=enabled;}}
+    private void syncActionAvailability(){
+        boolean transport=menu.canSendActions();
+        //#if MC >= 12111
+        // Tick values are local editor settings. Editing them does not send a
+        // command; starting an interval still requires a valid target and server
+        // authorization. Never disable the editor because Brigadier hid a command.
+        boolean editable=menu.context().targetState()!=PlayerInventoryTargetState.OFFLINE;
+        //#endif
+        if(attackInterval!=null){
+            //#if MC >= 12111
+            attackInterval.visible=true;
+            attackInterval.active=editable;
+            //#else
+            //$$ boolean enabled=transport&&menu.supports(PlayerInventoryAction.ATTACK_INTERVAL);
+            //$$ attackInterval.visible=enabled;
+            //$$ attackInterval.active=enabled;
+            //#endif
+        }
+        if(useInterval!=null){
+            //#if MC >= 12111
+            useInterval.visible=true;
+            useInterval.active=editable;
+            //#else
+            //$$ boolean enabled=transport&&menu.supports(PlayerInventoryAction.USE_INTERVAL);
+            //$$ useInterval.visible=enabled;
+            //$$ useInterval.active=enabled;
+            //#endif
+        }
+    }
     private void initializeIntervalFields(){syncActionAvailability();syncingIntervalFields=true;try{lastAttackInterval=initialInterval(true);lastUseInterval=initialInterval(false);setFieldValue(attackInterval,lastAttackInterval);setFieldValue(useInterval,lastUseInterval);}finally{syncingIntervalFields=false;}}
     private int initialInterval(boolean attack){return PlayerInventoryBehaviorV1.clampInterval(attack?menu.attackInterval():menu.useInterval());}
     private void syncIntervalFields(){syncingIntervalFields=true;try{lastAttackInterval=syncIntervalField(attackInterval,true,lastAttackInterval);lastUseInterval=syncIntervalField(useInterval,false,lastUseInterval);}finally{syncingIntervalFields=false;}}
@@ -333,8 +504,47 @@ public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<Unifie
     private static void setFieldValue(EditBox box,int v){if(box!=null)box.setValue(Integer.toString(v));}private static int readInterval(EditBox box){if(box==null)return PlayerInventoryBehaviorV1.DEFAULT_INTERVAL;Integer v=parseInterval(box.getValue());return v==null?PlayerInventoryBehaviorV1.DEFAULT_INTERVAL:v;}private static Integer parseInterval(String text){if(!isValidIntervalText(text)||text.isEmpty())return null;try{return PlayerInventoryBehaviorV1.clampInterval(Integer.parseInt(text));}catch(NumberFormatException ignored){return null;}}private static boolean isValidIntervalText(String text){if(text==null||text.length()>10)return false;for(int i=0;i<text.length();i++)if(!Character.isDigit(text.charAt(i)))return false;return true;}private static String digitsOnly(String text){if(text==null||text.isEmpty())return "";StringBuilder out=new StringBuilder(Math.min(10,text.length()));for(int i=0;i<text.length()&&out.length()<10;i++){char c=text.charAt(i);if(Character.isDigit(c))out.append(c);}return out.toString();}
     private int currentInterval(boolean attack){EditBox box=attack?attackInterval:useInterval;return box==null?PlayerInventoryBehaviorV1.clampInterval(attack?menu.attackInterval():menu.useInterval()):readInterval(box);}
     private void rememberInterval(boolean attack,int value){PlayerInventoryClientActionState.State state=PlayerInventoryClientActionState.forContext(menu.context());if(attack)state.rememberAttackInterval(value);else state.rememberUseInterval(value);}
-    private boolean canUse(PlayerInventoryAction action){return menu.canSendActions()&&menu.supports(action);}private boolean visible(ActionButton button){return menu.targetType()==PlayerInventoryTargetType.FAKE&&(isEnder()||supported(button));}private boolean supported(ActionButton button){if(!menu.canSendActions())return false;for(PlayerInventoryAction action:button.required)if(!menu.supports(action))return false;return true;}
-    private LivingEntity findTargetPlayer(){if(targetEntity!=null)return targetEntity;if(minecraft==null||minecraft.level==null)return null;PlayerInventoryContext c=menu.context();UUID id=c.targetUuid();String name=c.targetName();if(id!=null)for(Player p:minecraft.level.players())if(id.equals(p.getUUID()))return targetEntity=p;if(!name.trim().isEmpty())for(Player p:minecraft.level.players())if(p.getName().getString().equals(name)||p.getDisplayName().getString().equals(name))return targetEntity=p;for(Player p:minecraft.level.players())if(p.getName().getString().equals(legacyTargetName))return targetEntity=p;return null;}private boolean send(PlayerInventoryAction action,int value){return menu.send(action,value);}
+    private boolean canUse(PlayerInventoryAction action){return menu.canSendActions()&&menu.supports(action);}
+    private boolean visible(ActionButton button){
+        //#if MC >= 12111
+        // A recognized Provider menu owns the same controls for REAL/FAKE/UNKNOWN.
+        // Render even when identity or online state is unresolved; supports() and
+        // the server decide if an operation can execute. Offline remains disabled.
+        return true;
+        //#else
+        //$$ return menu.targetType()==PlayerInventoryTargetType.FAKE&&(isEnder()||supported(button));
+        //#endif
+    }
+    private boolean supported(ActionButton button){
+        //#if MC >= 12111
+        return canUse(buttonAction(button));
+        //#else
+        //$$ if(!menu.canSendActions())return false;
+        //$$ for(PlayerInventoryAction action:button.required)if(!menu.supports(action))return false;
+        //$$ return true;
+        //#endif
+    }
+    /** A selected action can only be toggled off by a genuinely supported exact-stop route. */
+    private PlayerInventoryAction stopAction(boolean attack){
+        return attack?PlayerInventoryAction.STOP_ATTACK:PlayerInventoryAction.STOP_USE;
+    }
+    /** Start and cancel have independent capabilities. */
+    private PlayerInventoryAction buttonAction(ActionButton button){
+        switch(button.icon){
+            case ICON_ATTACK_INTERVAL:return button.isSelected()?stopAction(true):PlayerInventoryAction.ATTACK_INTERVAL;
+            case ICON_ATTACK_CONTINUOUS:return button.isSelected()?stopAction(true):PlayerInventoryAction.ATTACK_CONTINUOUS;
+            case ICON_USE_INTERVAL:return button.isSelected()?stopAction(false):PlayerInventoryAction.USE_INTERVAL;
+            case ICON_USE_CONTINUOUS:return button.isSelected()?stopAction(false):PlayerInventoryAction.USE_CONTINUOUS;
+            default:return button.required.iterator().next();
+        }
+    }
+    private LivingEntity findTargetPlayer(){if(targetEntity!=null)return targetEntity;if(minecraft==null||minecraft.level==null)return null;PlayerInventoryContext c=menu.context();UUID id=c.targetUuid();String name=c.targetName();if(id!=null)for(Player p:minecraft.level.players())if(id.equals(p.getUUID()))return targetEntity=p;if(!name.trim().isEmpty())for(Player p:minecraft.level.players())if(p.getName().getString().equals(name)||p.getDisplayName().getString().equals(name))return targetEntity=p;for(Player p:minecraft.level.players())if(p.getName().getString().equals(legacyTargetName))return targetEntity=p;return null;}private boolean send(PlayerInventoryAction action,int value){
+        boolean acceptedForSending=menu.send(action,value);
+        if(TRACE)TRACE_LOG.info("ui_send source={} target={} action={} value={} sent={} attack_mode={} use_mode={}",
+                menu.context().source(),menu.context().targetName(),action,value,acceptedForSending,
+                menu.attackMode(),menu.useMode());
+        return acceptedForSending;
+    }
     private static int enderHeight(int rows){return 114+rows*18+TOOLBAR_HEIGHT;}
     private static List<String> legacyTooltip(List<Component> tooltip){List<String> lines=new ArrayList<String>(tooltip.size());for(Component line:tooltip)lines.add(line.getString());return lines;}
     private static Component tr(String key,Object...args){return MinecraftCompat.translatable(key,args);}

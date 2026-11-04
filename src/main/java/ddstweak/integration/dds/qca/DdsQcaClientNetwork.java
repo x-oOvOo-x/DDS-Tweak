@@ -1,10 +1,13 @@
 package ddstweak.integration.dds.qca;
 
 import ddstweak.network.*;
+import ddstweak.network.ownership.DdsLocalOwnershipDecision;
+import ddstweak.network.ownership.DdsLocalOwnershipResolver;
 import ddstweak.integration.dds.playerinventory.PlayerInventoryAction;
 import ddstweak.integration.dds.playerinventory.PlayerInventoryContext;
 import ddstweak.integration.dds.playerinventory.PlayerInventoryKind;
 import ddstweak.integration.dds.playerinventory.PlayerInventoryTargetType;
+import ddstweak.integration.dds.playerinventory.PlayerInventoryTargetState;
 import ddstweak.integration.dds.playerinventory.menu.UnifiedPlayerInventoryMirrorMenu;
 import ddstweak.playerinventory.PlayerInventoryOpenContext;
 import ddstweak.integration.provider.ProviderPlayerInventoryScreenCoordinator;
@@ -15,6 +18,8 @@ import ddstweak.integration.gca.playerinventory.GcaPlayerInventoryAdapter;
 import ddstweak.platform.minecraft.MinecraftCompat;
 import java.util.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.nbt.CompoundTag;
@@ -31,9 +36,48 @@ public final class DdsQcaClientNetwork {
         @Override protected boolean removeEldestEntry(Map.Entry<String,PlayerInventoryContext> eldest){return size()>32;}
     };
     private static int nextTransaction=1,pendingTransaction=-1,navigationContainer=-1,pendingBack=-1;
-    private static long pendingSince;private static AbstractContainerMenu pendingMenu;private static PendingOwnerEnder pendingOwnerEnder;private static Screen playerInventoryParent;private static PlayerInventoryContext nestedEnderParent,nestedInventoryParent;private static int nestedEnderSource=-1,nestedEnderChild=-1,nestedInventorySource=-1,nestedInventoryChild=-1;private static boolean nestedInventoryViaEnder,initialized;
+    private static long pendingSince;private static CreativeStorageSession<ClientPacketListener,Player,Screen,AbstractContainerMenu> creativeSession;private static PendingOwnerEnder pendingOwnerEnder;private static Screen playerInventoryParent;private static PlayerInventoryContext nestedEnderParent,nestedInventoryParent;private static int nestedEnderSource=-1,nestedEnderChild=-1,nestedInventorySource=-1,nestedInventoryChild=-1;private static boolean nestedInventoryViaEnder,initialized;
     private DdsQcaClientNetwork(){}
     public static synchronized void initialize(){if(initialized)return;for(String id:new String[]{DdsQcaPackets.OPEN_SLOT_C2S,DdsQcaPackets.OPEN_INVENTORY_SLOT_C2S,DdsQcaPackets.STORAGE_CLICK_C2S,DdsQcaPackets.CREATIVE_STORAGE_C2S,DdsQcaPackets.NAVIGATE_BACK_C2S,DdsQcaPackets.OPEN_OWNER_ENDER_C2S,DdsQcaPackets.OWNER_ENDER_ACTION_C2S})DdsClientNetwork.registerC2S(id);DdsClientNetwork.registerS2CHandler(DdsQcaPackets.CREATIVE_STORAGE_RESULT_S2C,DdsQcaClientNetwork::handleCreativeStorageResult);DdsClientNetwork.registerS2CHandler(DdsQcaPackets.NAVIGATION_STATE_S2C,DdsQcaClientNetwork::handleNavigationState);DdsClientSessionHooks.registerResetHook(DdsQcaClientNetwork::resetSession);initialized=true;}
+    /**
+     * Optional CDA legacy-QCA UI bridge. It tracks an exact online Org parent
+     * screen and its first QCA child; server permissions and packet ownership
+     * remain exclusively with CDA until the formal client cutover.
+     */
+    public static void acceptLegacyQcaOpenSource(AbstractContainerMenu menu){
+        if(DdsLocalOwnershipResolver.current()!=DdsLocalOwnershipDecision.LEGACY_COMPAT
+                ||!(menu instanceof UnifiedPlayerInventoryMirrorMenu))return;
+        UnifiedPlayerInventoryMirrorMenu mirror=(UnifiedPlayerInventoryMirrorMenu)menu;
+        PlayerInventoryContext parent=mirror.context();
+        if(mirror.kind()!=PlayerInventoryKind.INVENTORY
+                ||!OrgPlayerInventoryAdapter.SOURCE.equals(parent.source())
+                ||parent.targetState()!=PlayerInventoryTargetState.ONLINE
+                ||parent.targetUuid()==null)return;
+        nestedInventoryParent=parent;
+        nestedInventorySource=menu.containerId;
+        nestedInventoryChild=-1;
+        nestedInventoryViaEnder=false;
+    }
+
+    public static void acceptLegacyQcaNavigationChild(int id){
+        if(DdsLocalOwnershipResolver.current()!=DdsLocalOwnershipDecision.LEGACY_COMPAT
+                ||nestedInventoryParent==null||nestedInventoryChild>=0
+                ||id==nestedInventorySource)return;
+        Minecraft mc=Minecraft.getInstance();
+        if(mc.player!=null&&mc.player.containerMenu.containerId==id)
+            nestedInventoryChild=id;
+    }
+
+    public static void acceptLegacyQcaNavigateBack(AbstractContainerMenu menu){
+        if(DdsLocalOwnershipResolver.current()!=DdsLocalOwnershipDecision.LEGACY_COMPAT
+                ||nestedInventoryParent==null||menu==null
+                ||menu.containerId!=nestedInventoryChild)return;
+        Minecraft mc=Minecraft.getInstance();
+        if(mc.player==null||mc.player.containerMenu!=menu)return;
+        OrgPlayerInventoryOpenIntent.expectReopenInventory(nestedInventoryParent);
+        clearNestedInventory();
+    }
+
     /** Retain provider metadata for an Ender menu reopened later by QCA. */
     public static void rememberProviderContext(PlayerInventoryContext context){
         if(context==null||context.targetName().trim().isEmpty()
@@ -68,7 +112,12 @@ public final class DdsQcaClientNetwork {
     public static boolean canUseNavigateBack(){return DdsClientNetwork.canTakeOverInput(DdsQcaPackets.NAVIGATE_BACK_C2S);}
     public static boolean canUseOwnerEnderOpen(){return DdsClientNetwork.canTakeOverInput(DdsQcaPackets.OPEN_OWNER_ENDER_C2S);}
     public static boolean canUseOwnerEnderAction(){return DdsClientNetwork.canTakeOverInput(DdsQcaPackets.OWNER_ENDER_ACTION_C2S);}
-    public static boolean creativeStoragePending(AbstractContainerMenu menu){expireCreativePending();if(pendingTransaction<0)return false;if(pendingMenu!=menu||!canUseCreativeStorage()){resetCreativeStorage();return false;}return true;}
+    public static boolean creativeStoragePending(AbstractContainerMenu menu){
+        expireCreativePending();
+        if(pendingTransaction<0)return false;
+        if(creativeSession==null||creativeSession.menu()!=menu){resetCreativeStorage();return false;}
+        return true;
+    }
     public static boolean sendOpenSlot(AbstractContainerMenu menu,int slotId){
         if(menu==null||!canUseOpenSlot())return false;
         rememberPlayerInventoryParent(menu);
@@ -169,9 +218,93 @@ public final class DdsQcaClientNetwork {
         return true;}
     public static boolean shouldSuppressTransitionClose(int containerId){if(!canUseNavigateBack()){clearNavigation();return false;}if(containerId==pendingBack)return true;if(containerId==navigationContainer){navigationContainer=-1;playerInventoryParent=null;}return false;}
     public static void beginCreativeStorageGesture(){CREATIVE_QUEUE.clear();expireCreativePending();}
-    public static boolean sendCreativeStorageSlot(int inventorySlot,Player player,AbstractContainerMenu menu,ItemStack carried){if(!canUseCreativeStorage()||player==null||menu==null||carried==null||carried.isEmpty()||!DdsQcaClient.isCreativeSurvivalScreen()){resetCreativeStorage();return false;}expireCreativePending();if(pendingTransaction>=0&&pendingMenu!=menu)resetCreativeStorage();if(pendingTransaction>=0){CREATIVE_QUEUE.offer(inventorySlot);return true;}return sendCreativeNow(inventorySlot,player,menu,carried);}
-    private static boolean sendCreativeNow(int inventorySlot,Player player,AbstractContainerMenu menu,ItemStack carried){if(carried==null||carried.isEmpty())return false;int tx=nextTransaction;nextTransaction=nextTransaction==Integer.MAX_VALUE?1:nextTransaction+1;CompoundTag d=new CompoundTag();d.putInt("transaction",tx);d.putInt("inventory_slot",inventorySlot);DdsQcaStackCodec.put(d,"carried",player,carried);if(!DdsClientNetwork.send(DdsQcaPackets.CREATIVE_STORAGE_C2S,d))return false;pendingTransaction=tx;pendingSince=System.nanoTime();pendingMenu=menu;return true;}
-    private static void handleCreativeStorageResult(CompoundTag d){Minecraft mc=Minecraft.getInstance();if(mc.player==null||pendingMenu==null||!DdsQcaClient.isCreativeSurvivalScreen()){resetCreativeStorage();return;}int tx=MinecraftCompat.intOr(d,"transaction",-1);if(tx!=pendingTransaction)return;if(MinecraftCompat.intOr(d,"handled",-1)!=1){resetCreativeStorage();return;}ItemStack carried=DdsQcaStackCodec.get(d,"carried",mc.player);AbstractContainerMenu menu=pendingMenu;DdsQcaClient.applyCreativeCarried(menu,mc.player,carried);pendingTransaction=-1;pendingSince=0L;while(!CREATIVE_QUEUE.isEmpty()){int slot=CREATIVE_QUEUE.poll();if(!DdsQcaClient.isCreativeSurvivalScreen()){resetCreativeStorage();return;}if(sendCreativeNow(slot,mc.player,menu,carried))return;}pendingMenu=null;}
+    public static boolean sendCreativeStorageSlot(int inventorySlot,Player player,AbstractContainerMenu menu,ItemStack carried){
+        expireCreativePending();
+        if(!isCurrentCreativeMenu(player,menu)||!canUseCreativeStorage()
+                ||carried==null||carried.isEmpty()){
+            resetCreativeStorage();return false;
+        }
+        if(pendingTransaction>=0){CREATIVE_QUEUE.offer(inventorySlot);return true;}
+        return sendCreativeNow(inventorySlot,player,menu,carried);
+    }
+
+    private static boolean isCurrentCreativeMenu(Player player,AbstractContainerMenu menu){
+        Minecraft mc=Minecraft.getInstance();
+        Screen screen=MinecraftCompat.screen(mc);
+        return player!=null&&player==mc.player&&mc.getConnection()!=null
+                &&screen instanceof CreativeModeInventoryScreen
+                &&((CreativeModeInventoryScreen)screen).getMenu()==menu
+                &&DdsQcaClient.isCreativeSurvivalScreen();
+    }
+
+    private static boolean creativeSessionCurrent(){
+        CreativeStorageSession<ClientPacketListener,Player,Screen,AbstractContainerMenu> session=creativeSession;
+        Minecraft mc=Minecraft.getInstance();
+        Screen screen=MinecraftCompat.screen(mc);
+        return session!=null&&canUseCreativeStorage()&&isCurrentCreativeMenu(mc.player,session.menu())
+                &&session.matches(mc.getConnection(),mc.player,screen,session.menu());
+    }
+
+    private static boolean sendCreativeNow(int inventorySlot,Player player,AbstractContainerMenu menu,ItemStack carried){
+        if(!isCurrentCreativeMenu(player,menu)||carried==null||carried.isEmpty())return false;
+        int tx=nextTransaction;
+        nextTransaction=nextTransaction==Integer.MAX_VALUE?1:nextTransaction+1;
+        CompoundTag d=new CompoundTag();
+        d.putInt("transaction",tx);d.putInt("inventory_slot",inventorySlot);
+        DdsQcaStackCodec.put(d,"carried",player,carried);
+        if(!DdsClientNetwork.send(DdsQcaPackets.CREATIVE_STORAGE_C2S,d))return false;
+        Minecraft mc=Minecraft.getInstance();
+        creativeSession=new CreativeStorageSession<>(mc.getConnection(),player,MinecraftCompat.screen(mc),menu);
+        pendingTransaction=tx;pendingSince=System.nanoTime();
+        return true;
+    }
+
+    private static void handleCreativeStorageResult(CompoundTag d){
+        expireCreativePending();
+        if(pendingTransaction<0||!creativeSessionCurrent()){resetCreativeStorage();return;}
+        int tx=MinecraftCompat.intOr(d,"transaction",-1);
+        if(tx!=pendingTransaction)return;
+        if(MinecraftCompat.intOr(d,"handled",-1)!=1){resetCreativeStorage();return;}
+        Minecraft mc=Minecraft.getInstance();
+        ItemStack carried=DdsQcaStackCodec.get(d,"carried",mc.player);
+        AbstractContainerMenu menu=creativeSession.menu();
+        DdsQcaClient.applyCreativeCarried(menu,mc.player,carried);
+        pendingTransaction=-1;pendingSince=0L;
+        while(!CREATIVE_QUEUE.isEmpty()){
+            int slot=CREATIVE_QUEUE.poll();
+            if(!creativeSessionCurrent()){resetCreativeStorage();return;}
+            if(sendCreativeNow(slot,mc.player,menu,carried))return;
+        }
+        resetCreativeStorage();
+    }
+    /** Called by CDA's optional bridge only while CDA owns the legacy QCA input. */
+    public static void acceptLegacyOwnerEnder(CompoundTag d){
+        if(d==null||DdsLocalOwnershipResolver.current()!=DdsLocalOwnershipDecision.LEGACY_COMPAT
+                ||MinecraftCompat.intOr(d,"rejected",-1)==1
+                ||MinecraftCompat.intOr(d,"open_player_inventory",-1)==1
+                ||MinecraftCompat.intOr(d,"owner_ender_rejected",-1)==1)return;
+        bindVerifiedOwnerEnder(MinecraftCompat.intOr(d,"container_id",-1),
+                MinecraftCompat.stringOr(d,"fake_ender_owner_uuid",""),
+                MinecraftCompat.stringOr(d,"fake_ender_owner_name",""));
+    }
+
+    private static boolean bindVerifiedOwnerEnder(int id,String ownerText,String ownerName){
+        if(id<0||ownerText.trim().isEmpty()||ownerName.trim().isEmpty())return false;
+        Minecraft mc=Minecraft.getInstance();
+        if(mc.player==null)return false;
+        try{
+            UUID ownerUuid=UUID.fromString(ownerText);
+            boolean matches=nestedInventoryViaEnder&&nestedInventoryParent!=null
+                    &&ownerUuid.equals(nestedInventoryParent.targetUuid())
+                    &&mc.player.containerMenu.containerId==id;
+            PlayerInventoryOpenContext.expectVerifiedEnder(id,ownerUuid,ownerName,
+                    providerContext(ownerUuid,ownerName));
+            if(mc.player.containerMenu.containerId==id)
+                ProviderPlayerInventoryScreenCoordinator.tryUpgradeCurrent();
+            return matches;
+        }catch(IllegalArgumentException ignored){return false;}
+    }
+
     private static void handleNavigationState(CompoundTag d){
         boolean rejected=MinecraftCompat.intOr(d,"rejected",-1)==1;
         boolean ownerEnderRejected=MinecraftCompat.intOr(d,"owner_ender_rejected",-1)==1;
@@ -187,19 +320,8 @@ public final class DdsQcaClientNetwork {
         Minecraft mc=Minecraft.getInstance();
         String ownerText=MinecraftCompat.stringOr(d,"fake_ender_owner_uuid","");
         String ownerName=MinecraftCompat.stringOr(d,"fake_ender_owner_name","");
-        boolean ownerEnderMatchesInventory=false;
-        if(!rejected&&!openInventory&&id>=0&&!ownerText.trim().isEmpty()&&!ownerName.trim().isEmpty()){
-            try{
-                UUID ownerUuid=UUID.fromString(ownerText);
-                ownerEnderMatchesInventory=nestedInventoryViaEnder&&nestedInventoryParent!=null
-                        &&ownerUuid.equals(nestedInventoryParent.targetUuid())
-                        &&mc.player!=null&&mc.player.containerMenu.containerId==id;
-                PlayerInventoryOpenContext.expectVerifiedEnder(id,ownerUuid,ownerName,
-                        providerContext(ownerUuid,ownerName));
-                if(mc.player!=null&&mc.player.containerMenu.containerId==id)
-                    ProviderPlayerInventoryScreenCoordinator.tryUpgradeCurrent();
-            }catch(IllegalArgumentException ignored){}
-        }
+        boolean ownerEnderMatchesInventory=!rejected&&!openInventory
+                &&bindVerifiedOwnerEnder(id,ownerText,ownerName);
         // A source menu's delayed no-back packet must not replace the child's navigation state.
         if(!rejected&&!openInventory&&(enderSourceState||inventorySourceState||nestedInventoryViaEnder)
                 &&mc.player!=null&&mc.player.containerMenu.containerId!=id)return;
@@ -230,9 +352,12 @@ public final class DdsQcaClientNetwork {
         }
     }
     private static void rememberPlayerInventoryParent(AbstractContainerMenu menu){Minecraft mc=Minecraft.getInstance();Screen s=MinecraftCompat.screen(mc);if(mc.player!=null&&s!=null&&(menu==mc.player.inventoryMenu||DdsQcaClient.isCreativeSurvivalScreen()))playerInventoryParent=s;}
-    private static void expireCreativePending(){if(pendingTransaction>=0&&System.nanoTime()-pendingSince>=CREATIVE_TIMEOUT_NANOS)resetCreativeStorage();}
+    private static void expireCreativePending(){
+        if(pendingTransaction>=0&&(!creativeSessionCurrent()
+                ||System.nanoTime()-pendingSince>=CREATIVE_TIMEOUT_NANOS))resetCreativeStorage();
+    }
     public static void resetSession(){restoreOwnerEnderFallback();resetCreativeStorage();clearNavigation();clearNestedEnder();clearNestedInventory();pendingOwnerEnder=null;playerInventoryParent=null;PROVIDER_CONTEXTS.clear();PlayerInventoryOpenContext.clear();}
-    private static void resetCreativeStorage(){pendingTransaction=-1;pendingSince=0L;pendingMenu=null;CREATIVE_QUEUE.clear();}
+    private static void resetCreativeStorage(){pendingTransaction=-1;pendingSince=0L;creativeSession=null;CREATIVE_QUEUE.clear();}
     private static void clearNavigation(){navigationContainer=-1;pendingBack=-1;playerInventoryParent=null;clearNestedEnder();clearNestedInventory();}
     private static void clearNestedEnder(){nestedEnderParent=null;nestedEnderSource=-1;nestedEnderChild=-1;}
     private static void clearNestedInventory(){nestedInventoryParent=null;nestedInventorySource=-1;nestedInventoryChild=-1;nestedInventoryViaEnder=false;}

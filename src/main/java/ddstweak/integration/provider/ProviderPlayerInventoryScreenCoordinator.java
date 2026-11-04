@@ -18,9 +18,9 @@ import net.minecraft.world.item.ItemStack;
 
 /** Performs an in-place client screen upgrade after an authoritative provider marker becomes available. */
 public final class ProviderPlayerInventoryScreenCoordinator{
-    private static final boolean TRACE=Boolean.getBoolean("dds.playerinventory.trace");
+    private static final boolean TRACE=Boolean.getBoolean("ddstweak.playerinventory.trace");
     private static final org.apache.logging.log4j.Logger TRACE_LOG=
-            org.apache.logging.log4j.LogManager.getLogger("dds.playerinventory.dt");
+            org.apache.logging.log4j.LogManager.getLogger("ddstweak.playerinventory");
     @FunctionalInterface
     public interface AuthoritativeContextResolver{PlayerInventoryContext resolve(MenuType<?> type,int containerId);}
     @FunctionalInterface
@@ -136,20 +136,42 @@ public final class ProviderPlayerInventoryScreenCoordinator{
     public static void showEnhancedScreen(Minecraft minecraft,UnifiedPlayerInventoryMirrorMenu menu,Component title){
         if(minecraft==null||minecraft.player==null||menu==null)return;
         if(menu.kind()==PlayerInventoryKind.ENDER_CHEST){
-            if(menu.targetType()!=PlayerInventoryTargetType.FAKE){
-                MinecraftCompat.setScreen(minecraft,new EnhancedStorageScreen(
-                        menu,MinecraftCompat.playerInventory(minecraft),nonFakeEnderTitle(menu,title),menu.visualRows()));
-            }else{
-                MinecraftCompat.setScreen(minecraft,new UnifiedPlayerEnderChestScreen(
-                        menu,MinecraftCompat.playerInventory(minecraft),title));
-            }
+            //#if MC >= 12111
+            // Only an authoritative fake-player identity may expose the fake Ender toolbar.
+            // REAL/UNKNOWN still open the storage screen; server authority is unchanged.
+            boolean playerEnder=PlayerIdentityResolver.isAuthoritativeFake(menu.context())
+                    &&menu.context().targetUuid()!=null
+                    &&!menu.context().targetUuid().equals(minecraft.player.getUUID());
+            //#else
+            //$$ boolean playerEnder=menu.targetType()==PlayerInventoryTargetType.FAKE;
+            //#endif
+            if(TRACE)TRACE_LOG.info("ender_screen source={} target={} identity={} state={} toolbar={}",
+                    menu.context().source(),menu.context().targetName(),menu.targetType(),
+                    menu.context().targetState(),playerEnder);
+            MinecraftCompat.setScreen(minecraft,playerEnder
+                    ?new UnifiedPlayerEnderChestScreen(menu,MinecraftCompat.playerInventory(minecraft),title)
+                    :new EnhancedStorageScreen(menu,MinecraftCompat.playerInventory(minecraft),
+                            nonFakeEnderTitle(menu,title),menu.visualRows()));
             return;
         }
+        //#if MC >= 12111
+        // UNKNOWN is not REAL. Use the provider fake-inventory *layout* for its IPN
+        // anchors without claiming fake-player identity or elevating command authority.
+        boolean providerInventory=menu.kind()==PlayerInventoryKind.INVENTORY
+                &&menu.context().targetState()==PlayerInventoryTargetState.ONLINE
+                &&menu.targetType()!=PlayerInventoryTargetType.REAL;
         MinecraftCompat.setScreen(minecraft,menu.kind()==PlayerInventoryKind.CONTROLLER
                 ?new UnifiedPlayerInventoryScreen(menu,MinecraftCompat.playerInventory(minecraft),title)
-                :menu.targetType()==PlayerInventoryTargetType.FAKE
+                :providerInventory
                 ?new UnifiedPlayerInventoryMainScreen(menu,MinecraftCompat.playerInventory(minecraft),title)
                 :new UnifiedPlayerInventoryRealScreen(menu,MinecraftCompat.playerInventory(minecraft),title));
+        //#else
+        //$$ MinecraftCompat.setScreen(minecraft,menu.kind()==PlayerInventoryKind.CONTROLLER
+        //$$         ?new UnifiedPlayerInventoryScreen(menu,MinecraftCompat.playerInventory(minecraft),title)
+        //$$         :menu.targetType()==PlayerInventoryTargetType.FAKE
+        //$$         ?new UnifiedPlayerInventoryMainScreen(menu,MinecraftCompat.playerInventory(minecraft),title)
+        //$$         :new UnifiedPlayerInventoryRealScreen(menu,MinecraftCompat.playerInventory(minecraft),title));
+        //#endif
     }
 
     private static Component nonFakeEnderTitle(UnifiedPlayerInventoryMirrorMenu menu,Component original){

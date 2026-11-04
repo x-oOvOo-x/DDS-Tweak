@@ -18,6 +18,7 @@ final class PlayerIdentityResolverTest {
         OrgFakePlayerIdentityClient.receive(uuid,true);
         assertEquals(PlayerInventoryTargetType.FAKE,PlayerIdentityResolver.resolve(uuid));
         assertEquals(PlayerInventoryTargetType.FAKE,PlayerIdentityResolver.currentType(stale));
+        assertTrue(PlayerIdentityResolver.isAuthoritativeFake(stale));
         OrgFakePlayerIdentityClient.receive(uuid,false);
         assertEquals(PlayerInventoryTargetType.UNKNOWN,PlayerIdentityResolver.resolve(uuid));
         assertEquals(PlayerInventoryTargetType.UNKNOWN,PlayerIdentityResolver.currentType(stale));
@@ -41,6 +42,27 @@ final class PlayerIdentityResolverTest {
                 PlayerInventoryLayouts.ENDER_3_V1,1,"test",Collections.<PlayerInventoryAction>emptySet(),
                 Collections.<PlayerInventoryInteractionCapability>emptySet(),PlayerInventoryFallbackPolicy.KEEP_SOURCE_SCREEN);
         assertFalse(PlayerIdentityResolver.isAuthoritativeFake(offline));
+    }
+
+    @Test void extensionEnderToolbarRequiresOnlineAuthoritativeFake(){
+        assertTrue(PlayerIdentityResolver.isAuthoritativeFake(strictContext(
+                PlayerInventoryTargetType.FAKE,PlayerInventoryTargetState.ONLINE)));
+        assertFalse(PlayerIdentityResolver.isAuthoritativeFake(strictContext(
+                PlayerInventoryTargetType.REAL,PlayerInventoryTargetState.ONLINE)));
+        assertFalse(PlayerIdentityResolver.isAuthoritativeFake(strictContext(
+                PlayerInventoryTargetType.UNKNOWN,PlayerInventoryTargetState.ONLINE)));
+        assertFalse(PlayerIdentityResolver.isAuthoritativeFake(strictContext(
+                PlayerInventoryTargetType.FAKE,PlayerInventoryTargetState.OFFLINE)));
+        assertFalse(PlayerIdentityResolver.isAuthoritativeFake(strictContext(
+                PlayerInventoryTargetType.FAKE,PlayerInventoryTargetState.UNKNOWN)));
+    }
+
+    private static PlayerInventoryContext strictContext(PlayerInventoryTargetType type,PlayerInventoryTargetState state){
+        return new PlayerInventoryContext(1,3,"dds_qca",UUID.randomUUID(),"bot",type,state,
+                PlayerInventoryKind.ENDER_CHEST,PlayerInventoryLayouts.ENDER_3_V1,1,"test",
+                Collections.<PlayerInventoryAction>emptySet(),
+                Collections.<PlayerInventoryInteractionCapability>emptySet(),
+                PlayerInventoryFallbackPolicy.KEEP_SOURCE_SCREEN);
     }
 
     private static PlayerInventoryContext context(String source,PlayerInventoryTargetType type,UUID uuid){

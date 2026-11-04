@@ -4,6 +4,13 @@
 
 > 当前 coreVersion 为 1.21.11。版本适配以 `settings.json`、`versions/<mc>/gradle.properties`、preprocess 图和实际构建产物为准，不以 README 中的单一 core 版本代替支持矩阵。
 
+### 旧版增强容器背景与书籍滚轮版本边界（2026-10-20）
+
+- `EnhancedStorageScreen` 与 `UnifiedPlayerInventoryScreen` 的 `render()` 在 **1.20.1 及以前**应先调用原版 `renderBackground()`，再绘制容器槽位和 Tooltip；**1.20.2 起**沿用原版提供的新版背景渲染生命周期，不手动叠加遮罩；**26.x** 保留 `super.extractBackground()`。
+- `BookScrollContainerEventHandlerMixin` 的 `ContainerEventHandler#mouseScrolled` 从 **1.20.2** 起使用四个 `double` 参数（鼠标 X/Y、水平/垂直滚动）；1.20.1 及以前使用三个。版本门槛为 `MC >= 12002`，必须检查生成 Mixin callback 签名与实际启动。
+- 实测基线：1.20.1 安装 DT 后打开普通箱子和潜影盒时缺少背景遮罩；1.20.4、1.20.6 以及 1.21.1 及以上的相关遮罩已由用户反馈正常。1.20.2 的旧构建在进入游戏前因 BookScroll Mixin 方法签名不匹配而崩溃，遮罩尚无法验收。其他 1.20.1 以下版本仅有源码层面的同类风险，不能列为实机 FAIL。
+- 修复验收应覆盖箱子、潜影盒、Provider 背包与末影箱，分别核查受影响旧版本、1.20.2 的启动和遮罩、1.20.4/1.20.6 的视觉回归、26.x extractor；`buildAndGather` 的全版本构建成功不能代替运行时验证。
+
 ## 1. 先确认版本属于哪一代
 
 DDS 客户端网络目前分三代：
@@ -16,7 +23,7 @@ DDS_PAYLOAD_CODEC        >= 1.20.6
 
 同一代可以批量做兼容基线，但 ownership 仍必须由对应 DDS artifact 明确声明。
 
-当前 F2 只回填 `DDS_PAYLOAD_CODEC` 代：
+下表是历史 F2 的 `DDS_PAYLOAD_CODEC` 回填基线，并非当前 21 个 activeVersions 的完整依赖表；最新范围以 `settings.json` 和各 `versions/<mc>/gradle.properties` 为准：
 
 | 构建 target | 声明支持 Minecraft | Fabric API | MaLiLib | Java | 当前 ownership |
 | --- | --- | --- | --- | --- | --- |
@@ -40,11 +47,11 @@ CI 使用：
 ```text
 Gradle runtime: 9.6
 CI JDK:         25
-Minecraft target toolchain: Java 21（当前 F2 全部 target）
-Fabric Loader dependency: >=0.14.25
+Minecraft target toolchain: per-target Java (1.14.4: 8; 1.21.11: 21; 26.3: 25)
+Fabric Loader dependency: per-target gradle.properties (26.3: >=0.19.5)
 ```
 
-JDK 25 只是运行 Gradle/CI；生成的当前 F2 Minecraft 目标仍按 Java 21 编译。
+CI 使用 JDK 25 运行 Gradle；生成的 Minecraft 产物遵循各节点自己的 Java toolchain，不能将历史 F2 的 Java 21 要求套用到 26.3。
 
 仓库正式提交 Gradle Wrapper，并固定 Gradle 9.6.0。Windows/PowerShell 标准入口：
 
@@ -195,6 +202,27 @@ pushPose / popPose
 
 这类“API 不存在但只是视觉行为差异”的问题优先做小型兼容层，不要为一个方法复制整页 GUI。
 
+### 5.5a Silent Auto Eat 背包预览渲染边界（2026-10-24）
+
+`InventoryScreen.extractRenderState(LivingEntity)` 在 1.21.11 和
+26.1.2/26.2/26.3 暴露可复用的实体 `EntityRenderState` 消费边界。
+`InventoryPreviewMixin` 只对当前 `LocalPlayer` 的背包预览
+`ArmedEntityRenderState` 进行 `ItemModelResolver` 视觉投影，保留真实副手交易。
+`common.gradle processResources` 必须在低于 1.21.11 的目标物理移除该 Mixin；
+其他屏幕或世界实体不受影响。验收需覆盖编译后的类、目标最终 Mixin JSON、
+左右主手、第三人称预览及一/三人称游戏世界不受影响，且不同实际 GUI API
+版本必须启动测试；构建绿不代表完成运行验收。
+
+### 5.5b Silent Auto Eat 渲染方法边界（2026-10-26）
+
+- 1.21.10 及更旧版本：`AbstractContainerScreen.renderSlot` / `renderTooltip`，旧版 Tooltip 暂保留可组合 getter 包装，仍需运行时验证。
+- 快捷栏及背包副手视觉（1.20.1 专项）：原先新增的 `ItemInHandLayer` 投影源码虽然编译，但 `common.gradle` 仍在 `mcVersion < 1_21_11` 时从最终 `dds-tweak.mixins.json` 删除 `InventoryPreviewMixin`，因此 1.20.1 实际从未加载该预览适配器。现仅在 1.20.1 与 1.21.11+ 保留该 Mixin，并在 `processResources` 校验每版本的生成 JSON；1.20.1 必须重新验证背包副手槽图标与 3D 人物预览、真实背包及关闭 GUI 后恢复，不能以构建成功代替实机成功。1.14.4 日志则已证明能够触发但 `SWAP(button=40)` 后苹果仍在来源槽且副手为空；只对 1.14.4 用受限的三次原版 `PICKUP`（来源槽→动态定位的副手槽→来源槽）代替交换，严格校验空光标与槽位权限。其他活动版本不改交换策略，1.14.4 的客户端实测仍需确认。
+- 1.21.11：`Gui.renderItemHotbar`，容器 `renderSlot` / `renderTooltip`。
+- 26.1.2：`Gui.extractItemHotbar`，容器 `extractSlot` / `extractTooltip`。
+- 26.2 与 26.3：`Hud.extractItemHotbar`，容器 `extractSlot` / `extractTooltip`。
+
+跨 21 个活动目标的 `verifySilentAutoEatVanillaTargets` 由现有 `buildAndGather` 统一运行。它读取 Minecraft 的实际 class 字节码，检查目标方法及必要的局部存储和读取调用，并将报告保存到对应版本的 `build/reports/silent-auto-eat/vanilla-targets.json`。这属于静态字节码验证，**不能替代实际客户端的 Mixin 注入、Tooltip、手部/快捷栏及 QuickCraft/IPN/ItemScroller 联调**。
+
 ### 5.6 输入事件与 preprocess 标记
 
 1.21.9 起 GUI 键鼠输入使用新的 `KeyEvent` / `MouseButtonEvent` 路径；旧版本继续使用 `key/scan/modifiers` 与 `x/y/button` 签名。Screen 内属于局部差异，使用 preprocess。
@@ -295,6 +323,12 @@ could not find any targets matching 'renderItemCount' in GuiGraphics
 ```
 
 如果构建阶段只出现 `Unable to determine descriptor for @Inject target method` 警告而仍然 green，不代表该 Mixin 可运行；最老 target 必须实际 `runClient`。
+
+### 旧版配置滑块超宽纹理兼容（MC 1.14.4–1.20.1）
+
+MaLiLib 旧版 `WidgetSlider` 使用 `textures/gui/widgets.png` 的定宽按钮图集。窗口变宽时，背景纹理的 UV 读取可能超出原按钮范围而出现缺失。DT 仅在自身配置界面的旧版本滑块中采用安全的分段背景纹理绘制；X/Y、宽高、文字、滑块柄位置、回调以及 MaLiLib 的鼠标按下/释放行为保持不变。不影响其他模组的 MaLiLib 界面。
+
+从 MC 1.20.2 起，MaLiLib 使用 GUI Sprite 绘制，不能直接套用旧图集补丁。应分别检查大/小窗口、不同 GUI 缩放、各类型滑块、拖动/重置、切换输入模式及保存后的表现。构建与单测不能替代实机视觉验证。
 
 ## 6. MaLiLib 版本差异
 
@@ -784,6 +818,26 @@ ABSORB / EXTRACT 实机正常
 曾出现一次“标记修复后仍失败”的中间复测，但诊断提交本身只增加日志，没有改变 QCA 手势语义；当前证据不足以把该次失败归因于生产代码。不要把“旧构建/旧 JAR/未完整重启”等环境因素写成既定根因。临时 `QCA trace` 日志在确认通过后已移除。
 
 
+### 17.1 DT #160：原版普通存储菜单安全槽位的 QCA 右键拖动（2026-10-20）
+
+P6 在 1.20.1 报告普通容器区不能启动 QCA 右键存取/拖动，而玩家背包槽位可用。DT PR #161（已合入 `main`，配对实机矩阵待补齐）恢复 CDA 原版的精确 `ChestMenu.class` 路径，再依容器覆盖审查补充以下**精确原版菜单类**；只修复容器 GUI 内的 QCA 操作，不新增可随身打开的 `MenuKind`：
+
+| 菜单类 | 涵盖的原版普通存储容器 | 边界 |
+| --- | --- | --- |
+| `ChestMenu` | 箱子、木桶及部分实体存储菜单 | 沿用 CDA 原先显式支持的路径 |
+| `HopperMenu` | 漏斗、漏斗矿车 | 仅正常存储槽位 |
+| `DispenserMenu` | 投掷器、发射器 | 仅正常存储槽位 |
+| `ShulkerBoxMenu` | 放置的潜影盒 | 遵守 `Slot.mayPlace` / 服务端潜影盒限制，不允许潜影盒套娃 |
+
+四种菜单类均在 DT 最低目标 1.14.4 至最高目标 26.3 的对应源码/映射中存在，当前无需新增 ReplayMod `//#if` 版本条件。播放器自背包槽位、末影箱原有回退路径保留。优先级仍为：`DdsQcaSlotRoleProvider` 显式角色 → 已识别的原生 Provider 决策 → 查看者背包 → 上述精确原版菜单；不得通过 `instanceof AbstractContainerMenu`、`Container`、`SimpleContainer`、菜单标题或任意子类扩权。四种菜单都要求目标槽位在当前 `menu.slots` 内，且通过既有 `safeSourceSlot`（可取出、已有物品可放回、CONTROL/DISABLED 排除）。CDA 服务端始终重新验证 `containerId`、规则、菜单、槽位、权限和携带物。
+
+**暂不加入同一白名单**：`FurnaceMenu` / `BlastFurnaceMenu` / `SmokerMenu`、`BrewingStandMenu`、`CrafterMenu`、`HorseInventoryMenu` 等含工作输出/燃料/配方/禁用/装备语义的菜单。必须先逐槽核实 CDA 服务端直写是否保留相应规则，再决定按版本实施；尤其 `CrafterMenu` 不能在 1.14.4～1.20.2 的源码中无条件引用。特殊 GCA/Org/DT 镜像菜单继续优先使用各自角色和所有权校验。无传统 `AbstractContainerScreen` 槽位 GUI 的容器不属本修复。
+
+共享代码触及 DT 21 个 activeVersions，但截至此记录仅 1.20.1 有原始运行复现证据。自动测试包括全部四类原版菜单的正反例以及非法菜单类型、非当前成员槽和不安全槽；代码侧的静态合同不能代替 GUI 交互验证。最终提交需执行一次全版本 `buildAndGather`，并在至少 1.14.4、1.20.1（Legacy）、1.20.4（Reader Map）、1.21.11 与 26.3（Codec）分别核对新菜单类型的单次右键/连续拖动、ABSORB / EXTRACT、空/满槽、禁用规则、端到端同步、断线重连，以及 CDA 拒绝时是否误触发原版右键或重复处理。每个测试项都要记录 DT/CDA 具体产物与客户端/服务端日志；未实测版本标记 NOT RUN。
+
+本修复不改 CDA 服务端生产代码、网络协议、QCA 规则、客户端配置/语言项或 P6 paired handoff、P7/P8 与 ownership 契约，不恢复已删除的 Ender 三个批量按钮。
+
+
 ### 18. 1.20.6 commented-branch mapping names
 
 ReplayMod Preprocessor remaps active source tokens between Minecraft mappings, but code stored behind `//$$` is inactive text until that version branch is materialized. Therefore a legacy-only branch must use the target-era mapped class name when the symbol itself changed across versions.
@@ -890,3 +944,46 @@ ClickThrough 的墙牌逻辑按“有效前景操作优先、无操作再穿透�
 
 Shift 只作为 ClickThrough 的“不要穿透”修饰：返回原始墙牌目标，不发送 `RELEASE_SHIFT_KEY/PRESS_SHIFT_KEY` 伪造服务器潜行状态。1.20+ 在 Vanilla 本身允许的条件下进入文本编辑；旧版本不凭空增加原版不存在的放置后编辑协议。
 
+## DT #114 — 四现代版本 Provider 玩家菜单适配门禁（2026-10-10）
+
+新增的 GCA/Org 无 CDA 控制仅针对 **1.21.11、26.1.2、26.2、26.3**，其余 17 个构建 target 保持原行为：
+
+- **普通 Carpet 控制**：四节点不再把客户端 Brigadier 树作为标准 `/player` 指令的权限判断，服务端实际验证目标与权限；独立 `attack/use stop` 仍要求真实语法。未知 FAKE 身份不自动禁用普通按钮，离线目标始终不能控制。
+- **账号安全**：GCA 优先本次右键 GameProfile + 同连接/容器绑定；无点击来源时需在线账号完整精确匹配或已加载实体完整显示名唯一关联。任意 `假的`、`bot_`、`_Bot` 等显示前后缀不得被剥离成命令目标。不同身份来源冲突必须拒绝发送。
+- **Org 末影箱**：潜行右键玩家打开 3 排容器；必须以玩家点击 + 菜单 ID + 结构化账号标记关联，不接管普通箱子。顶部仅潜行/退出按钮，Ender 三个批量按钮不恢复。
+- **输入差异**：26.3 采用 SDL 鼠标键值；1.21.11、26.1.2、26.2 采用该代既有事件映射。运行中调整攻击/使用 tick 可从 CONTINUOUS 切换为 INTERVAL；本地输入编辑不依赖命令树。
+- **协议兼容**：CDA 缺席时普通菜单照常可用，QCA=N/A；有 CDA 时专有 RPC 继续进行能力、UUID、FAKE、严格 Session/容器验证，不能从显示名推导。
+- **验证口径**：`verifyDDSTweak` / `buildAndGather` 证明 21 版本预处理、编译和产物；不能以 1.21.11 的 JUnit 覆盖或单一版本用户实测代替另外三个现代版本的运行记录。合并、P4 联调及 Final Cutover 是独立门禁。
+
+当前行为的唯一实施合同与风险清单参见 [PLAYER_INVENTORY_DT114.md](PLAYER_INVENTORY_DT114.md)，不要把 #114 历史评论中的早期探索方案当成现行权限规则。
+
+## Optional Mod Menu config-screen API
+
+DDS Tweak implements the optional Fabric `modmenu` entrypoint, backed by the
+existing `DDSTweakConfigScreen`. No additional DT configuration keys or UI
+pages are introduced, and Mod Menu is not a required runtime dependency.
+
+- 1.14.4: Mod Menu 1.7.18 (Modrinth version `leKKCpqK`), legacy
+  `io.github.prospector.modmenu.api.ModMenuApi#getConfigScreenFactory`.
+- 1.15.2: Mod Menu 1.10.6, early Prospector package with
+  `getModConfigScreenFactory`.
+- 1.16.5–1.21.11 and 26.x: Terraformers `com.terraformersmc.modmenu.api`
+  with version-specific compile-only dependencies in `common.gradle`.
+- 26.x uses unmapped `compileOnly`; older mapped targets use Loom
+  `modCompileOnly`. No Mod Menu JAR is nested into DDS Tweak.
+
+Regression checklist: with Mod Menu installed, open DDS Tweak from its
+Configure button, change a setting, close/Esc back to Mods, reopen, and check
+persistence. Without Mod Menu, client startup, the existing `Left Alt + V`
+shortcut, and MaLiLib global config switching must still work. Test at least
+1.14.4, 1.15.2, 1.16.5, 1.21.11, and 26.3 at runtime; run `buildAndGather`
+for the full supported target set before merge. Running the static contract
+test or compiling a target is not proof of its in-game navigation behavior.
+
+
+- **Silent Auto Eat 背包 3D 人物预览（2026-10-27 新适配候选）：**此前仅 1.20.1 与 1.21.11+ 有专用投影，现按 **1.14.4–1.21.1：`ItemInHandLayer`**、**1.21.3：`PlayerRenderer` + `PlayerRenderState`**、**1.21.4–1.21.10：`ArmedEntityRenderState` + `ItemModelResolver`**、**1.21.11+：`InventoryScreen.extractRenderState`** 四个 API 代际实现目标分支。仅修改背包 3D 预览的视觉副手/选中主手，其他 HUD/槽位/第一人称逻辑沿用旧实现，任何版本都不能直接修改 Inventory 或服务端权威。生成的 21 个最终 `dds-tweak.mixins.json` 必须包含注册；新增 ASM 目标检查仅证明方法结构。**请勿把多版本编译当作渲染效果一致的运行证据**：各 API 边界需检查启动无 Mixin 失败、副手图标/背包人物/快捷栏/第一人称显示和取消后恢复，兼测左右主手与非空副手；用户未确认前保留 Draft。
+
+
+## 2026-11-03 release-audit fixes
+
+Creative QCA transactions now require the original connection/player/Screen/Menu identity before applying replies or continuing queues; the active Creative screen menu is checked directly (it need not equal player.containerMenu). Camera normalizes ROOT before taking a world-folder key on 1.16+; pre-1.16 level IDs remain. Protected offhand Auto Eat filters unavailable inventory staging before choosing a source, keeping hotbar fallback available on older nodes. Quick Mute stores internal restore metadata without adding editable config entries. All existing targets remain; staging/ownership/protocol boundaries are unchanged. See [candidate checks](RELEASE_AUDIT_2026-11-03.md) and [release procedure](RELEASE_WORKFLOW.md).

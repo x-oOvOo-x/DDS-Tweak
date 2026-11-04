@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ContainerEventHandler.class)
 public interface BookScrollContainerEventHandlerMixin {
-    //#if MC >= 12003
+    //#if MC >= 12002
     @Inject(method="mouseScrolled",at=@At("HEAD"),cancellable=true)
     default void ddstweak$scrollBook(double mouseX,double mouseY,double horizontal,double vertical,CallbackInfoReturnable<Boolean> cir){
         if(ddstweak$handleBookScroll(vertical))cir.setReturnValue(true);

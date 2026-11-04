@@ -11,7 +11,7 @@ final class EnhancedStorageScreenContractTest {
 
     @Test void replacementStorageScreenPreservesVanillaItemTooltipStage()throws IOException{
         String screen=read("ddstweak/integration/provider/EnhancedStorageScreen.java");
-        assertTrue(screen.contains("super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY)"));
+        assertTrue(screen.replaceAll("\\s+","").contains("super.render(g,mouseX,mouseY,partialTick);renderTooltip(g,mouseX,mouseY)"));
         assertTrue(screen.contains("super.render(mouseX,mouseY,partialTick);renderTooltip(mouseX,mouseY)"));
         assertTrue(screen.contains("super.extractRenderState(g,mouseX,mouseY,partialTick)"));
     }
@@ -21,6 +21,21 @@ final class EnhancedStorageScreenContractTest {
         String player=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
         assertTrue(storage.contains("super.extractBackground(g,mouseX,mouseY,partialTick);renderStorageBackground(g)"));
         assertTrue(player.contains("super.extractBackground(g,mouseX,mouseY,partialTick);if(isEnder())"));
+    }
+
+    @Test void legacyContainerScreensRenderVanillaDimmingBeforeSlots()throws IOException{
+        for(String path:new String[]{
+                "ddstweak/integration/provider/EnhancedStorageScreen.java",
+                "ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java"}){
+            String source=read(path);
+            assertTrue(source.contains("//#if MC < 12002"),path);
+            assertTrue(source.contains("//$$ renderBackground(g);"),path);
+            assertTrue(source.contains("renderBackground(g);super.render(g,mouseX,mouseY,partialTick)"),path);
+            assertTrue(source.contains("renderBackground();super.render(mouseX,mouseY,partialTick)"),path);
+            int background=source.indexOf("//$$ renderBackground(g);");
+            int slots=source.indexOf("super.render(g,mouseX,mouseY,partialTick)",background);
+            assertTrue(background>=0&&slots>background,path);
+        }
     }
 
     @Test void genericStorageReplacementRemainsExplicitlyBoundToEnhancedUi()throws IOException{

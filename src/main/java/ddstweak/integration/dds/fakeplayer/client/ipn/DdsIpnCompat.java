@@ -20,11 +20,18 @@ public final class DdsIpnCompat {
     public static boolean isFakeScreen(){return isUnifiedStorageScreen();}private static boolean isUnifiedStorageScreen(){UnifiedPlayerInventoryMirrorMenu menu=menu();return menu!=null&&(menu.kind()==PlayerInventoryKind.INVENTORY||menu.kind()==PlayerInventoryKind.ENDER_CHEST);}private static boolean isGetItemArea(Method method,Object[] args){return method.getName().equals("getItemArea")&&method.getParameterCount()==2&&args!=null&&args.length==2&&args[1] instanceof List<?>;}
     private static Object invoke(Method method,Object target,Object[] args)throws Throwable{try{return method.invoke(target,args);}catch(InvocationTargetException e){throw e.getCause();}}
     private static int hoveredMenuSlot(){Object screen=MinecraftCompat.screen(Minecraft.getInstance());if(!(screen instanceof UnifiedPlayerInventoryScreen))return -1;UnifiedPlayerInventoryScreen unified=(UnifiedPlayerInventoryScreen)screen;Slot slot=((AbstractContainerScreenAccessor)(Object)unified).ddsTweak$getHoveredSlot();return slot==null?-1:unified.getMenu().slots.indexOf(slot);}
-    private static int hoveredSortStart(){UnifiedPlayerInventoryMirrorMenu menu=menu();if(menu==null)return -1;int slot=hoveredMenuSlot();if(slot<0)return menu.targetMainStart();switch(menu.slotRole(slot)){case HOTBAR:return menu.targetHotbarStart();case MAIN:case ENDER_STORAGE:return menu.targetMainStart();default:return -1;}}
-    private static int hoveredSortEnd(){UnifiedPlayerInventoryMirrorMenu menu=menu();if(menu==null)return -1;int slot=hoveredMenuSlot();if(slot<0)return menu.targetMainEnd();switch(menu.slotRole(slot)){case HOTBAR:return menu.targetHotbarEnd();case MAIN:case ENDER_STORAGE:return menu.targetMainEnd();default:return -1;}}
-    private static List<Integer> sortIndices(UnifiedPlayerInventoryMirrorMenu menu){List<Integer> indices=new ArrayList<>();appendRange(indices,hoveredSortStart(),hoveredSortEnd());return indices;}
-    private static List<Integer> storageIndices(UnifiedPlayerInventoryMirrorMenu menu){List<Integer> indices=new ArrayList<>();appendRange(indices,menu.targetMainStart(),menu.targetMainEnd());if(menu.kind()==PlayerInventoryKind.INVENTORY)appendRange(indices,menu.targetHotbarStart(),menu.targetHotbarEnd());return indices;}
-    private static void appendRange(List<Integer> indices,int start,int end){for(int i=Math.max(0,start);i<end;i++)if(!indices.contains(i))indices.add(i);}
+    private static List<Integer> sortIndices(UnifiedPlayerInventoryMirrorMenu menu){
+        int hovered=hoveredMenuSlot();
+        // Preserve IPN's no-hover default: sort the fake main or Ender storage.
+        if(hovered<0)hovered=menu.targetMainStart();
+        int[] range=PlayerInventorySlotPolicy.targetSortableRange(menu,hovered);
+        List<Integer> ids=new ArrayList<>();
+        if(range!=null)for(int id=range[0];id<range[1];id++)ids.add(id);
+        return ids;
+    }
+    private static List<Integer> storageIndices(UnifiedPlayerInventoryMirrorMenu menu){
+        return PlayerInventorySlotPolicy.targetStorageSlots(menu);
+    }
     private static Object fixedArea(List<?> vanillaSlots,boolean sortable){try{UnifiedPlayerInventoryMirrorMenu menu=menu();if(menu==null)throw new IllegalStateException("unified menu missing");Class<?> itemArea=Class.forName(ITEM_AREA);Object companion=itemArea.getField("Companion").get(null);List<Integer> indices=sortable?sortIndices(menu):storageIndices(menu);for(Method m:companion.getClass().getMethods()){if(!m.getName().equals("invoke")||m.getParameterCount()!=3||m.getReturnType()!=itemArea)continue;try{return m.invoke(companion,vanillaSlots,indices,false);}catch(IllegalArgumentException ignored){}}}catch(ReflectiveOperationException|LinkageError|RuntimeException e){broken=true;throw new IllegalStateException("DDS Tweak IPN Level 1 adapter failed closed",e);}broken=true;throw new IllegalStateException("DDS Tweak IPN Level 1 adapter failed closed");}
     private static UnifiedPlayerInventoryMirrorMenu menu(){Object screen=MinecraftCompat.screen(Minecraft.getInstance());return screen instanceof UnifiedPlayerInventoryScreen?((UnifiedPlayerInventoryScreen)screen).getMenu():null;}
 }

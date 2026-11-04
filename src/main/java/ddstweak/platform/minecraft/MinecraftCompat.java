@@ -151,6 +151,10 @@ public final class MinecraftCompat {
         //#endif
     }
 
+    /**
+     * Sends a command via vanilla's signing path. This method alone does not protect
+     * chat history when another client mod records outgoing commands.
+     */
     public static boolean sendCommand(Minecraft minecraft,String command){
         if(minecraft==null||command==null||command.trim().isEmpty())return false;
         //#if MC >= 11900
@@ -162,6 +166,31 @@ public final class MinecraftCompat {
         //$$ minecraft.player.chat("/"+command);
         //#endif
         return true;
+    }
+
+    /**
+     * GUI-initiated command dispatch: preserve vanilla argument signing while preventing
+     * synchronous history writers from recording a command the player did not type.
+     */
+    public static boolean sendCommandWithoutHistory(Minecraft minecraft,String command){
+        if(minecraft==null||command==null||command.trim().isEmpty())return false;
+        return CommandHistoryGuard.run(command,()->sendCommand(minecraft,command));
+    }
+
+    /** Sends an automated chat trigger (for example !!tp) through vanilla's signed chat path. */
+    public static boolean sendChatWithoutHistory(Minecraft minecraft,String message){
+        if(minecraft==null||message==null||message.trim().isEmpty())return false;
+        return CommandHistoryGuard.runChat(message,()->{
+            //#if MC >= 11900
+            ClientPacketListener connection=minecraft.getConnection();
+            if(connection==null)return false;
+            connection.sendChat(message);
+            //#else
+            //$$ if(minecraft.player==null)return false;
+            //$$ minecraft.player.chat(message);
+            //#endif
+            return true;
+        });
     }
 
     /**

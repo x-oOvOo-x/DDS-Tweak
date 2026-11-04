@@ -1,8 +1,12 @@
 package ddstweak.mixin.playerinventory;
 
 import ddstweak.integration.org.playerinventory.OrgPlayerInventoryOpenIntent;
+import ddstweak.integration.provider.ProviderPlayerInventoryScreenCoordinator;
 import ddstweak.playerinventory.PlayerInventoryCommandStateObserver;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+//#if MC >= 12111
+//$$ import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
+//#endif
 import org.spongepowered.asm.mixin.Mixin;
 //#if MC >= 11900
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,5 +25,15 @@ public abstract class ClientPacketListenerMixin {
         PlayerInventoryCommandStateObserver.observeCommand(command);
         //#endif
     }
+    //#endif
+
+    //#if MC >= 12111
+    // Vanilla has already installed the Provider menu at this point, but no frame
+    // has rendered yet. Use the exact menu/command/Extension context when available;
+    // the containerTick fallback still handles metadata delivered after OpenScreen.
+    //$$ @Inject(method="handleOpenScreen", at=@At("TAIL"))
+    //$$ private void ddstweak$upgradeProviderOnOpen(ClientboundOpenScreenPacket packet, CallbackInfo ci) {
+    //$$     ProviderPlayerInventoryScreenCoordinator.tryUpgradeCurrent();
+    //$$ }
     //#endif
 }

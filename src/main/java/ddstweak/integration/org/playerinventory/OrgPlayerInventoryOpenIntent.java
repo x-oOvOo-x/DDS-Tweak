@@ -178,6 +178,11 @@ public final class OrgPlayerInventoryOpenIntent {
         if(title==null)return false;
         String visible=title.getString();
         if(matchesVisibleTitle(visible,target,displayName(info)))return true;
+        //#if MC >= 12111
+        // Modern Org titles may show a decorated name while retaining the
+        // canonical online account in the styled player-label node.
+        if(info!=null&&OrgPlayerInventoryAdapter.hasOrgPlayerMarker(title,target))return true;
+        //#endif
         if(info!=null)return false;
         String offline=MinecraftCompat.translatable("carpet-org-addition.operation.offline_player_name",
                 MinecraftCompat.literal(target)).getString();

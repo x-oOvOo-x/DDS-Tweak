@@ -57,7 +57,7 @@ final class PhaseF2PayloadCodecBackfillContractTest {
     void everyActiveDdsTargetIsPreCutoverReadyOnTweakSide() throws IOException {
         String contract = compactContract();
         for (String version : new String[]{
-                "26.2", "26.1.2", "1.21.11", "1.21.10", "1.21.9", "1.21.8",
+                "26.3", "26.2", "26.1.2", "1.21.11", "1.21.10", "1.21.9", "1.21.8",
                 "1.21.5", "1.21.4", "1.21.3", "1.21.1", "1.20.6", "1.20.4",
                 "1.20.2", "1.20.1", "1.19.4", "1.18.2", "1.17.1", "1.16.5",
                 "1.15.2", "1.14.4"
@@ -72,9 +72,10 @@ final class PhaseF2PayloadCodecBackfillContractTest {
                     version
             );
         }
-        String planned263 = target(contract, "26.3");
-        assertTrue(planned263.contains("\"ddsStatus\":\"planned\""));
-        assertTrue(planned263.contains("\"tweakNodeStatus\":\"active\""));
+        String active263 = target(contract, "26.3");
+        assertTrue(active263.contains("\"wireMode\":\"DDS_PAYLOAD_CODEC\""));
+        assertTrue(active263.contains("\"ddsPublishesTweakOwnership\":true"));
+        assertTrue(active263.contains("\"pairedHandoffVerified\":false"));
     }
 
     @Test
@@ -105,7 +106,7 @@ final class PhaseF2PayloadCodecBackfillContractTest {
             String target = target(contract, version);
             assertTrue(target.contains("\"tweakNodeStatus\":\"active\""), version);
             assertTrue(target.contains("\"wireMode\":\"DDS_PAYLOAD_READER_MAP\""), version);
-            assertTrue(target.contains("\"ddsPublishesTweakOwnership\":false"), version);
+            assertTrue(target.contains("\"ddsPublishesTweakOwnership\":true"), version);
             assertTrue(target.contains("\"pairedHandoffVerified\":false"), version);
         }
         assertTrue(read("versions/1.20.4/gradle.properties").contains("malilib_version=0.18.3"));
@@ -117,7 +118,7 @@ final class PhaseF2PayloadCodecBackfillContractTest {
         String target = target(compactContract(), "1.20.1");
         assertTrue(target.contains("\"tweakNodeStatus\":\"active\""));
         assertTrue(target.contains("\"wireMode\":\"LEGACY_CUSTOM_PAYLOAD\""));
-        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":false"));
+        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":true"));
         assertFalse(target.contains("\"pairedHandoffVerified\":true"));
         String properties = read("versions/1.20.1/gradle.properties");
         assertTrue(properties.contains("malilib_version=0.16.3"));
@@ -129,7 +130,7 @@ final class PhaseF2PayloadCodecBackfillContractTest {
         String target = target(compactContract(), "1.19.4");
         assertTrue(target.contains("\"tweakNodeStatus\":\"active\""));
         assertTrue(target.contains("\"wireMode\":\"LEGACY_CUSTOM_PAYLOAD\""));
-        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":false"));
+        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":true"));
         assertFalse(target.contains("\"pairedHandoffVerified\":true"));
         String properties = read("versions/1.19.4/gradle.properties");
         assertTrue(properties.contains("malilib_version=0.15.4"));
@@ -141,10 +142,10 @@ final class PhaseF2PayloadCodecBackfillContractTest {
         String target = target(compactContract(), "1.18.2");
         assertTrue(target.contains("\"tweakNodeStatus\":\"active\""));
         assertTrue(target.contains("\"wireMode\":\"LEGACY_CUSTOM_PAYLOAD\""));
-        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":false"));
+        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":true"));
         assertFalse(target.contains("\"pairedHandoffVerified\":true"));
         String properties = read("versions/1.18.2/gradle.properties");
-        assertTrue(properties.contains("malilib_version=0.12.3-alpha.2"));
+        assertTrue(properties.contains("malilib_version=0.12.1"));
         assertTrue(properties.contains("minecraft_version=1.18.2"));
         assertTrue(properties.contains("java_dependency=>=17"));
         String compat = read("src/main/java/ddstweak/platform/minecraft/MinecraftCompat.java");
@@ -157,7 +158,7 @@ final class PhaseF2PayloadCodecBackfillContractTest {
         String target = target(compactContract(), "1.17.1");
         assertTrue(target.contains("\"tweakNodeStatus\":\"active\""));
         assertTrue(target.contains("\"wireMode\":\"LEGACY_CUSTOM_PAYLOAD\""));
-        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":false"));
+        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":true"));
         assertFalse(target.contains("\"pairedHandoffVerified\":true"));
         String properties = read("versions/1.17.1/gradle.properties");
         assertTrue(properties.contains("minecraft_version=1.17.1"));
@@ -172,7 +173,7 @@ final class PhaseF2PayloadCodecBackfillContractTest {
         String target = target(compactContract(), "1.16.5");
         assertTrue(target.contains("\"tweakNodeStatus\":\"active\""));
         assertTrue(target.contains("\"wireMode\":\"LEGACY_CUSTOM_PAYLOAD\""));
-        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":false"));
+        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":true"));
         assertFalse(target.contains("\"pairedHandoffVerified\":true"));
         String properties = read("versions/1.16.5/gradle.properties");
         assertTrue(properties.contains("minecraft_version=1.16.5"));
@@ -187,7 +188,7 @@ final class PhaseF2PayloadCodecBackfillContractTest {
         String target = target(compactContract(), "1.15.2");
         assertTrue(target.contains("\"tweakNodeStatus\":\"active\""));
         assertTrue(target.contains("\"wireMode\":\"LEGACY_CUSTOM_PAYLOAD\""));
-        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":false"));
+        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":true"));
         assertFalse(target.contains("\"pairedHandoffVerified\":true"));
         String properties = read("versions/1.15.2/gradle.properties");
         assertTrue(properties.contains("minecraft_version=1.15.2"));
@@ -209,7 +210,7 @@ final class PhaseF2PayloadCodecBackfillContractTest {
         String target = target(compactContract(), "1.14.4");
         assertTrue(target.contains("\"tweakNodeStatus\":\"active\""));
         assertTrue(target.contains("\"wireMode\":\"LEGACY_CUSTOM_PAYLOAD\""));
-        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":false"));
+        assertTrue(target.contains("\"ddsPublishesTweakOwnership\":true"));
         assertFalse(target.contains("\"pairedHandoffVerified\":true"));
         String properties = read("versions/1.14.4/gradle.properties");
         assertTrue(properties.contains("minecraft_version=1.14.4"));

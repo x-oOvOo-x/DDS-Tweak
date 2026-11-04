@@ -13,8 +13,10 @@ import net.minecraft.client.gui.GuiGraphics;
 //#endif
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.chat.Component;
 //#if MC >= 12109
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 //#endif
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -23,23 +25,24 @@ import java.util.*;
 
 public final class CameraPlayerSelectorScreen extends Screen {
     private static final int SLOT=22,ICON=16,GAP=3,PEEK=6,ROW_H=25,MAX_VISIBLE=5;
+    // Anchors calibrated from the 4K reference using Minecraft GUI units, not screenshot pixels.
+    private static final int DIMENSION_Y=27,FAKE_Y=70,REAL_Y=116,SOLO_PLAYER_Y=93;
+    private static final int DESTINATION_Y=163,ACTION_Y=200;
     private static final ItemStack OVERWORLD=new ItemStack(Items.GRASS_BLOCK),NETHER=new ItemStack(Items.NETHERRACK),END=new ItemStack(Items.END_PORTAL_FRAME);
-    private static final ItemStack CAMERA=new ItemStack(Items.ENDER_EYE),BACK=new ItemStack(Items.COMPASS),DEFAULT_DESTINATION_ICON=new ItemStack(Items.COMPASS);
+    private static final ItemStack CAMERA=new ItemStack(Items.ENDER_EYE),BACK=new ItemStack(Items.COMPASS),SETTINGS=new ItemStack(Items.WRITABLE_BOOK),DEFAULT_DESTINATION_ICON=new ItemStack(Items.COMPASS);
 
     private final List<CameraPlayerEntry> real=new ArrayList<>(),fake=new ArrayList<>(),unknown=new ArrayList<>(),realRow=new ArrayList<>();
     private final List<CameraDestination> destinations=new ArrayList<>();
     private final Map<String,ItemStack> destinationIcons=new HashMap<>();
-    private final boolean canTp,canDimension,canDestination,canFollow,canToggle,canBack;
+    private CameraCommandProfile profile;
+    private final CameraQuickCommandOverlay quickOverlay=new CameraQuickCommandOverlay(this);
+    void reloadProfile(){profile=CameraCommandProfileStore.load(minecraft);}
+    void reloadQuickCommands(){quickOverlay.reload(minecraft);}
     private int realOffset,fakeOffset,destinationOffset;
 
-    CameraPlayerSelectorScreen(List<CameraPlayerEntry> snapshot,boolean canTp,boolean canDimension,boolean canDestination,boolean canFollow,boolean canToggle,boolean canBack){
+    CameraPlayerSelectorScreen(List<CameraPlayerEntry> snapshot,CameraCommandProfile profile){
         super(MinecraftCompat.translatable("dds-tweak.camera.title"));
-        this.canTp=canTp;
-        this.canDimension=canDimension;
-        this.canDestination=canDestination;
-        this.canFollow=canFollow;
-        this.canToggle=canToggle;
-        this.canBack=canBack;
+        this.profile=profile;
         for(CameraPlayerEntry entry:snapshot){
             if(entry.type==PlayerInventoryTargetType.REAL)real.add(entry);
             else if(entry.type==PlayerInventoryTargetType.FAKE)fake.add(entry);
@@ -48,6 +51,7 @@ public final class CameraPlayerSelectorScreen extends Screen {
         realRow.addAll(real);
         realRow.addAll(unknown);
         reloadDestinations();
+        quickOverlay.reload(net.minecraft.client.Minecraft.getInstance());
     }
 
     @Override public boolean isPauseScreen(){return false;}
@@ -73,10 +77,16 @@ public final class CameraPlayerSelectorScreen extends Screen {
     }
 
     //#if MC >= 260100
-    //$$ @Override public void extractBackground(GuiGraphicsExtractor graphics,int mouseX,int mouseY,float partialTick){extractTransparentBackground(graphics);}
+    //$$ @Override public void extractBackground(GuiGraphicsExtractor graphics,int mouseX,int mouseY,float partialTick){super.extractBackground(graphics,mouseX,mouseY,partialTick);}
     //$$ @Override public void extractRenderState(GuiGraphicsExtractor graphics,int mouseX,int mouseY,float partialTick){super.extractRenderState(graphics,mouseX,mouseY,partialTick);renderContent(graphics,mouseX,mouseY);}
     //#elseif MC >= 12002
-    @Override public void renderBackground(GuiGraphics graphics,int mouseX,int mouseY,float partialTick){renderTransparentBackground(graphics);}
+    @Override public void renderBackground(GuiGraphics graphics,int mouseX,int mouseY,float partialTick){
+        //#if MC >= 12005
+        super.renderBackground(graphics,mouseX,mouseY,partialTick);
+        //#else
+        //$$ renderTransparentBackground(graphics);
+        //#endif
+    }
     @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float partialTick){super.render(graphics,mouseX,mouseY,partialTick);renderContent(graphics,mouseX,mouseY);}
     //#elseif MC >= 12000
     //$$ @Override public void render(GuiGraphics graphics,int mouseX,int mouseY,float partialTick){renderBackground(graphics);super.render(graphics,mouseX,mouseY,partialTick);renderContent(graphics,mouseX,mouseY);}
@@ -98,15 +108,39 @@ public final class CameraPlayerSelectorScreen extends Screen {
             //#endif
             int mouseX,int mouseY){
         Layout l=layout();
+        CameraBackground.draw(graphics,width,height,l.top-8,l.top+CameraBackground.NAV_HEIGHT+8);
         centered(graphics,tr("dds-tweak.camera.title"),width/2,l.top,0xFFFFFFFF);
+        CameraBackground.drawNavigationRules(graphics,width,l.top);
+        int panelLeft=(width-Math.min(360,width-16))/2;
+        groupLabel(graphics,"dds-tweak.camera.group.dimension",panelLeft,l.dimensionY);
+        if(!fake.isEmpty())groupLabel(graphics,"dds-tweak.camera.group.fake",panelLeft,l.fakeY);
+        if(!realRow.isEmpty())groupLabel(graphics,"dds-tweak.camera.group.real",panelLeft,l.realY);
+        groupLabel(graphics,"dds-tweak.camera.group.destination",panelLeft,l.destinationY);
 
-        renderFixedItems(graphics,mouseX,mouseY,l,l.dimensionY,new ItemStack[]{OVERWORLD,NETHER,END},new boolean[]{canDimension,canDimension,canDimension});
+        renderFixedItems(graphics,mouseX,mouseY,l,l.dimensionY,new ItemStack[]{OVERWORLD,NETHER,END});
         renderPlayers(graphics,mouseX,mouseY,l,fake,fakeOffset,l.fakeY);
         renderPlayers(graphics,mouseX,mouseY,l,realRow,realOffset,l.realY);
         renderDestinations(graphics,mouseX,mouseY,l);
-        renderFixedItems(graphics,mouseX,mouseY,l,l.actionY,new ItemStack[]{CAMERA,BACK},new boolean[]{canToggle,canBack});
+        renderFixedItems(graphics,mouseX,mouseY,l,l.actionY,
+                new ItemStack[]{CAMERA,BACK,SETTINGS});
 
-        renderTooltip(graphics,mouseX,mouseY,tooltip(mouseX,mouseY,l));
+        quickOverlay.render(graphics,font,width,l.actionY,mouseX,mouseY);
+        List<Component> quickTip=quickOverlay.tooltip(width,l.actionY,mouseX,mouseY);
+        renderTooltip(graphics,mouseX,mouseY,quickTip!=null?quickTip:tooltip(mouseX,mouseY,l));
+    }
+
+    private void groupLabel(
+            //#if MC >= 260100
+            //$$ GuiGraphicsExtractor graphics,
+            //#elseif MC >= 12000
+            GuiGraphics graphics,
+            //#elseif MC >= 11600
+            //$$ PoseStack graphics,
+            //#else
+            //$$ Object graphics,
+            //#endif
+            String key,int x,int y){
+        text(graphics,tr(key),x,y+(SLOT-font.lineHeight)/2,0xFFADB3B8);
     }
 
     private void renderFixedItems(
@@ -119,12 +153,12 @@ public final class CameraPlayerSelectorScreen extends Screen {
             //#else
             //$$ Object graphics,
             //#endif
-            int mouseX,int mouseY,Layout l,int y,ItemStack[] items,boolean[] enabled){
+            int mouseX,int mouseY,Layout l,int y,ItemStack[] items){
         int start=centeredStart(l,items.length);
         for(int i=0;i<items.length;i++){
             int x=start+i*(SLOT+GAP);
             boolean hover=inside(mouseX,mouseY,x,y,SLOT,SLOT);
-            renderItemSlot(graphics,items[i],x,y,enabled[i],hover);
+            renderItemSlot(graphics,items[i],x,y,hover);
         }
     }
 
@@ -143,13 +177,12 @@ public final class CameraPlayerSelectorScreen extends Screen {
         int count=Math.min(l.capacity,Math.max(0,list.size()-startIndex));
         int start=centeredStart(l,count);
         int hoveredX=-1;
-        boolean hoveredOnline=false;
         for(int local=0;local<count;local++){
             CameraPlayerEntry entry=list.get(startIndex+local);
             int x=start+local*(SLOT+GAP);
             boolean hover=inside(mouseX,mouseY,x,y,SLOT,SLOT);
             boolean online=CameraSelectorCompat.online(minecraft,entry.uuid);
-            if(hover)ScreenRenderCompat.fill(graphics,x,y,x+SLOT,y+SLOT,online?0x38000000:0x28000000);
+            if(hover)CameraSlotRender.fill(graphics,x,y,SLOT,SLOT,0x38000000);
             PlayerInfo info=online?CameraSelectorCompat.info(minecraft,entry.uuid):null;
             int hx=x+(SLOT-ICON)/2,hy=y+(SLOT-ICON)/2;
             if(info!=null)ScreenRenderCompat.playerHead(graphics,info,hx,hy,ICON);
@@ -162,11 +195,10 @@ public final class CameraPlayerSelectorScreen extends Screen {
                 ScreenRenderCompat.fill(graphics,x+SLOT-8,y+1,x+SLOT-1,y+9,0xCC202020);
                 centered(graphics,"?",x+SLOT-4,y+1,0xFFFFD45A);
             }
-            if(!online)ScreenRenderCompat.fill(graphics,x,y,x+SLOT,y+SLOT,0x66000000);
-            if(hover){hoveredX=x;hoveredOnline=online;}
+            if(hover)hoveredX=x;
         }
         renderEdgePeek(graphics,list,startIndex,start,y,count);
-        if(hoveredX>=0)outline(graphics,hoveredX,y,SLOT,SLOT,hoveredOnline?0xFFFFFFFF:0xFF888888);
+        if(hoveredX>=0)CameraSlotRender.outline(graphics,hoveredX,y,SLOT,SLOT,0xFFFFFFFF);
     }
 
     private void renderDestinations(
@@ -189,12 +221,12 @@ public final class CameraPlayerSelectorScreen extends Screen {
             int x=start+local*(SLOT+GAP);
             boolean hover=inside(mouseX,mouseY,x,l.destinationY,SLOT,SLOT);
             ItemStack stack=destinationIcons.get(destination.id());
-            renderItemSlot(graphics,stack==null?DEFAULT_DESTINATION_ICON:stack,x,l.destinationY,canDestination,hover);
+            renderItemSlot(graphics,stack==null?DEFAULT_DESTINATION_ICON:stack,x,l.destinationY,hover);
         }
         int addX=start+count*(SLOT+GAP);
         boolean addHover=inside(mouseX,mouseY,addX,l.destinationY,SLOT,SLOT);
-        ScreenRenderCompat.fill(graphics,addX+1,l.destinationY+1,addX+SLOT-1,l.destinationY+SLOT-1,addHover?0x65000000:0x42000000);
-        outline(graphics,addX,l.destinationY,SLOT,SLOT,addHover?0xFFFFFFFF:0xFFC8C8C8);
+        CameraSlotRender.fill(graphics,addX,l.destinationY,SLOT,SLOT,addHover?0x65000000:0x22000000);
+        CameraSlotRender.outline(graphics,addX,l.destinationY,SLOT,SLOT,addHover?0xE8FFFFFF:0x547E858B);
         int plusX=addX+SLOT/2,plusY=l.destinationY+SLOT/2;
         int plusColor=addHover?0xFFFFFFFF:0xFFE8E8E8;
         ScreenRenderCompat.fill(graphics,plusX-4,plusY-1,plusX+4,plusY+1,plusColor);
@@ -246,30 +278,13 @@ public final class CameraPlayerSelectorScreen extends Screen {
             //#else
             //$$ Object graphics,
             //#endif
-            ItemStack stack,int x,int y,boolean enabled,boolean hover){
-        if(hover)ScreenRenderCompat.fill(graphics,x,y,x+SLOT,y+SLOT,0x38000000);
+            ItemStack stack,int x,int y,boolean hover){
+        CameraSlotRender.fill(graphics,x,y,SLOT,SLOT,hover?0x58000000:0x22000000);
+        CameraSlotRender.outline(graphics,x,y,SLOT,SLOT,hover?0xE8E6EBF0:0x547E858B);
         if(stack!=null&&!stack.isEmpty())ScreenRenderCompat.item(graphics,stack,x+(SLOT-16)/2,y+(SLOT-16)/2);
-        if(!enabled)ScreenRenderCompat.fill(graphics,x,y,x+SLOT,y+SLOT,0x66000000);
-        if(hover)outline(graphics,x,y,SLOT,SLOT,enabled?0xFFFFFFFF:0xFF777777);
     }
 
-    private void outline(
-            //#if MC >= 260100
-            //$$ GuiGraphicsExtractor graphics,
-            //#elseif MC >= 12000
-            GuiGraphics graphics,
-            //#elseif MC >= 11600
-            //$$ PoseStack graphics,
-            //#else
-            //$$ Object graphics,
-            //#endif
-            int x,int y,int w,int h,int color){
-        ScreenRenderCompat.fill(graphics,x,y,x+w,y+1,color);
-        ScreenRenderCompat.fill(graphics,x,y+h-1,x+w,y+h,color);
-        ScreenRenderCompat.fill(graphics,x,y,x+1,y+h,color);
-        ScreenRenderCompat.fill(graphics,x+w-1,y,x+w,y+h,color);
-    }
-
+    /** Use the same vanilla tooltip pipeline as fake-player inventory action buttons. */
     private void renderTooltip(
             //#if MC >= 260100
             //$$ GuiGraphicsExtractor graphics,
@@ -280,18 +295,32 @@ public final class CameraPlayerSelectorScreen extends Screen {
             //#else
             //$$ Object graphics,
             //#endif
-            int mouseX,int mouseY,List<String> lines){
+            int mouseX,int mouseY,List<Component> lines){
         if(lines==null||lines.isEmpty())return;
-        int w=0;
-        for(String line:lines)w=Math.max(w,font.width(line));
-        w+=8;
-        int h=lines.size()*10+6;
-        int x=Math.min(mouseX+10,width-w-2),y=Math.min(mouseY+8,height-h-2);
-        x=Math.max(2,x);y=Math.max(2,y);
-        ScreenRenderCompat.fill(graphics,x,y,x+w,y+h,0xE0101010);
-        outline(graphics,x,y,w,h,0xFF707070);
-        for(int i=0;i<lines.size();i++)text(graphics,lines.get(i),x+4,y+4+i*10,i==0?0xFFFFFFFF:0xFFD0D3D6);
+        //#if MC >= 260100
+        //$$ graphics.setTooltipForNextFrame(font,lines,Optional.empty(),mouseX,mouseY);
+        //#elseif MC >= 12000
+        graphics.setTooltipForNextFrame(font,lines,Optional.empty(),mouseX,mouseY);
+        //#elseif MC >= 11700
+        //$$ renderTooltip(graphics,lines,Optional.empty(),mouseX,mouseY);
+        //#elseif MC >= 11600
+        //$$ renderComponentTooltip(graphics,lines,mouseX,mouseY);
+        //#else
+        //$$ List<String> legacy=new ArrayList<>();for(Component line:lines)legacy.add(line.getString());renderTooltip(legacy,mouseX,mouseY);
+        //#endif
     }
+
+    //#if MC >= 12109
+    @Override public boolean keyPressed(KeyEvent event){
+        if(event.isEscape()&&quickOverlay.isOpen()){quickOverlay.close();return true;}
+        return super.keyPressed(event);
+    }
+    //#else
+    //$$ @Override public boolean keyPressed(int keyCode,int scanCode,int modifiers){
+    //$$     if(keyCode==256&&quickOverlay.isOpen()){quickOverlay.close();return true;}
+    //$$     return super.keyPressed(keyCode,scanCode,modifiers);
+    //$$ }
+    //#endif
 
     //#if MC >= 12109
     @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){if(handleClick(event.x(),event.y(),event.button()))return true;return super.mouseClicked(event,doubleClick);}
@@ -302,12 +331,13 @@ public final class CameraPlayerSelectorScreen extends Screen {
     private boolean handleClick(double mouseX,double mouseY,int button){
         Layout l=layout();
         boolean left=CameraSelectorCompat.leftMouse(button),right=CameraSelectorCompat.rightMouse(button);
+        if(quickOverlay.handleClick(minecraft,width,l.actionY,mouseX,mouseY,button))return true;
 
         int dimension=fixedIndex(mouseX,mouseY,l,l.dimensionY,3);
         if(dimension>=0){
-            if(left&&canDimension){
+            if(left){
                 String id=dimension==0?"minecraft:overworld":dimension==1?"minecraft:the_nether":"minecraft:the_end";
-                if(CameraSelectorCompat.tpDimension(minecraft,id))CameraPlayerSelectorFeature.finishAction(this);
+                if(CameraSelectorCompat.sendDimension(minecraft,profile,id))CameraPlayerSelectorFeature.finishAction(this);
             }
             return left||right;
         }
@@ -315,15 +345,18 @@ public final class CameraPlayerSelectorScreen extends Screen {
         CameraPlayerEntry entry=playerAt(mouseX,mouseY,l,fake,fakeOffset,l.fakeY);
         if(entry==null)entry=playerAt(mouseX,mouseY,l,realRow,realOffset,l.realY);
         if(entry!=null){
-            if(!CameraSelectorCompat.online(minecraft,entry.uuid))return left||right;
-            boolean sent=left&&canTp?CameraSelectorCompat.tpPlayer(minecraft,entry.name):right&&canFollow&&CameraSelectorCompat.followPlayer(minecraft,entry.name);
+            if(!CameraSelectorCompat.matchesSnapshot(minecraft,entry))return left||right;
+            CameraCommandProfile.Action input=left
+                    ?(CameraSelectorCompat.shiftDown(minecraft)?CameraCommandProfile.Action.PLAYER_DIRECT_TP:CameraCommandProfile.Action.PLAYER_TP)
+                    :CameraCommandProfile.Action.PLAYER_FOLLOW;
+            boolean sent=(left||right)&&CameraSelectorCompat.sendPlayer(minecraft,profile,input,entry.name);
             if(sent)CameraPlayerSelectorFeature.finishAction(this);
             return left||right;
         }
 
         CameraDestination destination=destinationAt(mouseX,mouseY,l);
         if(destination!=null){
-            if(left&&canDestination&&CameraSelectorCompat.tpDestination(minecraft,destination))CameraPlayerSelectorFeature.finishAction(this);
+            if(left&&CameraSelectorCompat.sendDestination(minecraft,profile,destination))CameraPlayerSelectorFeature.finishAction(this);
             else if(right)MinecraftCompat.setScreen(minecraft,new CameraDestinationEditorScreen(this,destination));
             return left||right;
         }
@@ -332,12 +365,21 @@ public final class CameraPlayerSelectorScreen extends Screen {
             return left||right;
         }
 
-        int action=fixedIndex(mouseX,mouseY,l,l.actionY,2);
-        if(action>=0){
-            if(left){
-                boolean sent=action==0&&canToggle?CameraSelectorCompat.toggleCamera(minecraft):action==1&&canBack&&CameraSelectorCompat.backCamera(minecraft);
-                if(sent)CameraPlayerSelectorFeature.finishAction(this);
-            }
+        int action=fixedIndex(mouseX,mouseY,l,l.actionY,3);
+        if(action==2){
+            if(left)MinecraftCompat.setScreen(minecraft,new CameraCommandConfigScreen(this));
+            return left||right;
+        }
+        if(action==0){
+            CameraCommandProfile.Action camera=profile.mode==CameraCommandProfile.Mode.TOGGLE
+                    ?CameraCommandProfile.Action.TOGGLE:(left?CameraCommandProfile.Action.ENTER:CameraCommandProfile.Action.EXIT);
+            if((left||right)&&(left||profile.mode==CameraCommandProfile.Mode.SEPARATE)
+                    &&CameraSelectorCompat.sendAction(minecraft,profile,camera))CameraPlayerSelectorFeature.finishAction(this);
+            return left||right;
+        }
+        if(action==1){
+            if(left&&CameraSelectorCompat.sendAction(minecraft,profile,CameraCommandProfile.Action.BACK))
+                CameraPlayerSelectorFeature.finishAction(this);
             return left||right;
         }
         return false;
@@ -352,11 +394,12 @@ public final class CameraPlayerSelectorScreen extends Screen {
     private boolean scroll(double mouseX,double mouseY,double amount){
         if(amount==0)return false;
         Layout l=layout();
-        if(inside(mouseX,mouseY,l.contentX,l.fakeY,l.contentW,SLOT)){
+        if(quickOverlay.scroll(width,l.actionY,mouseX,mouseY,amount))return true;
+        if(!fake.isEmpty()&&inside(mouseX,mouseY,l.contentX,l.fakeY,l.contentW,SLOT)){
             fakeOffset=step(fakeOffset,fake.size(),l.capacity,amount);
             return true;
         }
-        if(inside(mouseX,mouseY,l.contentX,l.realY,l.contentW,SLOT)){
+        if(!realRow.isEmpty()&&inside(mouseX,mouseY,l.contentX,l.realY,l.contentW,SLOT)){
             realOffset=step(realOffset,realRow.size(),l.capacity,amount);
             return true;
         }
@@ -367,45 +410,75 @@ public final class CameraPlayerSelectorScreen extends Screen {
         return false;
     }
 
-    private List<String> tooltip(double mouseX,double mouseY,Layout l){
+    private List<Component> tooltip(double mouseX,double mouseY,Layout l){
         int dimension=fixedIndex(mouseX,mouseY,l,l.dimensionY,3);
         if(dimension>=0){
             String key=dimension==0?"dds-tweak.camera.dimension.overworld":dimension==1?"dds-tweak.camera.dimension.nether":"dds-tweak.camera.dimension.end";
-            return Arrays.asList(tr(key),canDimension?tr("dds-tweak.camera.help.dimension"):tr("dds-tweak.camera.unsupported"));
+            String id=dimension==0?"minecraft:overworld":dimension==1?"minecraft:the_nether":"minecraft:the_end";
+            List<Component> lines=new ArrayList<>();
+            lines.add(MinecraftCompat.translatable(key));
+            appendActionTip(lines,CameraCommandProfile.Action.DIMENSION,
+                    profile.renderDimension(CameraCommandProfile.Action.DIMENSION,id),"left");
+            return lines;
         }
-
         CameraPlayerEntry entry=playerAt(mouseX,mouseY,l,fake,fakeOffset,l.fakeY);
         if(entry==null)entry=playerAt(mouseX,mouseY,l,realRow,realOffset,l.realY);
         if(entry!=null){
-            List<String> lines=new ArrayList<>();
-            lines.add(entry.name);
-            if(entry.type==PlayerInventoryTargetType.UNKNOWN)lines.add(tr("dds-tweak.camera.identity.unknown"));
-            if(!CameraSelectorCompat.online(minecraft,entry.uuid)){
-                lines.add(tr("dds-tweak.camera.offline"));
-                return lines;
+            List<Component> lines=new ArrayList<>();
+            lines.add(MinecraftCompat.literal(entry.name));
+            if(entry.type==PlayerInventoryTargetType.UNKNOWN)
+                lines.add(MinecraftCompat.grayTranslatable("dds-tweak.camera.identity.unknown"));
+            for(CameraCommandProfile.Action action:new CameraCommandProfile.Action[]{
+                    CameraCommandProfile.Action.PLAYER_TP,CameraCommandProfile.Action.PLAYER_FOLLOW,
+                    CameraCommandProfile.Action.PLAYER_DIRECT_TP}){
+                String mouse=action==CameraCommandProfile.Action.PLAYER_TP?"left"
+                        :action==CameraCommandProfile.Action.PLAYER_FOLLOW?"right":"shiftLeft";
+                appendActionTip(lines,action,profile.renderPlayer(action,entry.name),mouse);
             }
-            if(canTp)lines.add(tr("dds-tweak.camera.help.tp")+" · /"+CameraSelectorCompat.tpCommand(entry.name));
-            if(canFollow)lines.add(tr("dds-tweak.camera.help.follow")+" · /"+CameraSelectorCompat.followCommand(entry.name));
-            if(!canTp&&!canFollow)lines.add(tr("dds-tweak.camera.unsupported"));
             return lines;
         }
-
         CameraDestination destination=destinationAt(mouseX,mouseY,l);
         if(destination!=null){
-            List<String> lines=new ArrayList<>();
-            lines.add(destination.name());
-            lines.add(destination.dimension());
-            lines.add(CameraSelectorCompat.coordinateText(destination));
-            lines.add(canDestination?tr("dds-tweak.camera.destination.help"):tr("dds-tweak.camera.unsupported"));
-            lines.add(tr("dds-tweak.camera.destination.edit_help"));
+            List<Component> lines=new ArrayList<>();
+            lines.add(MinecraftCompat.literal(destination.name()));
+            lines.add(MinecraftCompat.grayLiteral(destination.dimension()+" · "+CameraSelectorCompat.coordinateText(destination)));
+            appendActionTip(lines,CameraCommandProfile.Action.DESTINATION,profile.renderDestination(destination),"left");
+            lines.add(MinecraftCompat.grayTranslatable("dds-tweak.camera.destination.edit_help"));
             return lines;
         }
-        if(addDestinationAt(mouseX,mouseY,l))return Collections.singletonList(tr("dds-tweak.camera.destination.add"));
-
-        int action=fixedIndex(mouseX,mouseY,l,l.actionY,2);
-        if(action==0)return Arrays.asList(tr("dds-tweak.camera.action.toggle"),canToggle?tr("dds-tweak.camera.help.toggle"):tr("dds-tweak.camera.unsupported"));
-        if(action==1)return Arrays.asList(tr("dds-tweak.camera.action.back"),canBack?tr("dds-tweak.camera.help.back"):tr("dds-tweak.camera.unsupported"));
+        if(addDestinationAt(mouseX,mouseY,l))
+            return Collections.singletonList(MinecraftCompat.translatable("dds-tweak.camera.destination.add"));
+        int action=fixedIndex(mouseX,mouseY,l,l.actionY,3);
+        if(action==0){
+            List<Component> lines=new ArrayList<>();
+            lines.add(MinecraftCompat.translatable("dds-tweak.camera.title"));
+            CameraCommandProfile.Action left=profile.mode==CameraCommandProfile.Mode.TOGGLE
+                    ?CameraCommandProfile.Action.TOGGLE:CameraCommandProfile.Action.ENTER;
+            appendActionTip(lines,left,profile.render(left),"left");
+            if(profile.mode==CameraCommandProfile.Mode.SEPARATE)
+                appendActionTip(lines,CameraCommandProfile.Action.EXIT,
+                        profile.render(CameraCommandProfile.Action.EXIT),"right");
+            return lines;
+        }
+        if(action==1){
+            List<Component> lines=new ArrayList<>();
+            lines.add(MinecraftCompat.translatable("dds-tweak.camera.action.back"));
+            appendActionTip(lines,CameraCommandProfile.Action.BACK,
+                    profile.render(CameraCommandProfile.Action.BACK),"left");
+            return lines;
+        }
+        if(action==2)
+            return Collections.singletonList(MinecraftCompat.translatable("dds-tweak.camera.command.settings"));
         return null;
+    }
+
+    private void appendActionTip(List<Component> lines,CameraCommandProfile.Action action,String command,String mouse){
+        // Show every configured operation; server authorization is checked on execution.
+        if(command==null)return;
+        lines.add(MinecraftCompat.translatable("dds-tweak.camera.tooltip.gesture",
+                MinecraftCompat.translatable("dds-tweak.camera.tooltip.mouse."+mouse),
+                MinecraftCompat.translatable("dds-tweak.camera.command.short."+action.key)));
+        lines.add(MinecraftCompat.grayLiteral(CameraCommandSyntax.display(command)));
     }
 
     private CameraPlayerEntry playerAt(double mouseX,double mouseY,Layout l,List<CameraPlayerEntry> list,int offset,int y){
@@ -446,8 +519,12 @@ public final class CameraPlayerSelectorScreen extends Screen {
         int capacity=Math.max(1,Math.min(Math.min(MAX_VISIBLE,largest),maxByWidth));
         int contentW=rowWidth(capacity);
         int contentX=(width-contentW)/2;
-        int top=Math.max(2,(height-(16+ROW_H*5))/2);
-        return new Layout(top,contentX,contentW,capacity,top+16,top+16+ROW_H,top+16+ROW_H*2,top+16+ROW_H*3,top+16+ROW_H*4);
+        int top=CameraBackground.navigationTop(height);
+        boolean both=!fake.isEmpty()&&!realRow.isEmpty();
+        int fakeY=top+(both?FAKE_Y:SOLO_PLAYER_Y);
+        int realY=top+(both?REAL_Y:SOLO_PLAYER_Y);
+        return new Layout(top,contentX,contentW,capacity,
+                top+DIMENSION_Y,fakeY,realY,top+DESTINATION_Y,top+ACTION_Y);
     }
 
     private static int rowWidth(int count){return count<=0?0:count*SLOT+(count-1)*GAP;}

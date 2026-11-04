@@ -66,12 +66,27 @@ public final class PlayerInventoryOpenContext {
         int rows=type==MenuType.GENERIC_9x6?6:type==MenuType.GENERIC_9x3?3:0;
         PlayerInventoryContext source=pendingEnder;
         if(rows==0||pendingEnderId>=0&&pendingEnderId!=containerId||!matchesEnderTitle(title,source))return null;
+        // An unbound provider navigation intent is not proof that this *menu*
+        // belongs to the fake player: vanilla/portable Ender menus share the
+        // same translated title. Wait for CDA's owner UUID + container-ID
+        // acknowledgment before promoting a FAKE-only Ender toolbar.
+        if(isUnverifiedFakeEnder(pendingEnderId,source)){
+            clearEnder();
+            return null;
+        }
         clearEnder();
         Set<PlayerInventoryAction> actions=enderActions(source);
         return new PlayerInventoryContext(containerId,source.contextSchema(),source.source(),source.targetUuid(),source.targetName(),
                 source.targetType(),source.targetState(),PlayerInventoryKind.ENDER_CHEST,
                 rows==6?PlayerInventoryLayouts.ENDER_6_V1:PlayerInventoryLayouts.ENDER_3_V1,1,
                 source.behaviorId(),actions,source.interactionCapabilities(),source.fallbackPolicy());
+    }
+
+    /** An unbound title-based navigation hint must never grant FAKE menu identity. */
+    static boolean isUnverifiedFakeEnder(int boundMenuId,PlayerInventoryContext source){
+        return boundMenuId<0&&source!=null
+                &&(source.targetType()==PlayerInventoryTargetType.FAKE
+                ||PlayerIdentityResolver.isAuthoritativeFake(source));
     }
 
     private static Set<PlayerInventoryAction> enderActions(PlayerInventoryContext source){

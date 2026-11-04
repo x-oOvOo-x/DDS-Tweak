@@ -11,16 +11,44 @@ final class PlayerInventoryAutomationContractTest{
     @Test void ipnStorageAreaSupportsNonContiguousProviderRanges()throws IOException{
         String compat=read("ddstweak/integration/dds/fakeplayer/client/ipn/DdsIpnCompat.java");
         assertTrue(compat.contains("storageIndices"));
-        assertTrue(compat.contains("appendRange(indices,menu.targetMainStart(),menu.targetMainEnd())"));
-        assertTrue(compat.contains("appendRange(indices,menu.targetHotbarStart(),menu.targetHotbarEnd())"));
+        assertTrue(compat.contains("PlayerInventorySlotPolicy.targetStorageSlots(menu)"));
+        assertTrue(compat.contains("PlayerInventorySlotPolicy.targetSortableRange(menu,hovered)"));
         assertTrue(compat.contains("indices=sortable?sortIndices(menu):storageIndices(menu)"));
+    }
+
+    @Test void itemScrollerDragCancellationIsDeclaredForEveryPreprocessedBranch()throws IOException{
+        String mixin=read("ddstweak/mixin/integration/itemscroller/InventoryUtilsMixin.java");
+        // The HEAD handler calls cir.setReturnValue(true) on guarded drag callbacks.
+        // Without cancellable=true Mixin crashes at runtime with CancellationException.
+        assertTrue(mixin.contains("@Inject(method=\"dragMoveItems\",at=@At(\"HEAD\"),cancellable=true,require=1,remap=false)"));
+        assertTrue(mixin.contains("//$$ @Inject(method=\"dragMoveItems\",at=@At(\"HEAD\"),cancellable=true,require=0,remap=false)"));
+        assertTrue(mixin.contains("ItemScrollerDirectTransfer.suppressDrag"));
+        assertTrue(mixin.contains("cir.setReturnValue(true)"));
+        assertFalse(mixin.contains("@Inject(method=\"dragMoveItems\",at=@At(\"HEAD\"),require="));
+    }
+
+    @Test void itemScrollerGatewayOnlyUsesExplicitPickupDestinations()throws IOException{
+        String compat=read("ddstweak/mixin/integration/itemscroller/ItemScrollerAccessorUtilsMixin.java");
+        String config=Files.readString(ROOT.resolve("src/main/resources/dds-tweak.mixins.json"));
+        String direct=read("ddstweak/integration/dds/playerinventory/ItemScrollerDirectTransfer.java");
+        String policy=read("ddstweak/integration/dds/playerinventory/PlayerInventorySlotPolicy.java");
+        assertTrue(compat.contains("PlayerInventorySlotPolicy.allowsAutomaticClick"));
+        assertTrue(compat.contains("ItemScrollerDirectTransfer.moveSingle(menu,actual)"));
+        assertTrue(compat.contains("ci.cancel()"));
+        assertTrue(config.contains("integration.itemscroller.ItemScrollerAccessorUtilsMixin"));
+        assertTrue(direct.contains("ItemScrollerMovePlanner.plan(sources,targets)"));
+        assertTrue(direct.contains("ClickType.PICKUP"));
+        assertTrue(direct.contains("ContainerInput.PICKUP"));
+        assertFalse(direct.contains("ClickType.QUICK_MOVE"));
+        assertFalse(direct.contains("ContainerInput.QUICK_MOVE"));
+        assertTrue(policy.contains("PlayerInventorySlotRole.VIEWER_MAIN"));
+        assertTrue(policy.contains("directMoveDestinations"));
     }
 
     @Test void itemScrollerUsesSemanticHoveredRangesAndCapabilityGate()throws IOException{
         String mixin=read("ddstweak/mixin/integration/itemscroller/InventoryUtilsMixin.java");
-        assertTrue(mixin.contains("menu.slotRole(slot)"));
-        assertTrue(mixin.contains("case MAIN:case ENDER_STORAGE:return menu.targetMainStart()"));
-        assertTrue(mixin.contains("case HOTBAR:return menu.targetHotbarStart()"));
+        assertTrue(mixin.contains("PlayerInventorySlotPolicy.sortableRange(menu,slot)"));
+        assertTrue(mixin.contains("ItemScrollerDirectTransfer.moveMatching(menu,id)"));
         assertTrue(mixin.contains("PlayerInventoryInteractionCapability.CARRIED_SCRATCH_SWAP"));
     }
 
@@ -42,6 +70,25 @@ final class PlayerInventoryAutomationContractTest{
         assertFalse(ender.contains("PlayerInventoryAction.ENDER_DROP_ALL"));
         assertFalse(ender.contains("PlayerInventoryAction.ENDER_STORE_ALL"));
         assertFalse(ender.contains("PlayerInventoryAction.ENDER_TAKE_ALL"));
+    }
+
+    @Test void mouseButtonsUseGlfwAtThe12111RootAndSdlOnlyFor263()throws IOException{
+        String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java").replace("\r\n","\n");
+        assertTrue(screen.contains("private static boolean leftClick(int button){\n"
+                +"        //#if MC >= 260300\n"
+                +"        //$$ return button==1;\n"
+                +"        //#else\n"
+                +"        return button==0;\n"
+                +"        //#endif"));
+        assertTrue(screen.contains("private static boolean rightClick(int button){\n"
+                +"        //#if MC >= 260300\n"
+                +"        //$$ return button==3;\n"
+                +"        //#else\n"
+                +"        return button==1;\n"
+                +"        //#endif"));
+        assertTrue(screen.contains("if(leftClick(button)){if(supported(b))b.press();return true;}"));
+        assertTrue(screen.contains("PlayerInventoryAction once=onceAction(b);"));
+        assertTrue(screen.contains("if(once!=null&&canUse(once))sendOnce(once);"));
     }
 
     @Test void continuousButtonsRestoreRightClickOnceAndStableIntervalEditing()throws IOException{
@@ -66,6 +113,16 @@ final class PlayerInventoryAutomationContractTest{
         assertTrue(menu.contains("predictUseOnce(){if(supports(PlayerInventoryAction.USE_ONCE)"));
     }
 
+    @Test void changingTicksInContinuousModeIntentionallySwitchesToInterval()throws IOException{
+        String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
+        assertTrue(screen.contains("if(mode!=PlayerInventoryBehaviorV1.MODE_NONE)selectInterval(attack,v)"));
+        assertTrue(screen.contains("setFieldValue(box,v);rememberInterval(attack,v)"));
+        assertTrue(screen.contains("ATTACK_INTERVAL:PlayerInventoryAction.USE_INTERVAL"));
+        assertTrue(screen.contains("if(send(action,v))"));
+        assertTrue(screen.contains("menu.predictAttackInterval(v)"));
+        assertTrue(screen.contains("menu.predictUseInterval(v)"));
+    }
+
     @Test void continuousTooltipShowsPrimaryCommandThenOnceCommand()throws IOException{
         String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
         assertTrue(screen.contains("lines.add(button.tooltip())"));
@@ -81,7 +138,9 @@ final class PlayerInventoryAutomationContractTest{
     @Test void unsupportedActionsUseTwoTooltipLinesWithGrayStatus()throws IOException{
         String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
         String compat=read("ddstweak/platform/minecraft/MinecraftCompat.java");
-        assertTrue(screen.contains("Arrays.asList(b.tooltip(),MinecraftCompat.grayTranslatable(\"dds-tweak.fakeplayer.action.unavailable\"))"));
+        assertTrue(screen.contains("Arrays.asList(b.tooltip(),unavailableReason(buttonAction(b)))"));
+        assertTrue(screen.contains("dds-tweak.fakeplayer.action.target_unresolved"));
+        assertTrue(screen.contains("dds-tweak.fakeplayer.action.exact_stop_unavailable"));
         assertFalse(screen.contains("tr(\"dds-tweak.fakeplayer.action.unavailable\",b.tooltip())"));
         assertTrue(compat.contains("grayTranslatable"));
         assertTrue(compat.contains("withStyle(ChatFormatting.GRAY)"));

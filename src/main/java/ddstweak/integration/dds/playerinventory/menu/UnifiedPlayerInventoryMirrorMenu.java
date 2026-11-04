@@ -1,6 +1,7 @@
 package ddstweak.integration.dds.playerinventory.menu;
 
 import ddstweak.integration.dds.playerinventory.*;
+import ddstweak.integration.carpet.playerinventory.CarpetPlayerCommandBridge;
 import ddstweak.integration.dds.qca.DdsQcaSlotRoleProvider;
 import ddstweak.integration.dds.qca.DdsQcaClientNetwork;
 import ddstweak.integration.provider.PlayerIdentityResolver;
@@ -134,6 +135,13 @@ public final class UnifiedPlayerInventoryMirrorMenu extends AbstractContainerMen
         if(updated==null||updated.containerId()!=containerId||updated.inventoryKind()!=context.inventoryKind()||!updated.layoutId().equals(context.layoutId()))return false;
         context=updated;return true;
     }
+    /**
+     * OMMC uses container class and backing Slot.index to discover its sort domain.
+     * Neither identifies a server slot in the unified mirror. Use semantic menu ids.
+     */
+    public int[] sortableRegion(int hoveredMenuSlot){
+        return PlayerInventorySlotPolicy.sortableRange(this,hoveredMenuSlot);
+    }
     public PlayerInventoryKind kind(){return context.inventoryKind();}private boolean isActionInventory(){return kind()==PlayerInventoryKind.INVENTORY||kind()==PlayerInventoryKind.CONTROLLER;}public int rows(){return rows;}public int visualRows(){return rows;}public int targetEnd(){return targetEnd;}public int targetMainStart(){return targetMainStart;}public int targetMainEnd(){return targetMainEnd;}public int targetHotbarStart(){return targetHotbarStart;}public int targetHotbarEnd(){return targetHotbarEnd;}public int viewerMainStart(){return viewerMainStart;}public int viewerHotbarStart(){return viewerHotbarStart;}public int viewerEnd(){return viewerEnd;}
     public PlayerInventorySlotRole slotRole(int slot){
         if(slot<0||slot>=viewerEnd)return PlayerInventorySlotRole.UNKNOWN;
@@ -149,18 +157,47 @@ public final class UnifiedPlayerInventoryMirrorMenu extends AbstractContainerMen
         }
         if(slot<INVENTORY_EQUIPMENT_END)return PlayerInventorySlotRole.EQUIPMENT;if(slot<INVENTORY_MAIN_END)return PlayerInventorySlotRole.MAIN;if(slot<INVENTORY_TARGET_END)return PlayerInventorySlotRole.HOTBAR;if(slot<viewerHotbarStart)return PlayerInventorySlotRole.VIEWER_MAIN;return PlayerInventorySlotRole.VIEWER_HOTBAR;
     }
-    @Override public Role ddsTweak$qcaRole(int slot){switch(slotRole(slot)){case EQUIPMENT:return Role.TARGET_EQUIPMENT;case MAIN:case HOTBAR:return Role.TARGET_STORAGE;case ENDER_STORAGE:return Role.ENDER_STORAGE;case VIEWER_MAIN:case VIEWER_HOTBAR:return Role.VIEWER_INVENTORY;case CONTROL:return Role.CONTROL;case DISABLED:return Role.DISABLED;default:return Role.UNKNOWN;}}
+    @Override public Role ddsTweak$qcaRole(int slot){
+        if(kind()==PlayerInventoryKind.INVENTORY){
+            int offhand=PlayerInventoryLayouts.isControlledInventory(context)?7
+                    :PlayerInventoryLayouts.isOrgInventory(context)?40:4;
+            if(slot==offhand)return Role.TARGET_OFFHAND;
+        }
+        switch(slotRole(slot)){
+            case EQUIPMENT:return Role.TARGET_EQUIPMENT;
+            case MAIN:case HOTBAR:return Role.TARGET_STORAGE;
+            case ENDER_STORAGE:return Role.ENDER_STORAGE;
+            case VIEWER_MAIN:case VIEWER_HOTBAR:return Role.VIEWER_INVENTORY;
+            case CONTROL:return Role.CONTROL;
+            case DISABLED:return Role.DISABLED;
+            default:return Role.UNKNOWN;
+        }
+    }
 
     public boolean supports(PlayerInventoryAction action){
-        if(action==null||!action.allowedIn(kind())||targetType()==PlayerInventoryTargetType.REAL)return false;
+        if(action==null||!action.allowedIn(kind()))return false;
+        //#if MC >= 12111
+        if(context.targetState()==PlayerInventoryTargetState.OFFLINE)return false;
+        //#else
+        //$$ if(targetType()==PlayerInventoryTargetType.REAL)return false;
+        //#endif
         if(action==PlayerInventoryAction.ENDER_DROP_ALL||action==PlayerInventoryAction.ENDER_STORE_ALL||action==PlayerInventoryAction.ENDER_TAKE_ALL){
             boolean canonical=PlayerInventoryLayouts.ENDER_3_V1.equals(context.layoutId())||PlayerInventoryLayouts.ENDER_6_V1.equals(context.layoutId());
             return canonical&&PlayerIdentityResolver.isAuthoritativeFake(context)&&DdsQcaClientNetwork.canUseOwnerEnderAction()
                     &&context.supports(action)&&actions.supports(action);
         }
-        if((action==PlayerInventoryAction.DROP_ALL||action==PlayerInventoryAction.DISCONNECT||action==PlayerInventoryAction.TOGGLE_SNEAK)
-                &&!PlayerIdentityResolver.isAuthoritativeFake(context))return false;
-        return context.supports(action)&&actions.supports(action);
+        //#if MC >= 12111
+        // Ordinary Carpet controls are identical for REAL, FAKE and UNKNOWN.
+        // Only a valid command target and the advertised command syntax are
+        // required locally; server-side Carpet checks all execution permissions.
+        return action.allowedWithoutFakeIdentity()
+                &&CarpetPlayerCommandBridge.validTargetName(context.targetName())
+                &&CarpetPlayerCommandBridge.supports(action)&&actions.supports(action);
+        //#else
+        //$$ if((action==PlayerInventoryAction.DROP_ALL||action==PlayerInventoryAction.DISCONNECT||action==PlayerInventoryAction.TOGGLE_SNEAK)
+        //$$         &&!PlayerIdentityResolver.isAuthoritativeFake(context))return false;
+        //$$ return context.supports(action)&&actions.supports(action);
+        //#endif
     }
     public boolean canSendActions(){return actions.canSend();}
     public boolean send(PlayerInventoryAction action,int value){return supports(action)&&actions.canSend()&&actions.send(action,value);}

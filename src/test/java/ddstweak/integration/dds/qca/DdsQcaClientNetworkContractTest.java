@@ -6,6 +6,33 @@ import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.*;
 
 final class DdsQcaClientNetworkContractTest {
+    @Test void creativeReplyAndExpiryUseTheCurrentScreenSession() throws IOException {
+        String code=read("src/main/java/ddstweak/integration/dds/qca/DdsQcaClientNetwork.java");
+        String result=code.substring(code.indexOf("private static void handleCreativeStorageResult("),
+                code.indexOf("/** Called by CDA"));
+        assertTrue(result.indexOf("expireCreativePending();")<result.indexOf("DdsQcaClient.applyCreativeCarried("));
+        assertTrue(result.contains("!creativeSessionCurrent()"));
+        assertTrue(code.contains("((CreativeModeInventoryScreen)screen).getMenu()==menu"));
+        assertTrue(code.contains("session.matches(mc.getConnection(),mc.player,screen,session.menu())"));
+        assertTrue(code.contains("pendingTransaction>=0&&(!creativeSessionCurrent()"));
+    }
+
+    @Test void legacyCdaQcaReturnPreservesExactOrgParentLayoutWithoutOwningPackets() throws IOException {
+        String network=read("src/main/java/ddstweak/integration/dds/qca/DdsQcaClientNetwork.java");
+        String bootstrap=read("src/main/java/ddstweak/integration/dds/DdsIntegrationBootstrap.java");
+        String adapter=read("src/main/java/ddstweak/integration/org/playerinventory/OrgPlayerInventoryAdapter.java");
+        assertTrue(network.contains("acceptLegacyQcaOpenSource(AbstractContainerMenu menu)"));
+        assertTrue(network.contains("acceptLegacyQcaNavigationChild(int id)"));
+        assertTrue(network.contains("acceptLegacyQcaNavigateBack(AbstractContainerMenu menu)"));
+        assertTrue(network.contains("DdsLocalOwnershipDecision.LEGACY_COMPAT"));
+        assertTrue(network.contains("nestedInventoryChild>=0"));
+        assertTrue(network.contains("menu.containerId!=nestedInventoryChild"));
+        assertTrue(network.contains("OrgPlayerInventoryOpenIntent.expectReopenInventory(nestedInventoryParent)"));
+        assertTrue(network.contains("parent.targetState()!=PlayerInventoryTargetState.ONLINE"));
+        assertTrue(bootstrap.contains("DdsClientSessionHooks.registerResetHook(DdsQcaClientNetwork::resetSession)"));
+        assertTrue(adapter.contains("trustedReturnContext(containerId,session)"));
+    }
+
     @Test void delayedParentNavigationDoesNotDiscardNestedFakePlayerReturn()throws IOException{
         String code=read("src/main/java/ddstweak/integration/dds/qca/DdsQcaClientNetwork.java");
         int start=code.indexOf("private static void handleNavigationState(");
@@ -58,6 +85,19 @@ final class DdsQcaClientNetworkContractTest {
         assertTrue(code.contains("PlayerIdentityResolver.navigationFallback(nestedInventoryParent)"));
         assertTrue(code.contains("OrgPlayerInventoryOpenIntent.expectReopenInventory(parent)"));
         assertTrue(code.contains("PlayerInventoryOpenContext.expectInventory(parent)"));
+    }
+    @Test void legacyCdaOwnerEnderBridgeIsStrictlyScopedToCdaOwnership()throws IOException{
+        String code=read("src/main/java/ddstweak/integration/dds/qca/DdsQcaClientNetwork.java");
+        String context=read("src/main/java/ddstweak/playerinventory/PlayerInventoryOpenContext.java");
+        assertTrue(code.contains("public static void acceptLegacyOwnerEnder(CompoundTag d)"));
+        assertTrue(code.contains("DdsLocalOwnershipDecision.LEGACY_COMPAT"));
+        assertTrue(code.contains("bindVerifiedOwnerEnder("));
+        assertTrue(code.contains("\"fake_ender_owner_uuid\""));
+        assertTrue(code.contains("\"fake_ender_owner_name\""));
+        assertTrue(code.contains("PlayerInventoryOpenContext.expectVerifiedEnder(id,ownerUuid,ownerName"));
+        assertTrue(code.contains("ProviderPlayerInventoryScreenCoordinator.tryUpgradeCurrent()"));
+        assertTrue(context.contains("pendingEnderId=containerId"));
+        assertTrue(context.contains("pendingEnderId!=containerId"));
     }
     @Test void connectionResetClearsFeatureState()throws IOException{String code=read("src/main/java/ddstweak/integration/dds/qca/DdsQcaClientNetwork.java");assertTrue(code.contains("DdsClientSessionHooks.registerResetHook(DdsQcaClientNetwork::resetSession)"));assertTrue(code.contains("resetSession(){restoreOwnerEnderFallback();"));assertTrue(code.contains("clearNavigation()"));assertTrue(code.contains("resetCreativeStorage()"));}
 }

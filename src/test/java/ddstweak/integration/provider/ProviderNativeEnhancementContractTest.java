@@ -8,6 +8,29 @@ import static org.junit.jupiter.api.Assertions.*;
 final class ProviderNativeEnhancementContractTest{
     private static final Path ROOT=Path.of("").toAbsolutePath(),JAVA=ROOT.resolve("src/main/java");
 
+    @Test void clientDiagnosticsUseDtJvmProperty()throws IOException{
+        String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
+        assertTrue(screen.contains("Boolean.getBoolean(\"ddstweak.playerinventory.trace\")"));
+        assertTrue(screen.contains("LogManager.getLogger(\"ddstweak.playerinventory\")"));
+        assertFalse(screen.contains("Boolean.getBoolean(\"dds.playerinventory.trace\")"));
+    }
+
+    @Test void mouseButtonsUseSdlIdsOnlyOn263()throws IOException{
+        String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
+        assertTrue(screen.contains("//#if MC >= 260300"));
+        assertTrue(screen.contains("return button==1;"));
+        assertTrue(screen.contains("return button==3;"));
+        assertTrue(screen.contains("//$$ return button==1;"));
+        assertTrue(screen.contains("//$$ return button==3;"));
+        assertTrue(screen.contains("        return button==0;"));
+        assertTrue(screen.contains("        return button==1;"));
+        assertTrue(screen.contains("if(leftClick(button)&&isInventory()"));
+        assertTrue(screen.contains("if((leftClick(button)||rightClick(button))&&pressActionButton"));
+        assertTrue(screen.contains("if(leftClick(button)){if(supported(b))b.press()"));
+        assertTrue(screen.contains("PlayerInventoryAction action=leftClick(button)?buttonAction(b):onceAction(b)"));
+        assertTrue(screen.contains("if(leftClick(e.button()))pressedStepper=-1"));
+    }
+
     @Test void providerCoordinatorHasNoDdsCapabilityOverlay()throws IOException{
         String coordinator=read("ddstweak/integration/provider/ProviderPlayerInventoryScreenCoordinator.java");
         assertTrue(coordinator.contains("OrgPlayerInventoryAdapter.tryContext"));
@@ -92,9 +115,12 @@ final class ProviderNativeEnhancementContractTest{
         String compat=read("ddstweak/integration/dds/fakeplayer/client/ipn/DdsIpnCompat.java");
         String hints=read("ddstweak/mixin/integration/inventoryprofilesnext/IpnHintsManagerMixin.java");
         assertTrue(compat.contains("menu.kind()==PlayerInventoryKind.INVENTORY||menu.kind()==PlayerInventoryKind.ENDER_CHEST"));
-        assertTrue(compat.contains("case MAIN:case ENDER_STORAGE:return menu.targetMainStart()"));
-        assertTrue(compat.contains("case MAIN:case ENDER_STORAGE:return menu.targetMainEnd()"));
-        assertTrue(compat.contains("default:return -1"));
+        String policy=read("ddstweak/integration/dds/playerinventory/PlayerInventorySlotPolicy.java");
+        assertTrue(compat.contains("PlayerInventorySlotPolicy.targetSortableRange(menu,hovered)"));
+        assertTrue(compat.contains("PlayerInventorySlotPolicy.targetStorageSlots(menu)"));
+        assertTrue(policy.contains("isTargetStorageRole(menu.kind(),menu.slotRole(hoveredId))"));
+        assertTrue(policy.contains("kind==PlayerInventoryKind.ENDER_CHEST&&role==PlayerInventorySlotRole.ENDER_STORAGE"));
+        assertTrue(policy.contains("kind!=PlayerInventoryKind.INVENTORY&&kind!=PlayerInventoryKind.ENDER_CHEST"));
         assertTrue(hints.contains("type==UnifiedPlayerInventoryMainScreen.class"));
         assertTrue(hints.contains("type==UnifiedPlayerEnderChestScreen.class"));
         assertFalse(hints.contains("UnifiedPlayerInventoryScreen.class.isAssignableFrom"));
@@ -109,7 +135,7 @@ final class ProviderNativeEnhancementContractTest{
         assertTrue(coordinator.contains("menu.kind()==PlayerInventoryKind.ENDER_CHEST"));
     }
 
-    @Test void realAndOfflineEnderUseStorageWhileFakeKeepsItsOwnScreen()throws IOException{
+    @Test void onlyAuthoritativeFakeEnderReceivesToolbar()throws IOException{
         String coordinator=read("ddstweak/integration/provider/ProviderPlayerInventoryScreenCoordinator.java");
         String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
         int start=coordinator.indexOf("public static void showEnhancedScreen(");
@@ -117,20 +143,169 @@ final class ProviderNativeEnhancementContractTest{
         assertTrue(start>=0&&end>start);
         String policy=coordinator.substring(start,end);
         assertTrue(policy.contains("menu.kind()==PlayerInventoryKind.ENDER_CHEST"));
-        assertTrue(policy.contains("menu.targetType()!=PlayerInventoryTargetType.FAKE"));
+        assertTrue(policy.contains("boolean playerEnder=PlayerIdentityResolver.isAuthoritativeFake(menu.context())"));
+        assertTrue(policy.contains("menu.context().targetUuid()!=null"));
+        assertTrue(policy.contains("!menu.context().targetUuid().equals(minecraft.player.getUUID())"));
+        assertFalse(policy.contains("boolean playerEnder=menu.context().targetState()!=PlayerInventoryTargetState.OFFLINE"));
+        assertTrue(policy.contains("//$$ boolean playerEnder=menu.targetType()==PlayerInventoryTargetType.FAKE;"));
         assertTrue(policy.contains("new EnhancedStorageScreen("));
         assertTrue(policy.contains("nonFakeEnderTitle(menu,title),menu.visualRows()"));
         assertTrue(policy.contains("new UnifiedPlayerEnderChestScreen("));
         assertTrue(policy.contains("new UnifiedPlayerInventoryMainScreen("));
         assertTrue(policy.contains("new UnifiedPlayerInventoryRealScreen("));
-        assertTrue(screen.contains("menu.targetType()==PlayerInventoryTargetType.FAKE&&(isEnder()||supported(button))"));
+        int visible=screen.indexOf("private boolean visible(ActionButton button)");
+        assertTrue(visible>=0);
+        String visibility=screen.substring(visible,screen.indexOf("//#else",visible));
+        assertTrue(visibility.contains("return true;"));
+        assertFalse(visibility.contains("targetType()"));
+        assertTrue(screen.contains("addButton(ENDER_SNEAK_X,ENDER_BUTTON_Y,ICON_SNEAK"));
+        assertTrue(screen.contains("addButton(ENDER_DISCONNECT_X,ENDER_BUTTON_Y,ICON_DISCONNECT"));
+    }
+
+    @Test void modernProviderControlsUseCarpetCommandsWithoutFakeIdentity()throws IOException{
+        String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
+        String menu=read("ddstweak/integration/dds/playerinventory/menu/UnifiedPlayerInventoryMirrorMenu.java");
+        String carpet=read("ddstweak/integration/carpet/playerinventory/CarpetPlayerCommandActionBinding.java");
+        String gca=read("ddstweak/integration/gca/playerinventory/GcaPlayerInventoryAdapter.java");
+        String org=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryAdapter.java");
+        String resolver=read("ddstweak/integration/provider/PlayerIdentityResolver.java");
+
+        assertTrue(screen.contains("return canUse(buttonAction(button))"));
+        assertTrue(screen.contains("case ICON_ATTACK_INTERVAL:return button.isSelected()?stopAction(true):PlayerInventoryAction.ATTACK_INTERVAL"));
+        assertTrue(screen.contains("private boolean visible(ActionButton button)"));
+        assertTrue(screen.contains("boolean transport=menu.canSendActions()"));
+        assertTrue(menu.contains("return action.allowedWithoutFakeIdentity()"));
+        assertTrue(menu.contains("return canonical&&PlayerIdentityResolver.isAuthoritativeFake(context)"));
+        assertTrue(carpet.contains("&&CarpetPlayerCommandBridge.available()"));
+        assertTrue(gca.contains("actions.addAll(CarpetPlayerCommandBridge.supportedActions())"));
+        assertFalse(gca.contains("if(type==PlayerInventoryTargetType.REAL)actions.remove(PlayerInventoryAction.DISCONNECT)"));
+        assertFalse(org.contains("if(identity.type==PlayerInventoryTargetType.REAL)\n                actions.remove(PlayerInventoryAction.DISCONNECT)"));
+        assertFalse(gca.contains("\n            actions.remove(PlayerInventoryAction.DROP_ALL);"));
+        assertTrue(legacyActionPolicy(gca).contains("//$$     actions.remove(PlayerInventoryAction.TOGGLE_SNEAK);"));
+        assertTrue(gca.contains("actions.addAll(CarpetPlayerCommandBridge.supportedActions())"));
+        assertTrue(org.contains("actions.addAll(CarpetPlayerCommandBridge.supportedActions())"));
+        assertTrue(resolver.contains("return context.targetUuid()==null?PlayerInventoryTargetType.UNKNOWN:resolve(context.targetUuid())"));
+        assertFalse(gca.contains("getLatency()==0"));
+    }
+
+    @Test void unresolvedIdentityStillDisplaysControlsButOfflineCannotSend()throws IOException{
+        String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
+        String menu=read("ddstweak/integration/dds/playerinventory/menu/UnifiedPlayerInventoryMirrorMenu.java");
+        String carpet=read("ddstweak/integration/carpet/playerinventory/CarpetPlayerCommandActionBinding.java");
+        String gca=read("ddstweak/integration/gca/playerinventory/GcaPlayerInventoryActionBinding.java");
+        String org=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryActionBinding.java");
+        int visible=screen.indexOf("private boolean visible(ActionButton button)");
+        String policy=screen.substring(visible,screen.indexOf("//#else",visible));
+        assertTrue(policy.contains("return true;"));
+        assertTrue(screen.contains("attackInterval.visible=true"));
+        assertTrue(screen.contains("useInterval.visible=true"));
+        assertTrue(screen.contains("if(showHotbarControls())"));
+        assertTrue(menu.contains("if(context.targetState()==PlayerInventoryTargetState.OFFLINE"));
+        assertTrue(menu.contains("&&CarpetPlayerCommandBridge.validTargetName(context.targetName())"));
+        assertTrue(carpet.contains("menu.context().targetState()!=PlayerInventoryTargetState.OFFLINE"));
+        assertTrue(gca.contains("if(menu.context().targetState()==PlayerInventoryTargetState.OFFLINE)return false"));
+        assertTrue(org.contains("if(menu.context().targetState()==PlayerInventoryTargetState.OFFLINE)return false"));
+        assertTrue(menu.contains("return canonical&&PlayerIdentityResolver.isAuthoritativeFake(context)"));
+    }
+
+    @Test void carpetCanAuthorizeDropAndServerValidatesFakeOnlyDisconnect()throws IOException{
+        String menu=read("ddstweak/integration/dds/playerinventory/menu/UnifiedPlayerInventoryMirrorMenu.java");
+        String carpet=read("ddstweak/integration/carpet/playerinventory/CarpetPlayerCommandActionBinding.java");
+        String carpetPolicy=modernCarpetPolicy(menu);
+        assertFalse(carpetPolicy.contains("PlayerInventoryAction.DROP_ALL"));
+        assertFalse(carpetPolicy.contains("PlayerInventoryAction.DISCONNECT"));
+        assertFalse(carpetPolicy.contains("isAuthoritativeFake"));
+        assertTrue(menu.contains("return canonical&&PlayerIdentityResolver.isAuthoritativeFake(context)"));
+        assertFalse(menu.contains("action==PlayerInventoryAction.DISCONNECT&&targetType()==PlayerInventoryTargetType.REAL"));
+        assertFalse(menu.contains("action==PlayerInventoryAction.TOGGLE_SNEAK&&!verifiedFake"));
+        assertTrue(menu.contains("CarpetPlayerCommandBridge.supports(action)"));
+        assertFalse(carpet.contains("if(action==PlayerInventoryAction.DISCONNECT)return menu.targetType()!=PlayerInventoryTargetType.REAL"));
+    }
+
+    @Test void enderSneakUsesStandardCarpetPermissionWithoutClaimingFakeIdentity()throws IOException{
+        String action=read("ddstweak/integration/dds/playerinventory/PlayerInventoryAction.java");
+        String carpet=read("ddstweak/integration/carpet/playerinventory/CarpetPlayerCommandActionBinding.java");
+        String menu=read("ddstweak/integration/dds/playerinventory/menu/UnifiedPlayerInventoryMirrorMenu.java");
+        String gca=read("ddstweak/integration/gca/playerinventory/GcaPlayerInventoryAdapter.java");
+        String org=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryAdapter.java");
+        assertTrue(action.contains("case TOGGLE_SNEAK: // Carpet's sneak/unsneak"));
+        assertFalse(carpet.contains("if(action==PlayerInventoryAction.TOGGLE_SNEAK)return PlayerIdentityResolver.isAuthoritativeFake"));
+        assertFalse(menu.contains("action==PlayerInventoryAction.TOGGLE_SNEAK&&!verifiedFake"));
+        assertFalse(carpet.contains("if(action==PlayerInventoryAction.DISCONNECT)return menu.targetType()!=PlayerInventoryTargetType.REAL"));
+        assertTrue(legacyActionPolicy(gca).contains("//$$     actions.remove(PlayerInventoryAction.TOGGLE_SNEAK);"));
+        assertTrue(legacyActionPolicy(org).contains("//$$     actions.remove(PlayerInventoryAction.TOGGLE_SNEAK);"));
+        assertTrue(menu.contains("PlayerIdentityResolver.isAuthoritativeFake(context)"));
+    }
+
+    @Test void selectedActionNeedsExactStopAndDedicatedStopAllClearsBothModes()throws IOException{
+        String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
+        String state=read("ddstweak/playerinventory/PlayerInventoryClientActionState.java");
+        assertTrue(screen.contains("return attack?PlayerInventoryAction.STOP_ATTACK:PlayerInventoryAction.STOP_USE"));
+        assertTrue(screen.contains("if(!canUse(action)||!send(action,0))return"));
+        assertTrue(screen.contains("boolean noExactStop=button.isSelected()"));
+        assertTrue(screen.contains("dds-tweak.fakeplayer.action.active_stop_all_only"));
+        assertTrue(screen.contains("dds-tweak.fakeplayer.action.active_no_stop"));
+        assertTrue(screen.contains("return supported(b)||b.isSelected()"));
+        assertTrue(screen.contains("if(send(PlayerInventoryAction.STOP_ALL,0))menu.predictStopAll()"));
+        assertTrue(state.contains("case STOP_ALL:attackMode=useMode=PlayerInventoryBehaviorV1.MODE_NONE"));
+        assertFalse(screen.contains("if(!canUse(exact)&&canUse(PlayerInventoryAction.STOP_ALL))"));
+        assertFalse(screen.contains("if(canUse(once))return once"));
+    }
+
+    @Test void modernProvidersUseCarpetForActionsAndKeepLegacyNativeCompatibility()throws IOException{
+        String gca=read("ddstweak/integration/gca/playerinventory/GcaPlayerInventoryActionBinding.java");
+        String gcaAdapter=read("ddstweak/integration/gca/playerinventory/GcaPlayerInventoryAdapter.java");
+        String org=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryActionBinding.java");
+        String orgAdapter=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryAdapter.java");
+        String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
+        assertTrue(gca.contains("if(CarpetPlayerCommandBridge.supports(action))"));
+        int send=gca.indexOf("@Override public boolean send(");
+        int modern=gca.indexOf("//#if MC >= 12111",send);
+        int legacy=gca.indexOf("//#else",modern);
+        assertTrue(send>=0&&modern>send&&legacy>modern);
+        String route=gca.substring(modern,legacy);
+        assertTrue(route.contains("CarpetPlayerCommandBridge.send(menu.context().targetName(),action,value)"));
+        assertFalse(route.contains("sendNative(slot)"));
+        assertTrue(route.contains("return false;"));
+        int nativeCheck=gca.indexOf("private boolean nativeAvailable()");
+        int nativeModern=gca.indexOf("//#if MC >= 12111",nativeCheck);
+        int nativeLegacy=gca.indexOf("//#else",nativeModern);
+        assertTrue(nativeCheck>=0&&nativeModern>nativeCheck&&nativeLegacy>nativeModern);
+        assertTrue(gca.substring(nativeModern,nativeLegacy).contains("return false;"));
+        assertTrue(gcaAdapter.contains("//#if MC < 12111"));
+        assertFalse(gcaAdapter.contains("if(kind==PlayerInventoryKind.INVENTORY)actions.addAll(GcaPlayerInventoryActionBinding.nativeActions());\n        //#endif"));
+        assertTrue(org.contains("private boolean nativeAvailable()"));
+        assertTrue(org.contains("return false;"));
+        assertTrue(orgAdapter.contains("//#if MC < 12111"));
+        assertTrue(legacyActionPolicy(orgAdapter).contains("//$$     if(controls)actions.addAll(OrgPlayerInventoryActionBinding.nativeActions());"));
+        assertTrue(screen.contains("attackInterval.active=editable;"));
+        assertTrue(screen.contains("useInterval.active=editable;"));
+        assertTrue(screen.contains("menu.context().targetState()!=PlayerInventoryTargetState.OFFLINE"));
+    }
+
+    @Test void unifiedIpnHintsMatchFakeLayoutAcrossVersions()throws IOException{
+        String fake=read("ddstweak/mixin/integration/inventoryprofilesnext/UnifiedPlayerInventoryScreenIpnHintsMixin.java");
+        String real=read("ddstweak/mixin/integration/inventoryprofilesnext/UnifiedPlayerInventoryRealScreenIpnHintsMixin.java");
+        String legacy=read("ddstweak/mixin/integration/inventoryprofilesnext/DdsFakePlayerScreenIpnHintsMixin.java");
+        for(String button:new String[]{"MOVE_TO_PLAYER","SORT","SORT_COLUMNS","SORT_ROWS"}){
+            assertTrue(fake.contains("@IPNGuiHint(button=IPNButton."+button+",top=44)"));
+            assertTrue(real.contains("@IPNGuiHint(button=IPNButton."+button+",top=66)"));
+            assertTrue(legacy.contains("@IPNGuiHint(button=IPNButton."+button+",top=44)"));
+        }
+        assertFalse(fake.contains("top=22"));
+        assertFalse(fake.contains("horizontalOffset"));
+        assertFalse(real.contains("horizontalOffset"));
     }
 
     @Test void itemScrollerFailsClosedOnProviderControlSlots()throws IOException{
         String mixin=read("ddstweak/mixin/integration/itemscroller/InventoryUtilsMixin.java");
-        assertTrue(mixin.contains("case VIEWER_MAIN:case VIEWER_HOTBAR:return fallback;default:return 0"));
-        assertTrue(mixin.contains("case MAIN:case ENDER_STORAGE:return menu.targetMainStart()"));
-        assertTrue(mixin.contains("case HOTBAR:return menu.targetHotbarStart()"));
+        String policy=read("ddstweak/integration/dds/playerinventory/PlayerInventorySlotPolicy.java");
+        String gateway=read("ddstweak/mixin/integration/itemscroller/ItemScrollerAccessorUtilsMixin.java");
+        assertTrue(mixin.contains("PlayerInventorySlotPolicy.sortableRange(menu,slot)"));
+        assertTrue(mixin.contains("ItemScrollerDirectTransfer.moveMatching(menu,id)"));
+        assertTrue(policy.contains("isAutomaticStorageRole(menu.slotRole(slotId))"));
+        assertTrue(gateway.contains("PlayerInventorySlotPolicy.allowsAutomaticClick(menu,actual)"));
+        assertTrue(gateway.contains("ci.cancel()"));
         assertTrue(mixin.contains("int slot=ddsTweak$menuSlot()"));
         assertTrue(mixin.contains("menu.context().allows(PlayerInventoryInteractionCapability.CARRIED_SCRATCH_SWAP)"));
         assertTrue(mixin.contains("return ddsTweak$useCarriedScratch()?UnifiedPlayerInventoryMirrorMenu.CARRIED_SCRATCH_BUTTON:original"));
@@ -183,10 +358,25 @@ final class ProviderNativeEnhancementContractTest{
         assertTrue(realScreen.contains("extends UnifiedPlayerInventoryScreen"));
         assertTrue(hintManager.contains("type==UnifiedPlayerInventoryRealScreen.class"));
         assertEquals(4,fakeHints.split("top=44",-1).length-1);
-        // All four controls form a single horizontal toolbar at the requested screen offset.
+        assertFalse(fakeHints.contains("top=22"));
+        // UNKNOWN uses the fake-layout marker, not the REAL-screen IPN offset.
         assertEquals(4,realHints.split("top=66",-1).length-1);
         assertFalse(realHints.contains("bottom="));
         assertTrue(network.contains("&&isStructuralTarget(context)"));
+    }
+
+    @Test void unknownOnlineProviderUsesFakeInventoryVisualLayoutWithoutEscalatingIdentity()throws IOException{
+        String coordinator=read("ddstweak/integration/provider/ProviderPlayerInventoryScreenCoordinator.java");
+        String hints=read("ddstweak/mixin/integration/inventoryprofilesnext/UnifiedPlayerInventoryScreenIpnHintsMixin.java");
+        String menu=read("ddstweak/integration/dds/playerinventory/menu/UnifiedPlayerInventoryMirrorMenu.java");
+        assertTrue(coordinator.contains("menu.context().targetState()==PlayerInventoryTargetState.ONLINE"));
+        assertTrue(coordinator.contains("menu.targetType()!=PlayerInventoryTargetType.REAL"));
+        assertTrue(coordinator.contains("new UnifiedPlayerInventoryMainScreen("));
+        assertTrue(coordinator.contains("new UnifiedPlayerInventoryRealScreen("));
+        assertTrue(hints.contains("@IPNGuiHint(button=IPNButton.SORT,top=44)"));
+        assertFalse(hints.contains("top=22"));
+        assertTrue(menu.contains("PlayerIdentityResolver.isAuthoritativeFake(context)"));
+        assertTrue(menu.contains("return canonical&&PlayerIdentityResolver.isAuthoritativeFake(context)"));
     }
 
     @Test void providerControlClickPredictionNeverMutatesButtonStacks()throws IOException{
@@ -261,9 +451,10 @@ final class ProviderNativeEnhancementContractTest{
         assertTrue(resolver.contains("currentType(PlayerInventoryContext context)"));
         assertTrue(resolver.contains("return context.targetUuid()==null?PlayerInventoryTargetType.UNKNOWN:resolve(context.targetUuid())"));
         assertTrue(menu.contains("PlayerIdentityResolver.currentType(context)"));
-        assertTrue(menu.contains("action==PlayerInventoryAction.DROP_ALL"));
-        assertTrue(menu.contains("action==PlayerInventoryAction.DISCONNECT"));
-        assertTrue(menu.contains("action==PlayerInventoryAction.TOGGLE_SNEAK"));
+        assertTrue(menu.contains("CarpetPlayerCommandBridge.supports(action)"));
+        assertTrue(menu.contains("return action.allowedWithoutFakeIdentity()"));
+        assertTrue(menu.contains("return canonical&&PlayerIdentityResolver.isAuthoritativeFake(context)"));
+        assertFalse(menu.contains("action==PlayerInventoryAction.DISCONNECT&&targetType()==PlayerInventoryTargetType.REAL"));
         assertTrue(extension.contains("PlayerIdentityResolver.isAuthoritativeFake(menu.context())"));
     }
 
@@ -298,9 +489,13 @@ final class ProviderNativeEnhancementContractTest{
                 "ddstweak/integration/org/playerinventory/OrgPlayerInventoryActionBinding.java"}){
             String binding=read(path);
             assertFalse(binding.contains("DdsFakePlayer"),path);
+            int command=binding.indexOf("CarpetPlayerCommandBridge.send");
             int nativeRoute=binding.indexOf("sendNative(slot)");
-            int command=binding.indexOf("CarpetPlayerCommandBridge.send",nativeRoute);
-            assertTrue(nativeRoute>=0&&command>nativeRoute,path);
+            // Four modern GCA targets are command-first; Org and legacy stay native-first.
+            if(binding.contains("if(CarpetPlayerCommandBridge.supports(action)){"))
+                assertTrue(command>=0&&nativeRoute>command,path);
+            else
+                assertTrue(nativeRoute>=0&&binding.indexOf("CarpetPlayerCommandBridge.send",nativeRoute)>nativeRoute,path);
         }
     }
 
@@ -312,6 +507,26 @@ final class ProviderNativeEnhancementContractTest{
             assertTrue(binding.contains("ENDER_STORE_ALL"));
             assertTrue(binding.contains("ENDER_TAKE_ALL"));
         }
+    }
+
+    private static String legacyActionPolicy(String adapter){
+        int commands=adapter.indexOf("actions.addAll(CarpetPlayerCommandBridge.supportedActions())");
+        assertTrue(commands>=0,"missing Carpet action discovery");
+        int start=adapter.indexOf("//#if MC < 12111",commands);
+        int end=adapter.indexOf("//#endif",start);
+        assertTrue(start>commands&&end>start,"missing legacy action guard");
+        return adapter.substring(start,end);
+    }
+
+    private static String modernCarpetPolicy(String menu){
+        int start=menu.indexOf("// Ordinary Carpet controls are identical for REAL, FAKE and UNKNOWN.");
+        int end=menu.indexOf("//#else",start);
+        assertTrue(start>=0&&end>start,"missing modern Carpet policy");
+        String policy=menu.substring(start,end);
+        assertTrue(policy.contains("CarpetPlayerCommandBridge.validTargetName(context.targetName())"));
+        assertTrue(policy.contains("CarpetPlayerCommandBridge.supports(action)"));
+        assertTrue(policy.contains("action.allowedWithoutFakeIdentity()"));
+        return policy;
     }
 
     private static String read(String path)throws IOException{return Files.readString(JAVA.resolve(path));}
