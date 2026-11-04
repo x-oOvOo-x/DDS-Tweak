@@ -37,7 +37,7 @@ class CurseForgeUploadTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Fabric"):
             cf.resolve_versions(versions + [{"id": 45, "name": "Fabric"}], ["1.21.11"])
         with self.assertRaisesRegex(ValueError, "26.3"):
-            cf.resolve_versions(versions + [versions[2]], ["26.3"], {"26.3": 111})
+            cf.resolve_versions(versions + [versions[3]], ["26.3"], {"26.3": 111})
 
     def test_bukkit_duplicates_never_override_minecraft_version_ids(self):
         versions = [
@@ -63,7 +63,7 @@ class CurseForgeUploadTests(unittest.TestCase):
             self.assertEqual(cf.resolve_versions(order, target), expected)
             self.assertEqual(cf.resolve_versions(order, target, {"26.3": 17045}), expected)
         for wrong_id in (17046,):
-            with self.assertRaisesRegex(ValueError, "Bukkit"):
+            with self.assertRaisesRegex(ValueError, "Non-Minecraft"):
                 cf.resolve_versions(versions, target, {"26.3": wrong_id})
         with self.assertRaisesRegex(ValueError, "26.1.2"):
             cf.resolve_versions(versions, target, {"26.1.2": 16130})
