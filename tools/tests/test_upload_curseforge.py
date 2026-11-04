@@ -13,14 +13,34 @@ import upload_curseforge as cf
 
 class CurseForgeUploadTests(unittest.TestCase):
     def test_resolves_every_mc_target_and_fabric_before_upload(self):
-        versions = [{"id": 42, "name": "Fabric"}, {"id": 10, "name": "1.21.11"},
-                    {"id": 11, "name": "26.3"}]
-        self.assertEqual(cf.resolve_versions(versions, ["1.21.11", "26.3"]),
-                         {"Fabric": 42, "1.21.11": 10, "26.3": 11})
+        version_types = [
+            {"id": 10, "name": "Minecraft 1.21", "slug": "minecraft-1-21"},
+            {"id": 20, "name": "Minecraft 26.3", "slug": "minecraft-26-3"},
+            {"id": 30, "name": "Bukkit 26.3", "slug": "bukkit-26-3"},
+        ]
+        versions = [
+            {"id": 42, "name": "Fabric"},
+            {"id": 101, "name": "1.21.11", "gameVersionTypeID": 10},
+            {"id": 111, "name": "26.3", "gameVersionTypeID": 20},
+            {"id": 112, "name": "26.3", "gameVersionTypeID": 30},
+        ]
+        self.assertEqual(
+            cf.resolve_versions(versions, ["1.21.11", "26.3"], version_types),
+            {"Fabric": 42, "1.21.11": 101, "26.3": 111},
+        )
         with self.assertRaisesRegex(ValueError, "26.2"):
-            cf.resolve_versions(versions, ["1.21.11", "26.2"])
+            cf.resolve_versions(versions, ["1.21.11", "26.2"], version_types)
         with self.assertRaisesRegex(ValueError, "expected one exact ID"):
-            cf.resolve_versions(versions + [{"id": 99, "name": "Fabric"}], ["26.3"])
+            cf.resolve_versions(
+                versions + [{"id": 99, "name": "Fabric"}], ["26.3"], version_types
+            )
+        with self.assertRaisesRegex(ValueError, "26.3"):
+            cf.resolve_versions(
+                versions + [{"id": 113, "name": "26.3", "gameVersionTypeID": 20}],
+                ["26.3"], version_types,
+            )
+        with self.assertRaisesRegex(ValueError, "26.3"):
+            cf.resolve_versions(versions, ["26.3"], version_types[:1])
 
     def test_metadata_has_exact_version_and_required_dependencies(self):
         ids = {"Fabric": 42, "26.3": 11}
@@ -61,12 +81,16 @@ class CurseForgeUploadTests(unittest.TestCase):
         manifest = {"mod_version": "0.1.0", "source_sha": "a" * 40,
                     "active_versions": ["26.3", "26.2"], "artifacts": []}
         with tempfile.TemporaryDirectory() as directory:
-            with patch.object(cf, "request_json", return_value=[
-                {"id": 1, "name": "Fabric"}, {"id": 2, "name": "26.3"}]) as request:
+            inventories = [
+                [{"id": 1, "name": "Fabric"},
+                 {"id": 2, "name": "26.3", "gameVersionTypeID": 20}],
+                [{"id": 20, "name": "Minecraft 26.3", "slug": "minecraft-26-3"}],
+            ]
+            with patch.object(cf, "request_json", side_effect=inventories) as request:
                 with self.assertRaisesRegex(ValueError, "26.2"):
                     cf.publish(Path(directory), manifest, "Changes", "token",
                                cf.PROJECT_ID, "release", Path(directory) / "receipt.json")
-                request.assert_called_once()
+                self.assertEqual(request.call_count, 2)
 
 
 if __name__ == "__main__":

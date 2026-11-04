@@ -1,6 +1,12 @@
 name: Release DDS Tweak
 
 on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type RECOVER v0.1.0 to resume the existing Draft (never reupload automatically)'
+        required: true
+        type: string
   pull_request:
     paths:
       - '.github/workflows/release.yml'
@@ -149,3 +155,106 @@ jobs:
           set -euo pipefail
           gh release upload "$GITHUB_REF_NAME" build/p5/curseforge-receipt.json
           gh release edit "$GITHUB_REF_NAME" --draft=false
+
+  recover-v010:
+    name: Resume verified v0.1.0 Draft (manual, one time)
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'x-oOvOo-x/DDS-Tweak' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Require explicit recovery confirmation and immutable original tag
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CONFIRMATION" == 'RECOVER v0.1.0' ]] || { echo 'Explicit recovery confirmation required'; exit 1; }
+          [[ "$GITHUB_REF" == 'refs/heads/main' ]] || { echo 'Recovery must run from Public main'; exit 1; }
+          git fetch --no-tags origin refs/tags/v0.1.0
+          [[ "$(git rev-parse 'FETCH_HEAD^{commit}')" == 'f85b69257847d95a68de963bb71bf3b08ce0e183' ]] || {
+            echo 'The v0.1.0 tag moved; refusing to publish'; exit 1;
+          }
+      - name: Download and verify the existing 22 Draft assets (no rebuild)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/releases build/p5
+          gh api "repos/$GITHUB_REPOSITORY/releases/433864863" > build/p5/staged-release.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          release = json.loads(Path('build/p5/staged-release.json').read_text())
+          if (release.get('id') != 433864863 or release.get('tag_name') != 'v0.1.0'
+                  or release.get('draft') is not True or release.get('prerelease') is True
+                  or len(release.get('assets', [])) != 22
+                  or any(asset.get('name') == 'curseforge-receipt.json'
+                         for asset in release['assets'])):
+              raise SystemExit('Draft release state changed; manual review required')
+          PY
+          gh release download v0.1.0 --dir build/releases --pattern 'dds-tweak-v0.1.0-mc*.jar'
+          gh release download v0.1.0 --dir build/p5 --pattern 'public-release-manifest.json'
+          python3 tools/check_release_assets.py \
+            --manifest build/p5/public-release-manifest.json \
+            --release-json build/p5/staged-release.json --tag v0.1.0
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('build/p5/public-release-manifest.json').read_text())
+          if (manifest.get('source_sha') != 'f85b69257847d95a68de963bb71bf3b08ce0e183'
+                  or manifest.get('mod_version') != '0.1.0'
+                  or len(manifest.get('artifacts', [])) != 21):
+              raise SystemExit('Not the original verified v0.1.0 manifest')
+          PY
+          python3 tools/validate_release_artifacts.py \
+            --directory build/releases \
+            --source-sha f85b69257847d95a68de963bb71bf3b08ce0e183 \
+            --manifest build/p5/revalidated-manifest.json --production
+          cmp build/p5/public-release-manifest.json build/p5/revalidated-manifest.json
+      - name: Run corrected upload unit tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_*.py'
+      - name: Upload v0.1.0 JARs to CurseForge
+        env:
+          CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CURSEFORGE_API_TOKEN" || { echo 'Missing CurseForge Author API token'; exit 1; }
+          python3 tools/upload_curseforge.py \
+            --directory build/releases \
+            --manifest build/p5/public-release-manifest.json \
+            --changelog docs/release-notes/v0.1.0.md \
+            --project-id 1734610 --release-type release \
+            --receipt build/p5/curseforge-receipt.json
+      - name: Publish GitHub Draft only after all CurseForge file IDs are confirmed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          receipt = json.loads(Path('build/p5/curseforge-receipt.json').read_text())
+          if (receipt.get('source_sha') != 'f85b69257847d95a68de963bb71bf3b08ce0e183'
+                  or receipt.get('version') != '0.1.0'
+                  or len(receipt.get('files', [])) != 21
+                  or len({item['minecraft'] for item in receipt['files']}) != 21
+                  or any(type(item.get('curseforge_file_id')) is not int
+                         or item['curseforge_file_id'] <= 0 for item in receipt['files'])):
+              raise SystemExit('Incomplete CurseForge upload receipt; keep GitHub Draft')
+          PY
+          gh api "repos/$GITHUB_REPOSITORY/releases/433864863" --jq '.draft' | grep -qx true
+          gh release upload v0.1.0 build/p5/curseforge-receipt.json
+          gh release edit v0.1.0 --draft=false
+      - name: Retain partial receipt when recovery fails; do not rerun blindly
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: curseforge-v0.1.0-partial-receipt-${{ github.run_id }}
+          path: build/p5/curseforge-receipt.json
+          if-no-files-found: ignore
+          retention-days: 30
