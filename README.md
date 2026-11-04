@@ -9,7 +9,7 @@ A client-side Fabric mod for Minecraft.
 
 ## 简体中文
 
-DDS Tweak 提供实用的客户端操作与界面增强，并可选择性联动 [Carpet DDS Addition](https://github.com/x-oOvOo-x/Carpet-DDS-Addition-Dev)。
+DDS Tweak 提供实用的客户端操作与界面增强，并可选择性联动 Carpet DDS Addition。
 
 **版本与依赖**
 
@@ -35,7 +35,7 @@ DDS Tweak 提供实用的客户端操作与界面增强，并可选择性联动 
 
 ## English
 
-DDS Tweak provides practical client-side controls and UI enhancements, with optional integration with [Carpet DDS Addition](https://github.com/x-oOvOo-x/Carpet-DDS-Addition-Dev).
+DDS Tweak provides practical client-side controls and UI enhancements, with optional integration with Carpet DDS Addition.
 
 **Versions & requirements**
 
