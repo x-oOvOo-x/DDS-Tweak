@@ -60,7 +60,7 @@ class CurseForgeUploadTests(unittest.TestCase):
         # The wrong 26.3 family must not silently select a different category.
         with self.assertRaisesRegex(ValueError, "26.2"):
             cf.resolve_versions(versions, ["26.3", "26.2"], {"26.3": 17045})
-        with self.assertRaisesRegex(ValueError, "26.2"):
+        with self.assertRaisesRegex(ValueError, "26.3"):
             cf.resolve_versions(versions, ["26.3", "26.2"])
         with self.assertRaisesRegex(ValueError, "expected one exact ID"):
             cf.resolve_versions(
