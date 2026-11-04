@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       mc_26_3_version_id:
-        description: 'Exact Minecraft 26.3 ID confirmed after inspection (required for recovery)'
+        description: 'Reviewed Minecraft 26.3 ID (optional for INSPECT; required for RECOVER)'
         required: false
         type: string
   pull_request:
@@ -176,15 +176,19 @@ jobs:
       - name: Query supported CurseForge Author API without uploading
         env:
           CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          MC_26_3_ID: ${{ inputs.mc_26_3_version_id }}
         shell: bash
         run: |
           set -euo pipefail
           test -n "$CURSEFORGE_API_TOKEN" || { echo 'Missing CurseForge Author API token'; exit 1; }
           python3 - <<'PY'
+          import json
           import os
+          import re
           import sys
+          from pathlib import Path
           sys.path.insert(0, "tools")
-          from upload_curseforge import API_BASE, request_json
+          from upload_curseforge import API_BASE, request_json, resolve_versions
           versions = request_json(API_BASE + "/api/game/versions",
                                   os.environ["CURSEFORGE_API_TOKEN"])
           if not isinstance(versions, list):
@@ -206,8 +210,20 @@ jobs:
                   })
                   print(f"  id={item.get('id')}, type={typ}, slug={item.get('slug')},"
                         f" same-type examples={siblings[:12]}")
-          print("Verify the Minecraft 26.3 version ID against CurseForge "
-                "Author Dashboard before running RECOVER.")
+          anchor = os.environ.get("MC_26_3_ID", "").strip()
+          if anchor:
+              if not re.fullmatch(r"[1-9][0-9]*", anchor):
+                  raise SystemExit("Invalid Minecraft 26.3 ID")
+              targets = json.loads(Path("settings.json").read_text())["activeVersions"]
+              ids = resolve_versions(versions, targets, {"26.3": int(anchor)})
+              if len(ids) != len(set(targets)) + 1:
+                  raise SystemExit("Not all active Minecraft versions resolved")
+              print(f"Full preflight OK: {len(targets)} Minecraft versions + Fabric")
+              for name, version_id in ids.items():
+                  print(f"  {name}: {version_id}")
+          else:
+              print("Provide the reviewed 26.3 ID to INSPECT all 21 targets.")
+          print("No JARs were uploaded.")
           PY
 
   recover-v010:
