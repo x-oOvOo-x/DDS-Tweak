@@ -1,41 +1,58 @@
 # DDS Tweak
 
-DDS Tweak is a client-side Fabric mod for practical Minecraft tweaks and optional integration with Carpet DDS Addition.
+一个适用于 Minecraft 的 Fabric 客户端增强模组。  
+A client-side Fabric mod for Minecraft.
 
-## Runtime dependencies
+**语言 / Language:** [简体中文](#简体中文) · [English](#english)
 
-DDS Tweak requires:
+---
 
-- Fabric Loader
-- Fabric API
-- MaLiLib
+## 简体中文
 
-Fabric API is an external runtime dependency and is not bundled inside the DDS Tweak JAR. Carpet DDS Addition and other supported integrations remain optional.
+DDS Tweak 提供实用的客户端操作与界面增强，并可选择性联动 [Carpet DDS Addition](https://github.com/x-oOvOo-x/Carpet-DDS-Addition-Dev)。
 
-## Current target
+**版本与依赖**
 
-- Core development target: Minecraft 1.21.11
-- Active build targets: 21 versions, from Minecraft 1.14.4 through 26.3; not every feature is available on every version (see [version capabilities](docs/VERSION_CAPABILITY_BOUNDARIES.md)).
-- Fabric Loader, MaLiLib and Java requirements depend on the selected Minecraft target; refer to `versions/<minecraft>/gradle.properties` and [BUILDING.md](BUILDING.md). For example, 1.21.11 requires Java 21, while 26.3 requires Java 25 and Fabric Loader >=0.19.5.
-- DDS Protocol v1
+- 构建目标：Minecraft **1.14.4–26.3**，共 **21 个版本**；不同版本的功能可能有所区别。
+- 必需：**Fabric Loader、Fabric API、MaLiLib**（请使用与 Minecraft 版本匹配的依赖）。
+- Carpet DDS Addition 为可选服务端联动，不是独立使用 DDS Tweak 的必需条件。
 
-The project is client-only. Carpet DDS Addition remains authoritative for server state, permissions, fake-player inventories and actions. DDS Tweak may provide client UI and interaction enhancements when the server advertises compatible DDS protocol capabilities.
+**安装**
 
-## Mod Menu integration
+1. 安装对应版本的 Fabric Loader。
+2. 下载与 Minecraft 版本匹配的 DDS Tweak JAR。
+3. 将 DDS Tweak、Fabric API 和 MaLiLib 的对应版本放入游戏实例的 `mods` 文件夹。
 
-Mod Menu is **optional**. When it is installed for the current Minecraft version,
-open **Mods → DDS Tweak → Configure** to open the existing MaLiLib settings screen.
-Closing the screen returns to Mod Menu. With Mod Menu absent, DDS Tweak still
-starts normally and its existing MaLiLib config selector and `Left Alt + V`
-configuration shortcut remain available. No server mod or CDA integration is needed.
+**配置**
 
-## Client configuration
+按 **左 Alt + V** 打开配置；如已安装 Mod Menu，也可通过 **Mods → DDS Tweak → Configure** 进入设置。
 
-DDS Tweak stores its local client settings under `config/dds-tweak/` in the Minecraft instance. Existing root-level DT configs are copied on first use and preserved for rollback. See [Client configuration](docs/CLIENT_CONFIGURATION.md).
+**链接**
 
-## Development
+[CurseForge](https://www.curseforge.com/minecraft/mc-mods/dds-tweak) · [GitHub Releases](https://github.com/x-oOvOo-x/DDS-Tweak/releases) · [版本功能说明](docs/VERSION_CAPABILITY_BOUNDARIES.md) · [构建指南](BUILDING.md)
 
-- Tab fake-player groups: `docs/features/tab-fake-player-groups.md`
-- Build instructions: `BUILDING.md`
+---
 
-The canonical Java package root is `ddstweak` and the Fabric mod id is `dds-tweak`.
+## English
+
+DDS Tweak provides practical client-side controls and UI enhancements, with optional integration with [Carpet DDS Addition](https://github.com/x-oOvOo-x/Carpet-DDS-Addition-Dev).
+
+**Versions & requirements**
+
+- Build targets: **21 Minecraft versions**, from **1.14.4 to 26.3**. Feature availability varies by version.
+- Required: **Fabric Loader, Fabric API, and MaLiLib** compatible with your Minecraft version.
+- Carpet DDS Addition is optional for standalone client features.
+
+**Installation**
+
+1. Install Fabric Loader for your Minecraft version.
+2. Download the matching DDS Tweak JAR.
+3. Place DDS Tweak, Fabric API, and MaLiLib JARs for that version in your instance's `mods` folder.
+
+**Configuration**
+
+Press **Left Alt + V** to open settings. With Mod Menu installed, you can also use **Mods → DDS Tweak → Configure**.
+
+**Links**
+
+[CurseForge](https://www.curseforge.com/minecraft/mc-mods/dds-tweak) · [GitHub Releases](https://github.com/x-oOvOo-x/DDS-Tweak/releases) · [Version capabilities](docs/VERSION_CAPABILITY_BOUNDARIES.md) · [Build instructions](BUILDING.md)
