@@ -17,15 +17,16 @@ class CurseForgeUploadTests(unittest.TestCase):
     def test_exact_names_and_approved_duplicate_id(self):
         versions = [
             {"id": 42, "name": "Fabric", "gameVersionTypeID": 68441},
+            {"id": 44, "name": "Client", "gameVersionTypeID": 70000},
             {"id": 101, "name": "1.21.11", "gameVersionTypeID": 77784},
             {"id": 111, "name": "26.3", "gameVersionTypeID": 88556},
             {"id": 112, "name": "26.3", "gameVersionTypeID": 1},
         ]
-        expected = {"Fabric": 42, "1.21.11": 101, "26.3": 111}
+        expected = {"Fabric": 42, "Client": 44, "1.21.11": 101, "26.3": 111}
         self.assertEqual(cf.resolve_versions(versions, ["1.21.11", "26.3"]), expected)
         self.assertEqual(cf.resolve_versions(versions, ["1.21.11", "26.3"],
                                              {"26.3": 111}), expected)
-        with self.assertRaisesRegex(ValueError, "non-Bukkit"):
+        with self.assertRaisesRegex(ValueError, "valid exact ID"):
             cf.resolve_versions(versions, ["26.3"], {"26.3": 112})
         with self.assertRaisesRegex(ValueError, "26.3"):
             cf.resolve_versions(versions, ["26.3"], {"26.3": 999})
@@ -41,26 +42,31 @@ class CurseForgeUploadTests(unittest.TestCase):
     def test_bukkit_duplicates_never_override_minecraft_version_ids(self):
         versions = [
             {"id": 7499, "name": "Fabric", "gameVersionTypeID": 68441},
+            {"id": 9638, "name": "Client", "gameVersionTypeID": 70000},
             {"id": 17045, "name": "26.3", "gameVersionTypeID": 88556},
             {"id": 17046, "name": "26.3", "gameVersionTypeID": 1},
             {"id": 16498, "name": "26.2", "gameVersionTypeID": 86297},
             {"id": 16500, "name": "26.2", "gameVersionTypeID": 1},
-            {"id": 16084, "name": "26.1.2", "gameVersionTypeID": 85000},
+            {"id": 16082, "name": "26.1.2", "gameVersionTypeID": 83806},
             {"id": 16085, "name": "26.1.2", "gameVersionTypeID": 1},
+            {"id": 16130, "name": "26.1.2", "gameVersionTypeID": 615},
             {"id": 14416, "name": "1.21.11", "gameVersionTypeID": 77784},
             {"id": 14417, "name": "1.21.11", "gameVersionTypeID": 1},
             {"id": 9008, "name": "1.18.2", "gameVersionTypeID": 73250},
             {"id": 9016, "name": "1.18.2", "gameVersionTypeID": 1},
         ]
         target = ["26.3", "26.2", "26.1.2", "1.21.11", "1.18.2"]
-        expected = {"Fabric": 7499, "26.3": 17045, "26.2": 16498,
-                    "26.1.2": 16084, "1.21.11": 14416, "1.18.2": 9008}
+        expected = {"Fabric": 7499, "Client": 9638, "26.3": 17045,
+                    "26.2": 16498, "26.1.2": 16082,
+                    "1.21.11": 14416, "1.18.2": 9008}
         for order in (versions, list(reversed(versions))):
             self.assertEqual(cf.resolve_versions(order, target), expected)
             self.assertEqual(cf.resolve_versions(order, target, {"26.3": 17045}), expected)
         for wrong_id in (17046,):
             with self.assertRaisesRegex(ValueError, "Bukkit"):
                 cf.resolve_versions(versions, target, {"26.3": wrong_id})
+        with self.assertRaisesRegex(ValueError, "26.1.2"):
+            cf.resolve_versions(versions, target, {"26.1.2": 16130})
         with self.assertRaisesRegex(ValueError, "26.2"):
             cf.resolve_versions(
                 versions + [{"id": 16499, "name": "26.2", "gameVersionTypeID": 86297}],
@@ -80,6 +86,7 @@ class CurseForgeUploadTests(unittest.TestCase):
                     ]}
         versions = [
             {"id": 7499, "name": "Fabric", "gameVersionTypeID": 68441},
+            {"id": 9638, "name": "Client", "gameVersionTypeID": 70000},
             {"id": 17045, "name": "26.3", "gameVersionTypeID": 88556},
             {"id": 17046, "name": "26.3", "gameVersionTypeID": 1},
             {"id": 16498, "name": "26.2", "gameVersionTypeID": 86297},
@@ -92,6 +99,25 @@ class CurseForgeUploadTests(unittest.TestCase):
                                cf.PROJECT_ID, "release", Path(directory) / "receipt.json",
                                {"26.3": 17045})
                 request.assert_called_once_with(cf.API_BASE + "/api/game/versions", "token")
+
+    def test_environment_is_required_and_addons_only_version_is_rejected(self):
+        versions = [
+            {"id": 7499, "name": "Fabric", "gameVersionTypeID": 68441},
+            {"id": 16082, "name": "26.1.2", "gameVersionTypeID": 83806},
+            {"id": 16130, "name": "26.1.2", "gameVersionTypeID": 615},
+        ]
+        with self.assertRaisesRegex(ValueError, "Client"):
+            cf.resolve_versions(versions, ["26.1.2"])
+        versions.append({"id": 9638, "name": "Client"})
+        self.assertEqual(
+            cf.resolve_versions(versions, ["26.1.2"]),
+            {"Fabric": 7499, "Client": 9638, "26.1.2": 16082},
+        )
+        with self.assertRaisesRegex(ValueError, "26.1.2"):
+            cf.resolve_versions(
+                [item for item in versions if item.get("id") != 16082],
+                ["26.1.2"],
+            )
 
     def test_author_api_http_error_is_attributed_and_token_redacted(self):
         url = cf.API_BASE + "/api/game/versions"
@@ -106,10 +132,10 @@ class CurseForgeUploadTests(unittest.TestCase):
         self.assertNotIn("super-secret", str(caught.exception))
 
     def test_metadata_has_exact_version_and_required_dependencies(self):
-        ids = {"Fabric": 42, "26.3": 11}
+        ids = {"Fabric": 42, "Client": 44, "26.3": 11}
         meta = cf.metadata_for({"minecraft": "26.3"}, "0.1.0", "Changes",
                                ids, "release")
-        self.assertEqual(meta["gameVersions"], [11, 42])
+        self.assertEqual(meta["gameVersions"], [11, 42, 44])
         self.assertEqual(meta["releaseType"], "release")
         self.assertEqual({p["slug"] for p in meta["relations"]["projects"]},
                          {"fabric-api", "malilib"})
@@ -145,6 +171,7 @@ class CurseForgeUploadTests(unittest.TestCase):
                     "active_versions": ["26.3", "26.2"], "artifacts": []}
         versions = [
             {"id": 1, "name": "Fabric"},
+            {"id": 44, "name": "Client"},
             {"id": 2, "name": "26.3", "gameVersionTypeID": 20},
             {"id": 3, "name": "26.3", "gameVersionTypeID": 30},
         ]
