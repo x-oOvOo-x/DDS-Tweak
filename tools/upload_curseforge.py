@@ -36,12 +36,27 @@ def verified_manifest(root: Path, directory: Path, manifest_path: Path) -> dict:
 
 
 def resolve_versions(available: list, minecraft_versions: list, approved_ids=None) -> dict:
-    """Only use exact Author API version IDs; never guess between duplicate names."""
+    """Resolve exact IDs, using an approved 26.3 entry as the version-type anchor."""
     approved_ids = approved_ids or {}
     names = list(dict.fromkeys(["Fabric", *minecraft_versions]))
     if any(name not in names or type(value) is not int or value <= 0
            for name, value in approved_ids.items()):
         raise ValueError("Invalid CurseForge approved version override")
+
+    # CurseForge may give different Minecraft categories the same version name.
+    # The approved 26.3 ID identifies the normal Minecraft release category
+    # without relying on API ordering or an unsupported version-types endpoint.
+    minecraft_type = None
+    if "26.3" in approved_ids:
+        anchor = [
+            item for item in available
+            if isinstance(item, dict) and item.get("name") == "26.3"
+            and item.get("id") == approved_ids["26.3"]
+        ]
+        if len(anchor) != 1 or type(anchor[0].get("gameVersionTypeID")) is not int:
+            raise ValueError("Approved CurseForge 26.3 ID has no unique version type")
+        minecraft_type = anchor[0]["gameVersionTypeID"]
+
     result = {}
     for name in names:
         matches = [
@@ -53,9 +68,11 @@ def resolve_versions(available: list, minecraft_versions: list, approved_ids=Non
             f"id={item['id']} type={item.get('gameVersionTypeID')} slug={item.get('slug')}"
             for item in matches
         ) or "none"
-        selected_id = approved_ids.get(name)
-        if selected_id is not None:
-            matches = [item for item in matches if item["id"] == selected_id]
+        if name in approved_ids:
+            matches = [item for item in matches if item["id"] == approved_ids[name]]
+        elif name != "Fabric" and len(matches) > 1 and minecraft_type is not None:
+            matches = [item for item in matches
+                       if item.get("gameVersionTypeID") == minecraft_type]
         if len(matches) != 1:
             raise ValueError(
                 f"CurseForge version {name!r}: expected one exact ID, "
