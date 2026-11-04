@@ -5,6 +5,17 @@ on:
     paths:
       - '.github/workflows/release.yml'
       - 'tools/**'
+      - 'src/**'
+      - 'versions/**'
+      - 'config/**'
+      - 'gradle/**'
+      - 'build.gradle'
+      - 'common.gradle'
+      - 'settings.gradle'
+      - 'settings.json'
+      - 'gradle.properties'
+      - 'gradlew'
+      - 'gradlew.bat'
   push:
     tags:
       - 'v*'
@@ -18,7 +29,7 @@ concurrency:
 
 jobs:
   validate-release-tooling:
-    name: Verify release tooling (no publication)
+    name: Verify Public candidate (no publication)
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
@@ -27,6 +38,29 @@ jobs:
       - uses: actions/checkout@v5
       - name: Run offline release tooling tests
         run: python3 -m unittest discover -s tools/tests -p 'test_*.py'
+      - name: Set up all game Java toolchains (Gradle on JDK 25)
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: |
+            8
+            16
+            17
+            21
+            25
+      - name: Set up Gradle wrapper
+        uses: gradle/actions/setup-gradle@v4
+      - name: Build all 21 Minecraft targets without publishing
+        run: |
+          chmod +x ./gradlew
+          ./gradlew buildAndGather --stacktrace
+      - name: Verify production JAR inventory and hashes
+        run: |
+          python3 tools/validate_release_artifacts.py \
+            --directory build/releases \
+            --source-sha "$GITHUB_SHA" \
+            --manifest build/p5/public-release-manifest.json \
+            --production
 
   release:
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.repository == 'x-oOvOo-x/DDS-Tweak' }}
