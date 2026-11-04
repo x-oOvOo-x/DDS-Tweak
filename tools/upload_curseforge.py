@@ -36,52 +36,42 @@ def verified_manifest(root: Path, directory: Path, manifest_path: Path) -> dict:
 
 
 def resolve_versions(available: list, minecraft_versions: list, approved_ids=None) -> dict:
-    """Resolve exact IDs, using an approved 26.3 entry as the version-type anchor."""
+    """Resolve Fabric/MC IDs while excluding Bukkit's duplicate type=1 entries."""
     approved_ids = approved_ids or {}
     names = list(dict.fromkeys(["Fabric", *minecraft_versions]))
     if any(name not in names or type(value) is not int or value <= 0
            for name, value in approved_ids.items()):
         raise ValueError("Invalid CurseForge approved version override")
 
-    # CurseForge may give different Minecraft categories the same version name.
-    # The approved 26.3 ID identifies the normal Minecraft release category
-    # without relying on API ordering or an unsupported version-types endpoint.
-    minecraft_type = None
-    if "26.3" in approved_ids:
-        anchor = [
-            item for item in available
-            if isinstance(item, dict) and item.get("name") == "26.3"
-            and item.get("id") == approved_ids["26.3"]
-        ]
-        if len(anchor) != 1 or type(anchor[0].get("gameVersionTypeID")) is not int:
-            raise ValueError("Approved CurseForge 26.3 ID has no unique version type")
-        minecraft_type = anchor[0]["gameVersionTypeID"]
-
     result = {}
     for name in names:
-        matches = [
+        candidates = [
             item for item in available
             if isinstance(item, dict) and item.get("name") == name
             and type(item.get("id")) is int and item["id"] > 0
         ]
-        candidate_info = ", ".join(
-            f"id={item['id']} type={item.get('gameVersionTypeID')} slug={item.get('slug')}"
-            for item in matches
-        ) or "none"
+        # CurseForge repeats Minecraft version names for Bukkit (type ID 1).
+        # Fabric mods must use a non-Bukkit Minecraft game-version type.
+        matches = candidates if name == "Fabric" else [
+            item for item in candidates
+            if type(item.get("gameVersionTypeID")) is int
+            and item["gameVersionTypeID"] != 1
+        ]
         if name in approved_ids:
             matches = [item for item in matches if item["id"] == approved_ids[name]]
-        elif name != "Fabric" and len(matches) > 1 and minecraft_type is not None:
-            matches = [item for item in matches
-                       if item.get("gameVersionTypeID") == minecraft_type]
         if len(matches) != 1:
+            detail = ", ".join(
+                f"id={item['id']} type={item.get('gameVersionTypeID')}"
+                for item in candidates
+            ) or "none"
             raise ValueError(
-                f"CurseForge version {name!r}: expected one exact ID, "
-                f"found {len(matches)}; available candidates: {candidate_info}. "
-                "Inspect /api/game/versions and explicitly approve the correct ID; "
-                "do not choose the first match automatically."
+                f"CurseForge version {name!r}: expected one non-Bukkit exact ID, "
+                f"found {len(matches)}; candidates: {detail}. "
+                "Bukkit gameVersionTypeID=1 cannot be used for a Fabric mod."
             )
         result[name] = matches[0]["id"]
     return result
+
 
 def metadata_for(artifact: dict, version: str, changelog: str, ids: dict, release_type: str) -> dict:
     return {

@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       mc_26_3_version_id:
-        description: 'Reviewed Minecraft 26.3 ID (optional for INSPECT; required for RECOVER)'
+        description: 'Non-Bukkit Minecraft 26.3 ID: 17045 (required for RECOVER)'
         required: false
         type: string
   pull_request:
@@ -213,7 +213,7 @@ jobs:
           anchor = os.environ.get("MC_26_3_ID", "").strip()
           if anchor:
               if not re.fullmatch(r"[1-9][0-9]*", anchor):
-                  raise SystemExit("Invalid Minecraft 26.3 ID")
+                  raise SystemExit("Invalid non-Bukkit Minecraft 26.3 ID")
               targets = json.loads(Path("settings.json").read_text())["activeVersions"]
               ids = resolve_versions(versions, targets, {"26.3": int(anchor)})
               if len(ids) != len(set(targets)) + 1:
@@ -222,7 +222,7 @@ jobs:
               for name, version_id in ids.items():
                   print(f"  {name}: {version_id}")
           else:
-              print("Provide the reviewed 26.3 ID to INSPECT all 21 targets.")
+              print("Provide the non-Bukkit 26.3 ID (17045) to INSPECT all 21 targets.")
           print("No JARs were uploaded.")
           PY
 
@@ -252,7 +252,7 @@ jobs:
         shell: bash
         run: |
           [[ "$MC_26_3_ID" =~ ^[1-9][0-9]*$ ]] || {
-            echo 'Inspect the Author API first and provide a verified 26.3 ID'; exit 1;
+            echo 'Inspect Author API first; use non-Bukkit Minecraft 26.3 ID (17045), not Bukkit 17046'; exit 1;
           }
       - name: Download and verify the existing 22 Draft assets (no rebuild)
         env:
