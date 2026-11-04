@@ -7,6 +7,7 @@ import ddstweak.feature.startupsound.ClientStartupSound;
 import ddstweak.feature.silentautoeat.SilentAutoEat;
 //#if MC >= 12111
 import ddstweak.feature.bettersnowcoverage.BetterSnowCoverage;
+import ddstweak.feature.blocksoundtracker.BlockSoundTracker;
 //#endif
 import ddstweak.platform.malilib.LegacyConfigScreenRegistry;
 import fi.dy.masa.malilib.config.ConfigManager;
@@ -32,6 +33,7 @@ public final class DDSTweakInitHandler implements IInitializationHandler {
         SilentAutoEat.initialize();
         //#if MC >= 12111
         BetterSnowCoverage.initialize();
+        BlockSoundTracker.initialize();
         //#endif
     }
 }

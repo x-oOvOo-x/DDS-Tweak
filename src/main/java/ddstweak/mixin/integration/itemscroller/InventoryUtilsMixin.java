@@ -14,6 +14,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import net.minecraft.world.item.ItemStack;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Coerce;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 /** Keeps Item Scroller sorting inside the unified target region and off the viewer hotbar. */
@@ -23,6 +29,52 @@ public abstract class InventoryUtilsMixin{
     private static final boolean TRACE=Boolean.getBoolean("dds.playerinventory.trace");
     private static final org.apache.logging.log4j.Logger TRACE_LOG=
             org.apache.logging.log4j.LogManager.getLogger("dds.playerinventory.dt");
+    /*
+     * ItemScroller's matching-drag calls us once at gesture start.
+     * Plan exact allowed PICKUP destinations and execute the whole route,
+     * rather than simulating QUICK_MOVE or waiting per source slot.
+     */
+    //#if MC >= 12108
+    @Inject(method="dragMoveItems",at=@At("HEAD"),cancellable=true,require=1,remap=false)
+    //#else
+    //$$ @Inject(method="dragMoveItems",at=@At("HEAD"),cancellable=true,require=0,remap=false)
+    //#endif
+    private static void ddsTweak$beginBulk(AbstractContainerScreen<?> gui,@Coerce Object action,
+                                           int mouseX,int mouseY,boolean isClick,CallbackInfoReturnable<Boolean> cir){
+        //#if MC >= 12108
+        if(!(gui.getMenu() instanceof UnifiedPlayerInventoryMirrorMenu))return;
+        UnifiedPlayerInventoryMirrorMenu menu=(UnifiedPlayerInventoryMirrorMenu)gui.getMenu();
+        if(menu.kind()!=PlayerInventoryKind.INVENTORY)return;
+        if(!isClick&&ItemScrollerDirectTransfer.suppressDrag(menu)){
+            cir.setReturnValue(true);
+            return;
+        }
+        if(!ItemScrollerDirectTransfer.isMatchingGesture(action,isClick))return;
+        int id=ddsTweak$menuSlot();
+        boolean moved=ItemScrollerDirectTransfer.moveMatching(menu,id);
+        if(TRACE)TRACE_LOG.info("itemscroller_direct_gesture slot={} moved={}",id,moved);
+        cir.setReturnValue(true);
+        //#endif
+    }
+
+    //#if MC >= 12108
+    @Inject(method="stopDragging",at=@At("HEAD"),require=1,remap=false)
+    private static void ddsTweak$releaseDragGuard(CallbackInfo ci){
+        ItemScrollerDirectTransfer.stopDragging();
+    }
+    //#endif
+
+    // The unrestricted ItemScroller PICKUP fallback can touch provider
+    // equipment/control slots. DirectTransfer is the only bulk move path.
+    //#if MC >= 12108
+    @Inject(method="clickSlotsToMoveItemsFromSlot",at=@At("HEAD"),cancellable=true,require=1,remap=false)
+    //#else
+    //$$ @Inject(method="clickSlotsToMoveItemsFromSlot",at=@At("HEAD"),cancellable=true,require=0,remap=false)
+    //#endif
+    private static void ddsTweak$blockManualFallback(CallbackInfo ci){
+        if(ddsTweak$menu()!=null)ci.cancel();
+    }
+
     @ModifyArg(method="sortInventory",at=@At(value="INVOKE",target="Lfi/dy/masa/itemscroller/util/InventoryUtils;tryMergeItems(Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;II)V"),index=1,require=0,remap=false)
     private static int ddsTweak$mergeStart(int original){
         UnifiedPlayerInventoryMirrorMenu menu=ddsTweak$menu();int slot=ddsTweak$menuSlot();
@@ -78,8 +130,14 @@ public abstract class InventoryUtilsMixin{
     }
 
     private static int ddsTweak$scratchButton(int original){return ddsTweak$useCarriedScratch()?UnifiedPlayerInventoryMirrorMenu.CARRIED_SCRATCH_BUTTON:original;}
-    private static int ddsTweak$rangeStart(UnifiedPlayerInventoryMirrorMenu menu,int slot,int fallback){switch(menu.slotRole(slot)){case MAIN:case ENDER_STORAGE:return menu.targetMainStart();case HOTBAR:return menu.targetHotbarStart();case VIEWER_MAIN:case VIEWER_HOTBAR:return fallback;default:return 0;}}
-    private static int ddsTweak$rangeEnd(UnifiedPlayerInventoryMirrorMenu menu,int slot,int fallback){switch(menu.slotRole(slot)){case MAIN:case ENDER_STORAGE:return menu.targetMainEnd();case HOTBAR:return menu.targetHotbarEnd();case VIEWER_MAIN:case VIEWER_HOTBAR:return fallback;default:return 0;}}
+    private static int ddsTweak$rangeStart(UnifiedPlayerInventoryMirrorMenu menu,int slot,int fallback){
+        int[] range=PlayerInventorySlotPolicy.sortableRange(menu,slot);
+        return range==null?0:range[0];
+    }
+    private static int ddsTweak$rangeEnd(UnifiedPlayerInventoryMirrorMenu menu,int slot,int fallback){
+        int[] range=PlayerInventorySlotPolicy.sortableRange(menu,slot);
+        return range==null?0:range[1];
+    }
     private static boolean ddsTweak$useCarriedScratch(){UnifiedPlayerInventoryMirrorMenu menu=ddsTweak$menu();return menu!=null&&ddsTweak$hoveredTargetSlot()>=0&&menu.context().allows(PlayerInventoryInteractionCapability.CARRIED_SCRATCH_SWAP);}
     private static int ddsTweak$hoveredTargetSlot(){UnifiedPlayerInventoryMirrorMenu menu=ddsTweak$menu();if(menu==null)return -1;int slot=ddsTweak$menuSlot();PlayerInventorySlotRole role=menu.slotRole(slot);return role==PlayerInventorySlotRole.MAIN||role==PlayerInventorySlotRole.HOTBAR||role==PlayerInventorySlotRole.ENDER_STORAGE?slot:-1;}
     private static UnifiedPlayerInventoryMirrorMenu ddsTweak$menu(){Object screen=MinecraftCompat.screen(Minecraft.getInstance());return screen instanceof UnifiedPlayerInventoryScreen?((UnifiedPlayerInventoryScreen)screen).getMenu():null;}

@@ -79,7 +79,7 @@ public abstract class ChunkBorderRendererMixin {
     //$$ }
     //#else
     //$$ @Inject(method="render",at=@At("TAIL"))
-    //$$ private void ddstweak$chunkCenter(long finishTimeNano,CallbackInfo ci){
+    //$$ private void ddstweak$chunkCenter(CallbackInfo ci){
     //$$     if(!ChunkCenterIndicatorFeature.enabled())return;
     //$$     Camera camera=minecraft.gameRenderer.getMainCamera();
     //$$     Entity entity=camera.getEntity();

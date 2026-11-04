@@ -29,16 +29,16 @@ public final class CameraPlayerSelectorFeature {
                 ||minecraft.getConnection()==null
                 ||MinecraftCompat.screen(minecraft)!=null)return false;
 
-        CameraPlayerSelectorScreen screen=new CameraPlayerSelectorScreen(
-                CameraSelectorCompat.snapshotPlayers(minecraft),
-                CameraSelectorCompat.supports(minecraft,"tp","player"),
-                CameraSelectorCompat.supports(minecraft,"tp","dimension"),
-                CameraSelectorCompat.supportsDestinationTeleport(minecraft),
-                CameraSelectorCompat.supports(minecraft,"follow"),
-                CameraSelectorCompat.supports(minecraft),
-                CameraSelectorCompat.supports(minecraft,"back")
-        );
-        MinecraftCompat.setScreen(minecraft,screen);
-        return true;
+        try{
+            CameraPlayerSelectorScreen screen=new CameraPlayerSelectorScreen(
+                    CameraSelectorCompat.snapshotPlayers(minecraft),
+                    CameraCommandProfileStore.load(minecraft)
+            );
+            MinecraftCompat.setScreen(minecraft,screen);
+            return true;
+        }catch(IllegalStateException failure){
+            System.err.println("[DDS Tweak] Cannot open Camera config: "+failure.getMessage());
+            return false;
+        }
     }
 }

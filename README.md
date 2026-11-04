@@ -1,45 +1,58 @@
 # DDS Tweak
 
-DDS Tweak is a client-side Fabric mod for practical Minecraft tweaks and optional integration with Carpet DDS Addition.
+一个适用于 Minecraft 的 Fabric 客户端增强模组。  
+A client-side Fabric mod for Minecraft.
 
-## Runtime dependencies
+**语言 / Language:** [简体中文](#简体中文) · [English](#english)
 
-DDS Tweak requires:
+---
 
-- Fabric Loader
-- Fabric API
-- MaLiLib
+## 简体中文
 
-Fabric API is an external runtime dependency and is not bundled inside the DDS Tweak JAR. Carpet DDS Addition and other supported integrations remain optional.
+DDS Tweak 提供实用的客户端操作与界面增强，并可选择性联动 Carpet DDS Addition。
 
-## Current target
+**版本与依赖**
 
-- Minecraft 1.21.11
-- Fabric Loader 0.19.3
-- Java 21
-- DDS Protocol v1
+- 构建目标：Minecraft **1.14.4–26.3**，共 **21 个版本**；不同版本的功能可能有所区别。
+- 必需：**Fabric Loader、Fabric API、MaLiLib**（请使用与 Minecraft 版本匹配的依赖）。
+- Carpet DDS Addition 为可选服务端联动，不是独立使用 DDS Tweak 的必需条件。
 
-The project is client-only. Carpet DDS Addition remains authoritative for server state, permissions, fake-player inventories and actions. DDS Tweak may provide client UI and interaction enhancements when the server advertises compatible DDS protocol capabilities.
+**安装**
 
-## Beta publication
+1. 安装对应版本的 Fabric Loader。
+2. 下载与 Minecraft 版本匹配的 DDS Tweak JAR。
+3. 将 DDS Tweak、Fabric API 和 MaLiLib 的对应版本放入游戏实例的 `mods` 文件夹。
 
-The `beta/0.1.0-beta.1` branch is a separate Minecraft 1.21.11 Beta candidate for the initial Modrinth review. It excludes the Happy Ghast riding speed modifier; the development `main` branch retains that feature. Do not merge the Beta branch into `main`.
+**配置**
 
-Publication copy, version notes and checklist: `docs/publishing/BETA_0.1.0.md`.
+按 **左 Alt + V** 打开配置；如已安装 Mod Menu，也可通过 **Mods → DDS Tweak → Configure** 进入设置。
 
-## Licensing and upstream material
+**链接**
 
-DDS Tweak's project metadata declares LGPL-3.0-only; see `LICENSE`.
-The optional CozyUI+-derived resource pack is GPL-3.0; see its embedded license and notice.
-Better Snow Coverage-derived portions are credited in `THIRD_PARTY_NOTICES.md` (MIT).
+[CurseForge](https://www.curseforge.com/minecraft/mc-mods/dds-tweak) · [GitHub Releases](https://github.com/x-oOvOo-x/DDS-Tweak/releases) · [版本功能说明](docs/VERSION_CAPABILITY_BOUNDARIES.md) · [构建指南](BUILDING.md)
 
-An accessible corresponding-source distribution must accompany public binary distribution as required by the applicable licenses. A private development repository URL is not a public source link.
+---
 
-## Development
+## English
 
-- Architecture: `docs/ARCHITECTURE.md`
-- Development workflow: `docs/DEVELOPMENT_WORKFLOW.md`
-- Build instructions: `BUILDING.md`
-- Release workflow: `docs/RELEASE_WORKFLOW.md`
+DDS Tweak provides practical client-side controls and UI enhancements, with optional integration with Carpet DDS Addition.
 
-The canonical Java package root is `ddstweak` and the Fabric mod id is `dds-tweak`.
+**Versions & requirements**
+
+- Build targets: **21 Minecraft versions**, from **1.14.4 to 26.3**. Feature availability varies by version.
+- Required: **Fabric Loader, Fabric API, and MaLiLib** compatible with your Minecraft version.
+- Carpet DDS Addition is optional for standalone client features.
+
+**Installation**
+
+1. Install Fabric Loader for your Minecraft version.
+2. Download the matching DDS Tweak JAR.
+3. Place DDS Tweak, Fabric API, and MaLiLib JARs for that version in your instance's `mods` folder.
+
+**Configuration**
+
+Press **Left Alt + V** to open settings. With Mod Menu installed, you can also use **Mods → DDS Tweak → Configure**.
+
+**Links**
+
+[CurseForge](https://www.curseforge.com/minecraft/mc-mods/dds-tweak) · [GitHub Releases](https://github.com/x-oOvOo-x/DDS-Tweak/releases) · [Version capabilities](docs/VERSION_CAPABILITY_BOUNDARIES.md) · [Build instructions](BUILDING.md)

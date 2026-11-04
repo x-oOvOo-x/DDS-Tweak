@@ -4,6 +4,7 @@ import ddstweak.integration.dds.playerinventory.*;
 import ddstweak.integration.dds.playerinventory.menu.UnifiedPlayerInventoryMirrorMenu;
 import ddstweak.integration.dds.playerinventory.legacy.DdsFakePlayerLegacyContextAdapter;
 import ddstweak.integration.dds.qca.DdsQcaClientNetwork;
+import ddstweak.integration.dds.qca.DdsQcaNativeMenuSlots;
 import ddstweak.integration.dds.playerinventory.screen.UnifiedPlayerInventoryScreen;
 import ddstweak.integration.provider.ProviderPlayerInventoryScreenCoordinator;
 import ddstweak.integration.provider.PlayerIdentityResolver;
@@ -91,6 +92,7 @@ public final class DdsFakePlayerClientNetwork{
         if(structural!=null&&matchesStructuralContext(structural,context))
             STRUCTURE_STATE.observeNextContext(connection,context.targetUuid(),context.containerId(),context.sessionGeneration(),now);
         EXTENSION_OPEN_STATE.expect(connection,context,now);
+        DdsQcaNativeMenuSlots.onContext(connection,context);
         Minecraft mc=Minecraft.getInstance();
         if(mc.player==null||mc.player.containerMenu.containerId!=context.containerId())return;
         AwaitingProviderEnder awaiting=awaitingProviderEnder;
@@ -138,6 +140,7 @@ public final class DdsFakePlayerClientNetwork{
             handleStructureFailure(structural);
         }
         EXTENSION_OPEN_STATE.discard(connection,containerId,generation);
+        DdsQcaNativeMenuSlots.revoke(containerId);
         DdsFakePlayerExtensionContext current=ACTIVE_EXTENSIONS.get(containerId);
         if(current!=null&&current.strictSession()&&current.sessionGeneration()==generation){
             ACTIVE_EXTENSIONS.remove(containerId);
@@ -552,6 +555,7 @@ public final class DdsFakePlayerClientNetwork{
         for(DdsFakePlayerExtensionContext extension:new ArrayList<>(ACTIVE_EXTENSIONS.values()))
             DdsQcaClientNetwork.revokeProviderExtensionAuthority(extension.targetUuid());
         OPEN_STATE.clear();EXTENSION_OPEN_STATE.clear();ACTIVE_EXTENSIONS.clear();
+        DdsQcaNativeMenuSlots.reset();
         structureFallback=null;awaitingProviderEnder=null;returnCloseBypass=null;
     }
     public static boolean canUseActions(){return DdsClientNetwork.canSend(DdsFakePlayerPackets.ACTION_C2S);}

@@ -38,9 +38,14 @@ final class QuickMuteContractTest {
         String feature=read("src/main/java/ddstweak/feature/quickmute/QuickMute.java");
         String compat=read("src/main/java/ddstweak/platform/minecraft/MinecraftCompat.java");
 
-        assertTrue(feature.contains("restoreVolume=MinecraftCompat.masterVolume(minecraft)"));
+        String configs=read("src/main/java/ddstweak/config/Configs.java");
+        assertTrue(feature.contains("VOLUME.prepareMute(MinecraftCompat.masterVolume(minecraft)"));
         assertTrue(feature.contains("MinecraftCompat.setMasterVolume(minecraft,0.0F)"));
-        assertTrue(feature.contains("MinecraftCompat.setMasterVolume(minecraft,restoreVolume)"));
+        assertTrue(feature.contains("MinecraftCompat.setMasterVolume(minecraft,VOLUME.restore(current))"));
+        assertTrue(configs.contains("QuickMute.loadState(r)"));
+        assertTrue(configs.contains("QuickMute.saveState(r)"));
+        assertTrue(configs.contains("QuickMute.onConfigLoaded()"));
+        assertTrue(feature.contains("!Configs.isLoading()"));
         assertTrue(compat.contains("getSoundSourceVolume(SoundSource.MASTER)"));
         assertTrue(compat.contains("getSoundSourceOptionInstance(SoundSource.MASTER).set((double)value)"));
         assertTrue(compat.contains("//$$ minecraft.options.setSoundCategoryVolume(SoundSource.MASTER,value);"));

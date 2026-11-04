@@ -2,6 +2,9 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
 final int mcVersion = project.mcVersion
+// Fabric API changed its mod ID from "fabric" to "fabric-api" in Minecraft 1.19.2.
+// This is runtime metadata only; Maven coordinates still use fabric-api.
+final String fabricApiModId = mcVersion < 1_19_02 ? 'fabric' : 'fabric-api'
 final boolean unobfuscated = mcVersion >= 26_00_00
 final boolean canonicalTarget = project.name == rootProject.ext.ddsTweakCoreVersion
 ext.releaseJarTaskName = unobfuscated ? 'jar' : 'remapJar'
@@ -22,6 +25,7 @@ apply plugin: 'com.replaymod.preprocess'
 repositories {
     mavenCentral()
     maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.terraformersmc.com/' }
     maven { url = 'https://masa.dy.fi/maven' }
     maven {
         url = 'https://masa.dy.fi/maven/sakura-ryoko'
@@ -37,6 +41,36 @@ repositories {
     }
 }
 
+// Mod Menu is optional for players. Keep the compile-time API aligned with each MC node.
+// The 1.14.4 release is distributed through Modrinth; Terraformers Maven starts at 1.15.2.
+final def modMenuVersions = [
+        '1.15.2': '1.10.6',
+        '1.16.5': '1.16.23',
+        '1.17.1': '2.0.17',
+        '1.18.2': '3.2.5',
+        '1.19.4': '6.3.1',
+        '1.20.1': '7.2.2',
+        '1.20.2': '8.0.1',
+        '1.20.4': '9.2.0',
+        '1.20.6': '10.0.0',
+        '1.21.1': '11.0.4',
+        '1.21.3': '12.0.1',
+        '1.21.4': '13.0.4',
+        '1.21.5': '14.0.2',
+        '1.21.8': '15.0.2',
+        '1.21.9': '16.0.1',
+        '1.21.10': '16.0.1',
+        '1.21.11': '17.0.1',
+        '26.1.2': '18.0.2',
+        '26.2': '20.0.3',
+        '26.3': '21.0.0'
+]
+final String modMenuCoordinate = mcVersion == 1_14_04
+        ? 'maven.modrinth:modmenu:leKKCpqK'
+        : "com.terraformersmc:modmenu:${modMenuVersions[project.minecraft_version]}"
+if (mcVersion != 1_14_04 && !modMenuVersions.containsKey(project.minecraft_version))
+    throw new GradleException("No Mod Menu API version for Minecraft ${project.minecraft_version}")
+
 def runtimeModConfiguration = unobfuscated ? 'implementation' : 'modImplementation'
 
 dependencies {
@@ -45,13 +79,17 @@ dependencies {
     add(runtimeModConfiguration, "net.fabricmc:fabric-loader:${project.loader_version}")
     add(runtimeModConfiguration, "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}")
     add(runtimeModConfiguration, project.malilib_coordinate)
+    // The API must be remapped under the legacy Loom toolchain; never ship/bundle it.
+    def modMenuApi = add(unobfuscated ? 'compileOnly' : 'modCompileOnly', modMenuCoordinate)
+    modMenuApi.transitive = false
+
 
     compileOnly('org.anti-ad.mc:inventory-profiles-next:fabric-1.17.1-1.1.0') { transitive = false }
 
-    if (mcVersion >= 1_21_11) {
-        compileOnly 'io.github.llamalad7:mixinextras-common:0.5.5'
-        annotationProcessor 'io.github.llamalad7:mixinextras-common:0.5.5'
-    }
+    // Fabric Loader 0.17.0+ bundles MixinExtras 0.5.0+ (including Expressions).
+    // Compile against the library; never nest a second runtime copy in DT.
+    compileOnly 'io.github.llamalad7:mixinextras-common:0.5.5'
+    annotationProcessor 'io.github.llamalad7:mixinextras-common:0.5.5'
 
     if (canonicalTarget) {
         testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
@@ -80,16 +118,9 @@ java {
     targetCompatibility = javaCompatibility
     withSourcesJar()
 }
-
-// Keep the legal notices inside every remapped release JAR as well as in the source tree.
 tasks.named('jar', Jar).configure {
-    from(rootProject.file('LICENSE')) {
-        into 'META-INF'
-        rename { 'LICENSE-LGPL-3.0.txt' }
-    }
-    from(rootProject.file('THIRD_PARTY_NOTICES.md')) {
-        into 'META-INF'
-    }
+    from(rootProject.file('LICENSE'))
+    from(rootProject.file('THIRD_PARTY_NOTICES.md'))
 }
 tasks.withType(JavaCompile).configureEach {
     options.release = javaLevel
@@ -147,6 +178,7 @@ processResources {
             minecraft_dependency: project.minecraft_dependency,
             loader_dependency  : project.loader_dependency,
             fabric_api_dependency: project.fabric_api_dependency,
+            fabric_api_mod_id    : fabricApiModId,
             java_dependency    : project.java_dependency,
             malilib_dependency : project.malilib_dependency,
             mixin_compatibility: "JAVA_${javaLevel}",
@@ -155,6 +187,13 @@ processResources {
     filesMatching('fabric.mod.json') { expand(props) }
     filesMatching('dds-tweak.mixins.json') { expand(props) }
     doLast {
+        // Validate the actual metadata generated for every built Minecraft target.
+        def modMetadata = new JsonSlurper().parse(new File(destinationDir, 'fabric.mod.json'))
+        def alternateId = fabricApiModId == 'fabric' ? 'fabric-api' : 'fabric'
+        if (modMetadata.depends[fabricApiModId] != project.fabric_api_dependency
+                || modMetadata.depends.containsKey(alternateId)) {
+            throw new GradleException("Incorrect Fabric API dependency ID for Minecraft ${project.minecraft_version}: expected ${fabricApiModId}")
+        }
         def packFile = new File(destinationDir, 'resourcepacks/dds_fake_player_ui/pack.mcmeta')
         def packMeta = [pack:[description:'DDS Tweak Fake Player UI - CozyUI+']]
         if (mcVersion >= 1_21_09) {
@@ -181,6 +220,7 @@ processResources {
         else unavailable.add('feature.helpfulhitboxes.LegacyBlockShapeMixin')
         if (mcVersion > 1_20_06) unavailable.add('config.LegacyConfigSelectorMixin')
         if (mcVersion >= 1_18_00) unavailable.addAll(['config.LegacyHotkeyedBooleanWidgetMixin','config.LegacyConfigBooleanHotkeyedMixin'])
+        // The preview adapter has an explicit preprocessed implementation for every supported era.
         def compactLegacy = ['feature.compactstatuseffects.GuiAccessor','feature.compactstatuseffects.EffectRenderingInventoryScreenMixin','feature.compactstatuseffects.JeiInventoryEffectAreaMixin','feature.compactstatuseffects.ReiPotionEffectExclusionMixin']
         def compactModern = ['feature.compactstatuseffects.CompactAbstractContainerScreenAccessor','feature.compactstatuseffects.EffectsInInventoryMixin','feature.compactstatuseffects.ModernJeiInventoryEffectAreaMixin','feature.compactstatuseffects.ModernReiPotionEffectExclusionMixin']
         def compactCommon = ['feature.compactstatuseffects.EmiExclusionAreasMixin']
@@ -193,6 +233,11 @@ processResources {
             mixinConfig.client = (mixinConfig.client ?: []).findAll { !unavailable.contains(it) }
             mixinFile.setText(JsonOutput.prettyPrint(JsonOutput.toJson(mixinConfig)) + System.lineSeparator(), 'UTF-8')
         }
+        // Verify the processed JSON, not only the compiled Mixin source.
+        def generatedMixins = new JsonSlurper().parse(new File(destinationDir, 'dds-tweak.mixins.json'))
+        boolean previewExpected = true
+        if (generatedMixins.client.contains('feature.silentautoeat.InventoryPreviewMixin') != previewExpected)
+            throw new GradleException("Silent Auto Eat ${project.name}: incorrect inventory preview Mixin registration")
     }
 }
 
@@ -209,4 +254,413 @@ tasks.withType(JavaExec).configureEach {
     if (name == 'runClient') javaLauncher.set(gameJavaLauncher)
 }
 
+
+/*
+ * Extract only the requested vanilla classes from the actual Java compiler
+ * classpath. The temporary originals must never be uploaded as CI artifacts.
+ */
+if (project.name in ['1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1.2', '26.2', '26.3']) {
+    tasks.register('extractLocatorVanillaClasses') {
+        group = 'verification'
+        dependsOn tasks.named('compileJava')
+        doLast {
+            def locator = mcVersion >= 26_02_00 ? 'LocatorBar' : 'LocatorBarRenderer'
+            def xp = mcVersion >= 26_02_00 ? 'ExperienceBar' : 'ExperienceBarRenderer'
+            def hud = mcVersion >= 26_02_00 ? 'Hud' : 'Gui'
+            def classes = [
+                    "net/minecraft/client/gui/contextualbar/${locator}.class",
+                    "net/minecraft/client/gui/contextualbar/${xp}.class",
+                    "net/minecraft/client/gui/${hud}.class",
+                    'net/minecraft/client/renderer/texture/SkinTextureDownloader.class',
+            ]
+            def archives = tasks.named('compileJava').get().classpath.files.findAll {
+                it.isFile() && it.name.endsWith('.jar')
+            }
+            def matches = archives.findAll { jar ->
+                new java.util.zip.ZipFile(jar).withCloseable { zip ->
+                    classes.every { zip.getEntry(it) != null }
+                }
+            }
+            if (matches.size() != 1) {
+                throw new GradleException("Expected exactly one compiler Minecraft JAR for ${project.name}; found ${matches*.name}")
+            }
+
+            def jar = matches.first()
+            def dest = rootProject.layout.buildDirectory.dir("tmp/locator-vanilla-classes/${project.name}").get().asFile
+            delete dest
+            dest.mkdirs()
+            def details = []
+            new java.util.zip.ZipFile(jar).withCloseable { zip ->
+                classes.each { name ->
+                    def target = new File(dest, name)
+                    target.parentFile.mkdirs()
+                    zip.getInputStream(zip.getEntry(name)).withCloseable { input ->
+                        target.withOutputStream { output -> output << input }
+                    }
+                    def digest = java.security.MessageDigest.getInstance('SHA-256').digest(target.bytes)
+                    details << [name: name, sha256: digest.encodeHex().toString()]
+                }
+            }
+            new File(dest, 'origin.json').setText(JsonOutput.prettyPrint(JsonOutput.toJson([
+                    minecraft: project.name,
+                    source: 'compileJava.classpath',
+                    archiveName: jar.name,
+                    classes: details
+            ])), 'UTF-8')
+            logger.lifecycle("Vanilla Locator target classes extracted from compiler classpath: ${project.name} (4 classes, not for redistribution)")
+        }
+    }
+}
+
+
+/* Check the vanilla Gamma read in each version's compiled Minecraft class. */
+tasks.register('verifyGammaBytecodeTarget') {
+    group = 'verification'
+    dependsOn tasks.named('compileJava')
+    doLast {
+        def targetClass = mcVersion >= 26_01_02
+                ? 'net/minecraft/client/renderer/LightmapRenderStateExtractor.class'
+                : 'net/minecraft/client/renderer/LightTexture.class'
+        def methodName = mcVersion >= 26_01_02 ? 'extract' : 'updateLightTexture'
+        def archives = tasks.named('compileJava').get().classpath.files.findAll {
+            it.isFile() && it.name.endsWith('.jar')
+        }
+        def matches = archives.findAll { jar ->
+            new java.util.zip.ZipFile(jar).withCloseable { zip ->
+                zip.getEntry(targetClass) != null
+            }
+        }
+        if (matches.size() != 1)
+            throw new GradleException("Expected one Minecraft Gamma JAR on ${project.name}: ${matches*.name}")
+        def node = new org.objectweb.asm.tree.ClassNode()
+        new java.util.zip.ZipFile(matches.first()).withCloseable { zip ->
+            zip.getInputStream(zip.getEntry(targetClass)).withCloseable { input ->
+                new org.objectweb.asm.ClassReader(input).accept(node, 0)
+            }
+        }
+        int found = 0
+        node.methods.findAll { it.name == methodName }.each { method ->
+            def insns = method.instructions.toArray().findAll { it.opcode >= 0 }
+            if (mcVersion < 1_19_04) {
+                found += insns.count { insn ->
+                    insn instanceof org.objectweb.asm.tree.FieldInsnNode &&
+                            insn.opcode == org.objectweb.asm.Opcodes.GETFIELD &&
+                            insn.owner == 'net/minecraft/client/Options' &&
+                            insn.name == 'gamma' && insn.desc == 'D'
+                }
+            } else {
+                for (int i = 0; i < insns.size() - 1; i++) {
+                    def gamma = insns[i]
+                    def get = insns[i + 1]
+                    if (gamma instanceof org.objectweb.asm.tree.MethodInsnNode &&
+                            gamma.owner == 'net/minecraft/client/Options' &&
+                            gamma.name == 'gamma' &&
+                            gamma.desc == '()Lnet/minecraft/client/OptionInstance;' &&
+                            get instanceof org.objectweb.asm.tree.MethodInsnNode &&
+                            get.owner == 'net/minecraft/client/OptionInstance' &&
+                            get.name == 'get' && get.desc == '()Ljava/lang/Object;')
+                        found++
+                }
+            }
+        }
+        if (found != 1)
+            throw new GradleException("Expected exactly one vanilla Gamma read on ${project.name} (${targetClass}#${methodName}); found ${found}")
+        logger.lifecycle("Gamma vanilla bytecode target: ${project.name}, exactly one read")
+    }
+}
+tasks.named('build').configure { dependsOn tasks.named('verifyGammaBytecodeTarget') }
+
 if (!unobfuscated) tasks.named('build').configure { dependsOn tasks.named('remapJar') }
+
+
+/*
+ * Inspect the actual Mojang render bytecode, not just the compiled Mixin.
+ * Mixin ordinal resolution and third-party interaction still need runtime tests.
+ */
+tasks.register('verifySilentAutoEatVanillaTargets') {
+    group = 'verification'
+    dependsOn tasks.named('compileJava')
+    doLast {
+        def archives = tasks.named('compileJava').get().classpath.files.findAll {
+            it.isFile() && it.name.endsWith('.jar')
+        }
+        def loadClass = { String path ->
+            def jars = archives.findAll { jar ->
+                new java.util.zip.ZipFile(jar).withCloseable { zip -> zip.getEntry(path) != null }
+            }
+            if (jars.size() != 1)
+                throw new GradleException('Silent Auto Eat ' + project.name + ': expected one vanilla ' + path + ', found ' + jars*.name)
+            def node = new org.objectweb.asm.tree.ClassNode()
+            new java.util.zip.ZipFile(jars.first()).withCloseable { zip ->
+                zip.getInputStream(zip.getEntry(path)).withCloseable { input ->
+                    new org.objectweb.asm.ClassReader(input).accept(node, 0)
+                }
+            }
+            node
+        }
+        def stores = { method ->
+            method.instructions.toArray().count { insn ->
+                insn instanceof org.objectweb.asm.tree.VarInsnNode &&
+                        insn.opcode == org.objectweb.asm.Opcodes.ASTORE
+            }
+        }
+        def invokes = { method, String owner, String name ->
+            method.instructions.toArray().count { insn ->
+                insn instanceof org.objectweb.asm.tree.MethodInsnNode &&
+                        insn.owner == owner && insn.name == name
+            }
+        }
+        // Diagnostic map for choosing safe final-consumer hooks. Each read reports
+        // the nearby index local and the first following ASTORE, if any. This is
+        // deliberately diagnostic until runtime-tested adapters exist for each era.
+        def summarizeRenderMethod = { method ->
+            def instructions = method.instructions.toArray()
+            def storeInstructions = []
+            for (int i = 0; i < instructions.length; i++) {
+                def insn = instructions[i]
+                if (insn instanceof org.objectweb.asm.tree.VarInsnNode &&
+                        insn.opcode == org.objectweb.asm.Opcodes.ASTORE) {
+                    storeInstructions << [instruction: i, local: insn.var]
+                }
+            }
+            def reads = []
+            for (int i = 0; i < instructions.length; i++) {
+                def insn = instructions[i]
+                if (!(insn instanceof org.objectweb.asm.tree.MethodInsnNode)) continue
+                String kind = null
+                if (insn.owner == 'net/minecraft/world/entity/player/Inventory' && insn.name == 'getItem')
+                    kind = 'inventoryGetItem'
+                else if (insn.owner == 'net/minecraft/core/NonNullList' && insn.name == 'get')
+                    kind = 'nonNullListGet'
+                else if (insn.name == 'getOffhandItem' &&
+                        insn.owner in ['net/minecraft/world/entity/player/Player',
+                                       'net/minecraft/client/player/LocalPlayer'])
+                    kind = 'getOffhandItem'
+                else if (insn.name == 'isUsingItem' &&
+                        insn.owner in ['net/minecraft/world/entity/player/Player',
+                                       'net/minecraft/client/player/LocalPlayer',
+                                       'net/minecraft/client/player/AbstractClientPlayer'])
+                    kind = 'isUsingItem'
+                else if (insn.owner == 'net/minecraft/client/renderer/item/ItemStackRenderState' &&
+                        insn.name == 'clear')
+                    kind = 'itemStackRenderStateClear'
+                if (kind == null) continue
+
+                Integer indexLocal = null
+                if (kind in ['inventoryGetItem', 'nonNullListGet']) {
+                    for (int j = i - 1; j >= Math.max(0, i - 6); j--) {
+                        if (instructions[j] instanceof org.objectweb.asm.tree.VarInsnNode &&
+                                instructions[j].opcode == org.objectweb.asm.Opcodes.ILOAD) {
+                            indexLocal = instructions[j].var
+                            break
+                        }
+                    }
+                }
+                Integer nextStoreLocal = null
+                Integer nextStoreOrdinal = null
+                for (int j = i + 1; j < Math.min(instructions.length, i + 9); j++) {
+                    if (instructions[j] instanceof org.objectweb.asm.tree.VarInsnNode &&
+                            instructions[j].opcode == org.objectweb.asm.Opcodes.ASTORE) {
+                        nextStoreLocal = instructions[j].var
+                        for (int k = 0; k < storeInstructions.size(); k++) {
+                            if (storeInstructions[k].instruction == j) {
+                                nextStoreOrdinal = k
+                                break
+                            }
+                        }
+                        break
+                    }
+                    if (instructions[j] instanceof org.objectweb.asm.tree.MethodInsnNode) break
+                }
+                reads << [kind: kind, instruction: i, indexLocal: indexLocal,
+                          nextStoreLocal: nextStoreLocal, nextStoreOrdinal: nextStoreOrdinal]
+            }
+            [name: method.name, desc: method.desc, astoreCount: stores(method), reads: reads]
+        }
+        def guiClass = loadClass(mcVersion >= 26_02_00
+                ? 'net/minecraft/client/gui/Hud.class'
+                : 'net/minecraft/client/gui/Gui.class')
+        def hotbarCandidates = guiClass.methods.findAll {
+            it.name in ['renderHotbar', 'renderItemHotbar', 'extractItemHotbar']
+        }
+        def handClass = loadClass(mcVersion >= 26_03_00
+                ? 'net/minecraft/client/player/FirstPersonHandsAndItems.class'
+                : 'net/minecraft/client/renderer/ItemInHandRenderer.class')
+        def handCandidates = handClass.methods.findAll {
+            it.name in ['tick', 'evaluateWhichHandsToRender', 'renderArmWithItem', 'extractRenderState']
+        }
+        boolean modern = mcVersion >= 1_21_11
+        boolean extract = mcVersion >= 26_01_02
+        String slotName = extract ? 'extractSlot' : 'renderSlot'
+        String tooltipName = extract ? 'extractTooltip' : 'renderTooltip'
+        def screen = loadClass('net/minecraft/client/gui/screens/inventory/AbstractContainerScreen.class')
+        def slots = screen.methods.findAll { it.name == slotName }
+        def tooltips = screen.methods.findAll { it.name == tooltipName }
+        def report = [
+                minecraft: project.minecraft_version,
+                scope: 'vanilla-bytecode-method-and-invocation-shape',
+                note: 'Does not prove injection ordinals, mixin application or third-party runtime behavior',
+                slotMethod: slotName,
+                tooltipMethod: tooltipName,
+                slotDescriptors: slots.collect { it.desc },
+                tooltipDescriptors: tooltips.collect { it.desc },
+                hotbarRenderAudit: hotbarCandidates.collect { summarizeRenderMethod(it) },
+                handRenderAudit: handCandidates.collect { summarizeRenderMethod(it) }
+        ]
+        // Preview targets are version-specific: getter-based legacy, player state in
+        // 1.21.3, armed model state in 1.21.4–1.21.10, screen render state thereafter.
+        if (mcVersion < 1_21_03) {
+            def layer = loadClass('net/minecraft/client/renderer/entity/layers/ItemInHandLayer.class')
+            def renderMethods = layer.methods.findAll { it.name == 'render' }
+            report.previewOffhandReads = renderMethods.collect {
+                [desc: it.desc, offhand: invokes(it, 'net/minecraft/world/entity/LivingEntity', 'getOffhandItem'),
+                 mainhand: invokes(it, 'net/minecraft/world/entity/LivingEntity', 'getMainHandItem')]
+            }
+            if (report.previewOffhandReads.count { it.offhand > 0 && it.mainhand > 0 } != 1)
+                throw new GradleException('Silent Auto Eat ' + project.name +
+                        ': legacy inventory avatar hand getters missing/ambiguous: ' + report.previewOffhandReads)
+        } else if (mcVersion == 1_21_03) {
+            def renderer = loadClass('net/minecraft/client/renderer/entity/player/PlayerRenderer.class')
+            report.previewPlayerExtract = renderer.methods.findAll { it.name == 'extractRenderState' }.collect { it.desc }
+            if (!report.previewPlayerExtract.any { it.contains('PlayerRenderState;') })
+                throw new GradleException('Silent Auto Eat 1.21.3: player preview extract target missing: ' +
+                        report.previewPlayerExtract)
+            // PlayerRenderState inherits the hand stacks/models from LivingEntityRenderState.
+            def livingState = loadClass('net/minecraft/client/renderer/entity/state/LivingEntityRenderState.class')
+            report.previewHandFields = livingState.fields.collect { [name: it.name, desc: it.desc] }
+            for (String hand : ['right', 'left']) {
+                if (!report.previewHandFields.any { it.name == hand + 'HandItem' &&
+                        it.desc == 'Lnet/minecraft/world/item/ItemStack;' })
+                    throw new GradleException('Silent Auto Eat 1.21.3: missing ' + hand +
+                            'HandItem in LivingEntityRenderState: ' + report.previewHandFields)
+            }
+        } else if (mcVersion < 1_21_11) {
+            def state = loadClass('net/minecraft/client/renderer/entity/state/ArmedEntityRenderState.class')
+            report.previewArmedExtract = state.methods.findAll { it.name == 'extractArmedEntityRenderState' }
+                    .collect { it.desc }
+            if (report.previewArmedExtract.size() != 1)
+                throw new GradleException('Silent Auto Eat ' + project.name +
+                        ': armed preview state extract target missing: ' + report.previewArmedExtract)
+            def resolver = loadClass('net/minecraft/client/renderer/item/ItemModelResolver.class')
+            report.previewLivingResolver = resolver.methods.findAll { it.name == 'updateForLiving' }.collect { it.desc }
+            String expectedResolver = '(Lnet/minecraft/client/renderer/item/ItemStackRenderState;' +
+                    'Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;' +
+                    (mcVersion == 1_21_04 ? 'Z' : '') + 'Lnet/minecraft/world/entity/LivingEntity;)V'
+            if (!report.previewLivingResolver.contains(expectedResolver))
+                throw new GradleException('Silent Auto Eat ' + project.name +
+                        ': preview item model resolver signature changed: ' + report.previewLivingResolver)
+        }
+        if (mcVersion == 1_21_11) {
+            // The first-person renderer consumes the ItemStack argument at this
+            // exact method, independently of the persistent tick hand caches.
+            def renderArms = handCandidates.findAll { it.name == 'renderArmWithItem' }
+            String expected = '(Lnet/minecraft/client/player/AbstractClientPlayer;FF' +
+                    'Lnet/minecraft/world/InteractionHand;F' +
+                    'Lnet/minecraft/world/item/ItemStack;F' +
+                    'Lcom/mojang/blaze3d/vertex/PoseStack;' +
+                    'Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V'
+            report.v12111RenderHandStackArgument = renderArms.collect { it.desc }
+            if (renderArms.size() != 1 || renderArms.first().desc != expected)
+                throw new GradleException('Silent Auto Eat 1.21.11: first-person ItemStack argument changed: ' +
+                        report.v12111RenderHandStackArgument)
+        }
+        if (mcVersion == 26_03_00) {
+            // In 26.3 the selected hotbar source uses this exact vanilla getter.
+            // Without it the selected mainhand visibly retains the swapped offhand.
+            def hotbars = hotbarCandidates.findAll { it.name == 'extractItemHotbar' }
+            report.v263HotbarInventoryReads = hotbars.collect {
+                [descriptor: it.desc, calls: invokes(it,
+                        'net/minecraft/world/entity/player/Inventory', 'getItem')]
+            }
+            if (report.v263HotbarInventoryReads.size() != 1 ||
+                    report.v263HotbarInventoryReads.first().calls != 1)
+                throw new GradleException('Silent Auto Eat 26.3: selected hotbar source getter missing/ambiguous: ' +
+                        report.v263HotbarInventoryReads)
+            def extracts = handCandidates.findAll { it.name == 'extractRenderState' }
+            report.v263FirstPersonExtract = extracts.collect { it.desc }
+            if (report.v263FirstPersonExtract.size() != 1)
+                throw new GradleException('Silent Auto Eat 26.3: first-person model extraction target missing')
+            def renderState = loadClass(
+                    'net/minecraft/client/renderer/state/level/FirstPersonHandsAndItemsRenderState.class')
+            report.v263HandStateFields = renderState.fields.collect { [name: it.name, desc: it.desc] }
+            for (String hand : ['main', 'off']) {
+                if (!report.v263HandStateFields.any { it.name == hand + 'HandRenderState' &&
+                        it.desc == 'Lnet/minecraft/client/renderer/item/ItemStackRenderState;' })
+                    throw new GradleException('Silent Auto Eat 26.3: missing ' + hand +
+                            'HandRenderState: ' + report.v263HandStateFields)
+            }
+            def resolver = loadClass('net/minecraft/client/renderer/item/ItemModelResolver.class')
+            String expectedResolver = '(Lnet/minecraft/client/renderer/item/ItemStackRenderState;' +
+                    'Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;' +
+                    'Lnet/minecraft/world/entity/LivingEntity;)V'
+            report.v263Resolver = resolver.methods.findAll { it.name == 'updateForLiving' }.collect { it.desc }
+            if (!report.v263Resolver.contains(expectedResolver))
+                throw new GradleException('Silent Auto Eat 26.3: first-person model resolver signature changed: ' +
+                        report.v263Resolver)
+        }
+        if (modern) {
+            if (slots.size() != 1 || tooltips.size() != 1)
+                throw new GradleException('Silent Auto Eat ' + project.name + ': missing/ambiguous modern slot or tooltip method')
+            report.slotStackStores = stores(slots.first())
+            report.tooltipHasItemCalls = invokes(tooltips.first(), 'net/minecraft/world/inventory/Slot', 'hasItem')
+            if (!report.slotStackStores || !report.tooltipHasItemCalls)
+                throw new GradleException('Silent Auto Eat ' + project.name + ': missing ItemStack STORE or Slot.hasItem in modern container render path')
+            def hud = loadClass(mcVersion >= 26_02_00
+                    ? 'net/minecraft/client/gui/Hud.class'
+                    : 'net/minecraft/client/gui/Gui.class')
+            String hotbar = mcVersion >= 26_01_02 ? 'extractItemHotbar' : 'renderItemHotbar'
+            def hotbars = hud.methods.findAll { it.name == hotbar }
+            report.hotbarMethod = hotbar
+            report.hotbarDescriptors = hotbars.collect { it.desc }
+            report.hotbarStores = hotbars.collect { stores(it) }
+            report.availableHotbarMethods = hud.methods.findAll {
+                it.name.toLowerCase().contains('hotbar')
+            }.collect { [name: it.name, desc: it.desc, stores: stores(it)] }
+            if (hotbars.isEmpty() || !hotbars.any { stores(it) > 0 })
+                throw new GradleException('Silent Auto Eat ' + project.name +
+                        ': modern hotbar local-stack target missing; candidates=' + report.availableHotbarMethods)
+        } else {
+            if (mcVersion == 1_20_01) {
+                def renderSlots = screen.methods.findAll { it.name == 'renderSlot' }
+                report.legacy12001RenderSlotGetItemCalls = renderSlots.size() == 1
+                        ? invokes(renderSlots.first(), 'net/minecraft/world/inventory/Slot', 'getItem') : 0
+                if (report.legacy12001RenderSlotGetItemCalls < 1)
+                    throw new GradleException('Silent Auto Eat 1.20.1: renderSlot Slot#getItem target missing')
+                def layer = loadClass('net/minecraft/client/renderer/entity/layers/ItemInHandLayer.class')
+                def renderLayers = layer.methods.findAll { it.name == 'render' }
+                report.legacy12001PreviewOffhandCalls = renderLayers.collect {
+                    [descriptor: it.desc, calls: invokes(it, 'net/minecraft/world/entity/LivingEntity', 'getOffhandItem')]
+                }
+                if (report.legacy12001PreviewOffhandCalls.count { it.calls > 0 } != 1)
+                    throw new GradleException('Silent Auto Eat 1.20.1: missing/ambiguous avatar preview offhand render: ' +
+                            report.legacy12001PreviewOffhandCalls)
+            }
+            // Legacy require=0 paths are diagnostic until their API eras are
+            // migrated. Never describe their mere compilation as a Mixin hit.
+            report.legacySlots = screen.methods.findAll {
+                it.name in ['renderSlot', 'extractSlot']
+            }.collect { [name: it.name, desc: it.desc, stores: stores(it)] }
+            report.legacyTooltips = screen.methods.findAll {
+                it.name in ['renderTooltip', 'extractTooltip']
+            }.collect { [name: it.name, desc: it.desc,
+                         getItemCalls: invokes(it, 'net/minecraft/world/inventory/Slot', 'getItem'),
+                         hasItemCalls: invokes(it, 'net/minecraft/world/inventory/Slot', 'hasItem')] }
+            // All pre-1.21.11 target JARs are confirmed to contain exactly
+            // one Slot#getItem and Slot#hasItem call in renderTooltip.
+            // Fail CI if this assumption changes: require=0 Mixin handlers
+            // would otherwise silently stop projecting the tooltip.
+            if (report.legacySlots.isEmpty() || report.legacySlots.every { it.stores == 0 })
+                throw new GradleException('Silent Auto Eat ' + project.name + ': legacy renderSlot ItemStack store missing')
+            if (report.legacyTooltips.size() != 1 ||
+                    report.legacyTooltips.first().getItemCalls != 1 ||
+                    report.legacyTooltips.first().hasItemCalls != 1)
+                throw new GradleException('Silent Auto Eat ' + project.name +
+                        ': legacy renderTooltip Slot getters changed; inspect presentation adapters: ' +
+                        report.legacyTooltips)
+        }
+        def out = layout.buildDirectory.file('reports/silent-auto-eat/vanilla-targets.json').get().asFile
+        out.parentFile.mkdirs()
+        out.setText(JsonOutput.prettyPrint(JsonOutput.toJson(report)) + System.lineSeparator(), 'UTF-8')
+        logger.lifecycle('Silent Auto Eat vanilla target audit ' + project.name + ': ' + report)
+    }
+}

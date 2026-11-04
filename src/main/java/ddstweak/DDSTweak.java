@@ -9,6 +9,11 @@ import ddstweak.integration.dds.DdsIntegrationBootstrap;
 //#if MC >= 12111
 import ddstweak.feature.bettersnowcoverage.BetterSnowCoverage;
 //#endif
+//#if MC >= 12108
+import ddstweak.feature.locatorheads.LocatorCompass;
+import ddstweak.feature.locatorheads.LocatorContourCache;
+import ddstweak.feature.locatorheads.LocatorNameFades;
+//#endif
 import fi.dy.masa.malilib.event.InitializationHandler;
 import net.fabricmc.api.ClientModInitializer;
 
@@ -20,6 +25,11 @@ public final class DDSTweak implements ClientModInitializer {
         //#endif
         InitializationHandler.getInstance().registerInitializationHandler(new DDSTweakInitHandler());
         WindowPlayerHeadFeature.initialize();
+        //#if MC >= 12108
+        LocatorCompass.initialize();
+        LocatorContourCache.initialize();
+        LocatorNameFades.initialize();
+        //#endif
         CameraPlayerSelectorFeature.initialize();
         //#if MC >= 12111
         CarpetPlayerCommandActionBinding.initialize();

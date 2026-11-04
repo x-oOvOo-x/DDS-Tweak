@@ -12,6 +12,7 @@ import ddstweak.integration.org.playerinventory.OrgPlayerInventoryAdapter;
 import ddstweak.integration.provider.ProviderPlayerInventoryScreenCoordinator;
 import ddstweak.integration.provider.EnhancedStorageScreen;
 import ddstweak.integration.dds.qca.DdsQcaClientNetwork;
+import ddstweak.integration.dds.qca.DdsQcaNativeMenuSlots;
 import ddstweak.platform.minecraft.MinecraftCompat;
 import ddstweak.playerinventory.PlayerInventoryOpenContext;
 import net.minecraft.client.Minecraft;
@@ -27,12 +28,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Tweak owns supported screens when enabled. GCA resolves immediately; Org upgrades from the Tweak storage shell after its command context binds. */
 @Mixin(MenuScreens.class)
 public abstract class MenuScreensMixin{
-    private static final boolean TRACE = Boolean.getBoolean("dds.playerinventory.trace");
+    private static final boolean TRACE = Boolean.getBoolean("ddstweak.playerinventory.trace");
     private static final org.apache.logging.log4j.Logger TRACE_LOG =
-            org.apache.logging.log4j.LogManager.getLogger("dds.playerinventory.dt");
+            org.apache.logging.log4j.LogManager.getLogger("ddstweak.playerinventory");
     @Inject(method="create",at=@At("HEAD"),cancellable=true)
     private static void ddsTweak$createUnifiedPlayerInventory(MenuType<?> type,Minecraft minecraft,int containerId,Component title,CallbackInfo ci){
-        if(!Configs.Tweaks.ENHANCED_INVENTORY_GUI.getBooleanValue()||minecraft.player==null)return;
+        //#if MC >= 12111
+        // Resolve the just-clicked profile before any Provider adapter consumes
+        // the opened menu; reset the intent on unrelated menu openings.
+        GcaPlayerInteractionIntent.observeMenu(type,containerId,title);
+        //#endif
+        DdsQcaNativeMenuSlots.onOpen(type,containerId);
+        if(!Configs.Tweaks.ENHANCED_INVENTORY_GUI.getBooleanValue()||minecraft.player==null){
+            //#if MC >= 12111
+            if(minecraft.player!=null)DdsQcaNativeMenuSlots.observeLocal(type,containerId,title);
+            //#endif
+            return;
+        }
 
         DdsFakePlayerExtensionContext extension=DdsFakePlayerClientNetwork.peekExtension(containerId);
         PlayerInventoryContext context=DdsFakePlayerClientNetwork.consumeProviderContext(type,containerId);
@@ -44,6 +56,16 @@ public abstract class MenuScreensMixin{
         }
         if(context==null)context=GcaPlayerInventoryAdapter.tryContext(type,containerId,title);
         if(context==null)context=PlayerInventoryOpenContext.consumeInventory(type,containerId,title);
+        //#if MC >= 12111
+        DdsQcaNativeMenuSlots.rememberLocal(type,containerId,context);
+        //#endif
+
+        if(TRACE)TRACE_LOG.info("provider_context id={} type={} title_key={} source={} target={} state={} kind={}",
+                containerId,type,MinecraftCompat.translationKey(title),
+                context==null?"unrecognized":context.source(),
+                context==null?"":context.targetName(),
+                context==null?PlayerInventoryTargetState.UNKNOWN:context.targetState(),
+                context==null?"unrecognized":context.inventoryKind());
 
         if(OrgPlayerInventoryOpenIntent.isOfflineMenu(type,containerId,title)
                 ||context!=null&&"org".equals(context.source())

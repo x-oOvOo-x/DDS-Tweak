@@ -31,28 +31,52 @@ public final class OrgPlayerInventoryActionBinding implements PlayerInventoryAct
 
     @Override public boolean canSend(){
         Minecraft mc=Minecraft.getInstance();
-        if(menu==null||menu.context().targetState()!=PlayerInventoryTargetState.ONLINE||mc.player==null||mc.gameMode==null)return false;
-        PlayerInventoryTargetType type=menu.targetType();
-        if(type==PlayerInventoryTargetType.REAL)return false;
-        if(type==PlayerInventoryTargetType.UNKNOWN)return CarpetPlayerCommandBridge.available();
-        return CarpetPlayerCommandBridge.available()||DdsQcaClientNetwork.canUseOwnerEnderAction()||nativeAvailable();
+        if(menu==null||mc.player==null||mc.gameMode==null)return false;
+        //#if MC >= 12111
+        if(menu.context().targetState()==PlayerInventoryTargetState.OFFLINE)return false;
+        return CarpetPlayerCommandBridge.available()||DdsQcaClientNetwork.canUseOwnerEnderAction();
+        //#else
+        //$$ if(menu.context().targetState()!=PlayerInventoryTargetState.ONLINE)return false;
+        //$$ PlayerInventoryTargetType type=menu.targetType();
+        //$$ if(type==PlayerInventoryTargetType.REAL)return false;
+        //$$ if(type==PlayerInventoryTargetType.UNKNOWN)return CarpetPlayerCommandBridge.available();
+        //$$ return CarpetPlayerCommandBridge.available()||DdsQcaClientNetwork.canUseOwnerEnderAction()||nativeAvailable();
+        //#endif
     }
 
     @Override public boolean supports(PlayerInventoryAction action){
         if(!canSend()||action==null||!action.allowedIn(menu.kind()))return false;
-        PlayerInventoryTargetType type=menu.targetType();
-        if(type==PlayerInventoryTargetType.UNKNOWN)return CarpetPlayerCommandBridge.supports(action);
+        //#if MC >= 12111
         if(isEnderBatch(action))return DdsQcaClientNetwork.canUseOwnerEnderAction();
-        return nativeSupports(action)||CarpetPlayerCommandBridge.supports(action);
+        return action.allowedWithoutFakeIdentity()&&CarpetPlayerCommandBridge.supports(action);
+        //#else
+        //$$ PlayerInventoryTargetType type=menu.targetType();
+        //$$ if(type==PlayerInventoryTargetType.UNKNOWN)return CarpetPlayerCommandBridge.supports(action);
+        //$$ if(isEnderBatch(action))return DdsQcaClientNetwork.canUseOwnerEnderAction();
+        //$$ return nativeSupports(action)||CarpetPlayerCommandBridge.supports(action);
+        //#endif
     }
 
     @Override public boolean send(PlayerInventoryAction action,int value){
         if(!canSend()||action==null||!action.allowedIn(menu.kind())||!menu.supports(action))return false;
         if(isEnderBatch(action))return DdsQcaClientNetwork.sendOwnerEnderAction(menu,action);
+        //#if MC >= 12111
+        // The server command is authoritative for semantics; no native replay on send failure.
+        if(CarpetPlayerCommandBridge.supports(action)){
+            if(!CarpetPlayerCommandBridge.send(menu.context().targetName(),action,value))return false;
+            record(action,value);
+            return true;
+        }
         int slot=nativeSlot(action,value);
-        if(slot>=0&&sendNative(slot)){record(action,value);return true;}
-        if(CarpetPlayerCommandBridge.send(menu.context().targetName(),action,value)){record(action,value);return true;}
-        return false;
+        if(slot<0||!sendNative(slot))return false;
+        record(action,value);
+        return true;
+        //#else
+        //$$ int slot=nativeSlot(action,value);
+        //$$ if(slot>=0&&sendNative(slot)){record(action,value);return true;}
+        //$$ if(CarpetPlayerCommandBridge.send(menu.context().targetName(),action,value)){record(action,value);return true;}
+        //$$ return false;
+        //#endif
     }
 
     //#if MC >= 260102

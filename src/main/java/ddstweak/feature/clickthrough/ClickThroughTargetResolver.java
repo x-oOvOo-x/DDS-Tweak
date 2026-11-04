@@ -27,14 +27,18 @@ public final class ClickThroughTargetResolver {
             if(entityHit.getEntity() instanceof ItemFrame){
                 ItemFrame frame=(ItemFrame)entityHit.getEntity();
                 Direction side=frame.getDirection();
+                if(!ClickThroughGeometry.isFrontFace(
+                        frame.getBoundingBox().inflate(frame.getPickRadius()),entityHit.getLocation(),side))
+                    return original;
                 //#if MC >= 11600
                 BlockPos support=frame.blockPosition().relative(side.getOpposite());
                 //#else
                 //$$ BlockPos support=frame.getCommandSenderBlockPosition().relative(side.getOpposite());
                 //#endif
-                BlockHitResult redirected=blockHit(entityHit.getLocation(),support,side);
-                if(clickThroughMode()==ClickThroughMode.ALWAYS
-                        ||ClickThroughSupportPolicy.canClickThrough(level,player,redirected))return redirected;
+                BlockHitResult redirected=ClickThroughGeometry.supportHit(
+                        level,player,entityHit.getLocation(),support,side);
+                if(redirected!=null&&(clickThroughMode()==ClickThroughMode.ALWAYS
+                        ||ClickThroughSupportPolicy.canClickThrough(level,player,redirected)))return redirected;
             }
         }
 
@@ -44,16 +48,24 @@ public final class ClickThroughTargetResolver {
         BlockPos pos=hit.getBlockPos();
         BlockState state=level.getBlockState(pos);
         Block block=state.getBlock();
-        Direction side=null;
 
         if(block instanceof WallSignBlock){
-            if(ClickThroughSignPolicy.shouldKeepTarget(level,player,pos,player.getMainHandItem()))return original;
-            side=state.getValue(WallSignBlock.FACING);
-        }else if(block instanceof WallBannerBlock){
-            side=state.getValue(WallBannerBlock.FACING);
+            Direction side=state.getValue(WallSignBlock.FACING);
+            if(hit.getDirection()!=side
+                    ||ClickThroughSignPolicy.shouldKeepTarget(level,player,pos,player.getMainHandItem()))
+                return original;
+            BlockHitResult redirected=ClickThroughGeometry.supportHit(
+                    level,player,hit.getLocation(),pos.relative(side.getOpposite()),side);
+            return redirected!=null&&ClickThroughSupportPolicy.canClickThrough(level,player,redirected)
+                    ?redirected:original;
         }
 
-        return side==null?original:blockHit(hit.getLocation(),pos.relative(side.getOpposite()),side);
+        // Wall banners retain their established click-through contract.
+        if(block instanceof WallBannerBlock){
+            Direction side=state.getValue(WallBannerBlock.FACING);
+            return blockHit(hit.getLocation(),pos.relative(side.getOpposite()),side);
+        }
+        return original;
     }
 
     private static boolean enabled(HitResult original,LocalPlayer player,ClientLevel level){

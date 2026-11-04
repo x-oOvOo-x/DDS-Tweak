@@ -19,28 +19,36 @@ public final class CarpetPlayerCommandBridge {
             PlayerInventoryAction.STOP_ALL,PlayerInventoryAction.DROP_ALL,PlayerInventoryAction.TOGGLE_SNEAK,PlayerInventoryAction.DISCONNECT);
     private CarpetPlayerCommandBridge(){}
 
-    public static boolean available(){return targetNode()!=null;}
+    /** A filtered Brigadier tree cannot be used as a permission oracle.
+     * Carpet server authorizes standard /player actions when the command arrives.
+     * Only nonstandard exact-stop subcommands need positive capability discovery. */
+    public static boolean available(){
+        Minecraft mc=Minecraft.getInstance();
+        return mc!=null&&mc.getConnection()!=null;
+    }
     public static boolean supports(PlayerInventoryAction action){
         if(action==null||!SUPPORTED.contains(action))return false;
-        CommandNode<?> target=targetNode();if(target==null)return false;
-        switch(action){
-            case SELECT_HOTBAR:return child(target,"hotbar")!=null;
-            case ATTACK_ONCE:return path(target,"attack","once");
-            case ATTACK_INTERVAL:return path(target,"attack","interval");
-            case ATTACK_CONTINUOUS:return path(target,"attack","continuous");
-            case STOP_ATTACK:return path(target,"attack","stop");
-            case USE_ONCE:return path(target,"use","once");
-            case USE_INTERVAL:return path(target,"use","interval");
-            case USE_CONTINUOUS:return path(target,"use","continuous");
-            case STOP_USE:return path(target,"use","stop");
-            case STOP_ALL:return child(target,"stop")!=null;
-            case DROP_ALL:return dropAllArgument(target)!=null;
-            case TOGGLE_SNEAK:return child(target,"sneak")!=null&&child(target,"unsneak")!=null;
-            case DISCONNECT:return child(target,"kill")!=null;
-            default:return false;
-        }
+        if(action==PlayerInventoryAction.STOP_ATTACK)
+            return path(targetNode(),"attack","stop");
+        if(action==PlayerInventoryAction.STOP_USE)
+            return path(targetNode(),"use","stop");
+        return true;
     }
-    public static Set<PlayerInventoryAction> supportedActions(){EnumSet<PlayerInventoryAction> result=EnumSet.noneOf(PlayerInventoryAction.class);for(PlayerInventoryAction action:SUPPORTED)if(supports(action))result.add(action);return Collections.unmodifiableSet(result);}
+    public static Set<PlayerInventoryAction> supportedActions(){
+        EnumSet<PlayerInventoryAction> result=EnumSet.noneOf(PlayerInventoryAction.class);
+        for(PlayerInventoryAction action:SUPPORTED)if(supports(action))result.add(action);
+        return Collections.unmodifiableSet(result);
+    }
+
+    /** A /player target must be a single command argument, never a decorated display name. */
+    public static boolean validTargetName(String target){
+        if(target==null||target.trim().isEmpty())return false;
+        //#if MC >= 12111
+        for(int i=0;i<target.length();i++)
+            if(Character.isWhitespace(target.charAt(i))||Character.isISOControl(target.charAt(i)))return false;
+        //#endif
+        return true;
+    }
 
     public static boolean send(String target,PlayerInventoryAction action,int value){
         ClientPacketListener connection=Minecraft.getInstance().getConnection();
@@ -51,7 +59,7 @@ public final class CarpetPlayerCommandBridge {
     }
     /** Exact command text sent to Carpet, without the leading slash. */
     public static String commandFor(String target,PlayerInventoryAction action,int value){
-        if(target==null||target.trim().isEmpty()||action==null)return null;
+        if(!validTargetName(target)||action==null)return null;
         switch(action){
             case SELECT_HOTBAR:return value>=1&&value<=9?"player "+target+" hotbar "+value:null;
             case ATTACK_ONCE:return "player "+target+" attack once";
@@ -75,6 +83,9 @@ public final class CarpetPlayerCommandBridge {
         return command==null?null:child(command,"player");
     }
     private static CommandNode<?> child(CommandNode<?> node,String name){return node==null?null:node.getChild(name);}
-    private static String dropAllArgument(CommandNode<?> target){CommandNode<?> drop=child(target,"dropStack");if(drop==null)return null;if(child(drop,"inventory")!=null)return "inventory";return child(drop,"all")!=null?"all":null;}
+    private static String dropAllArgument(CommandNode<?> target){
+        CommandNode<?> drop=child(target,"dropStack");
+        return child(drop,"inventory")!=null?"inventory":"all";
+    }
     private static boolean path(CommandNode<?> node,String first,String second){CommandNode<?> child=child(node,first);return child!=null&&child(child,second)!=null;}
 }

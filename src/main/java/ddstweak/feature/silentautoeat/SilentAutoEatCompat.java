@@ -5,6 +5,7 @@ import ddstweak.platform.minecraft.MinecraftCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
@@ -44,6 +45,25 @@ final class SilentAutoEatCompat {
         //#endif
     }
 
+    /** Selects only the hotbar index; never changes the ItemStack stored in it. */
+    static void selectHotbar(Inventory inventory,int slot){
+        if(slot<0||slot>=9)throw new IllegalArgumentException("Invalid hotbar slot: "+slot);
+        //#if MC >= 12105
+        inventory.setSelectedSlot(slot);
+        //#else
+        //$$ inventory.selected=slot;
+        //#endif
+    }
+
+    static void useMainhand(Minecraft minecraft,LocalPlayer player){
+        if(minecraft.gameMode==null)return;
+        //#if MC >= 11900
+        minecraft.gameMode.useItem(player,InteractionHand.MAIN_HAND);
+        //#else
+        //$$ minecraft.gameMode.useItem(player,minecraft.level,InteractionHand.MAIN_HAND);
+        //#endif
+    }
+
     static boolean isFood(ItemStack stack){
         if(stack.isEmpty())return false;
         //#if MC >= 12102
@@ -65,11 +85,24 @@ final class SilentAutoEatCompat {
 
     static boolean isSafeAutomationContext(Minecraft minecraft,LocalPlayer player){
         if(minecraft==null||player==null||player.containerMenu==null)return false;
-        if(!MinecraftCompat.carried(player.containerMenu,player).isEmpty())return false;
         Screen screen=MinecraftCompat.screen(minecraft);
-        if(screen!=null&&!(screen instanceof AbstractContainerScreen))return false;
-        if(screen==null&&player.containerMenu!=player.inventoryMenu)return false;
+        if(!SilentAutoEatRules.isSafeInventoryContext(
+                player.containerMenu==player.inventoryMenu,
+                screen==null,screen!=null&&screen.getClass()==InventoryScreen.class))return false;
+        if(!MinecraftCompat.carried(player.containerMenu,player).isEmpty())return false;
         return hasPlayerInventorySlots(player);
+    }
+
+    /**
+     * A nested QCA/container screen may still render slots backed by the local
+     * player's Inventory. Keep those slots projected during a pending restore,
+     * even when the cursor is occupied or the menu prevents a reverse SWAP.
+     * This never authorizes automation or projection of foreign container slots.
+     */
+    static boolean isSafeInventoryPresentation(Minecraft minecraft,LocalPlayer player){
+        return minecraft!=null&&player!=null&&player.containerMenu!=null
+                &&MinecraftCompat.screen(minecraft) instanceof AbstractContainerScreen
+                &&hasPlayerInventorySlots(player);
     }
 
     static int menuSlot(LocalPlayer player,int inventoryIndex){
@@ -111,12 +144,46 @@ final class SilentAutoEatCompat {
         //#endif
     }
 
+    /** Real vanilla menu SWAP, with the hotbar button number (0..8), not 40. */
+    static boolean swapWithHotbar(Minecraft minecraft,LocalPlayer player,
+                                  AbstractContainerMenu menu,int sourceMenuSlot,int scratchHotbar){
+        if(minecraft.gameMode==null||menu!=player.inventoryMenu
+                ||sourceMenuSlot<0||sourceMenuSlot>=menu.slots.size()
+                ||scratchHotbar<0||scratchHotbar>=9
+                ||!MinecraftCompat.carried(menu,player).isEmpty())return false;
+        //#if MC >= 260100
+        //$$ minecraft.gameMode.handleContainerInput(
+        //$$         menu.containerId,sourceMenuSlot,scratchHotbar,ContainerInput.SWAP,player);
+        //#else
+        minecraft.gameMode.handleInventoryMouseClick(
+                menu.containerId,sourceMenuSlot,scratchHotbar,ClickType.SWAP,player);
+        //#endif
+        return true;
+    }
+
     static void swapWithOffhand(Minecraft minecraft,LocalPlayer player,AbstractContainerMenu menu,int menuSlot){
         if(minecraft.gameMode==null||menu==null)return;
         //#if MC >= 260100
         //$$ minecraft.gameMode.handleContainerInput(
         //$$         menu.containerId,menuSlot,40,ContainerInput.SWAP,player
         //$$ );
+        //#elseif MC == 11404
+        //$$ // In 1.14.4 the offhand-key SWAP click may be ignored in the inventory menu.
+        //$$ // Use the three vanilla left-click actions instead; never change Inventory directly.
+        //$$ if(menu!=player.inventoryMenu||menuSlot<0||menuSlot>=menu.slots.size()
+        //$$         ||!MinecraftCompat.carried(menu,player).isEmpty())return;
+        //$$ int offhandSlot=-1;
+        //$$ for(int i=0;i<menu.slots.size();i++)
+        //$$     if(inventoryIndex(player,menu.slots.get(i))==40){offhandSlot=i;break;}
+        //$$ if(offhandSlot<0||offhandSlot==menuSlot)return;
+        //$$ Slot source=menu.slots.get(menuSlot),offhand=menu.slots.get(offhandSlot);
+        //$$ ItemStack sourceStack=source.getItem(),offhandStack=offhand.getItem();
+        //$$ if(!source.mayPickup(player)||!offhand.mayPickup(player)
+        //$$         ||(!offhandStack.isEmpty()&&!source.mayPlace(offhandStack))
+        //$$         ||(!sourceStack.isEmpty()&&!offhand.mayPlace(sourceStack)))return;
+        //$$ minecraft.gameMode.handleInventoryMouseClick(menu.containerId,menuSlot,0,ClickType.PICKUP,player);
+        //$$ minecraft.gameMode.handleInventoryMouseClick(menu.containerId,offhandSlot,0,ClickType.PICKUP,player);
+        //$$ minecraft.gameMode.handleInventoryMouseClick(menu.containerId,menuSlot,0,ClickType.PICKUP,player);
         //#else
         minecraft.gameMode.handleInventoryMouseClick(
                 menu.containerId,menuSlot,40,ClickType.SWAP,player

@@ -32,8 +32,26 @@ Example: Helpful Hitboxes uses different outline hooks before and after Minecraf
 | `chatTooltipOcclusion` | 1.15.2 | config, feature package, Mixin package and Mixin registrations; 1.14.4 lacks the command-suggestion overlay used for occlusion |
 | `compactStatusEffects` | 1.21.1 | config, feature package, Mixin package and Mixin registrations; 1.21.1 and 1.21.2+ renderer generations are selected separately |
 | `noCommandConfirm` | 1.21.6 | config, feature package, Mixin package and Mixin registration |
+| `happyGhastRidingSpeed` | 1.21.6 | config, feature package, Mixin package and Mixin registrations |
 | `disableEndFlash` | 1.21.9 | config, feature package, Mixin package and Mixin registrations |
 | `betterSnowCoverage` | 1.21.11 | config and feature package; rendering uses Fabric model/renderer APIs instead of renderer-specific Mixins |
+| `locatorHeads` | 1.21.8 | Locator feature and Mixin packages, four Mixin registrations and Visual config; earlier target JARs omit the entire client-only locator implementation |
+| `blockSoundTracker` | 1.21.11 | Visual config, sound-tracker classes and event Mixin; unavailable on older targets |
+| `shulkerRestock` | 1.14.4 | Tweaks config and restock client classes on every active version; server `autoRestock` authority remains in CDA |
+| `tabFakePlayersLast` | 1.21.11 | Visual config, Tab grouping classes and Mixin; legacy Tab behavior remains unchanged |
+
+## Shulker Restock configuration (all active targets)
+
+The DT client-side Shulker Restock preference is supported from 1.14.4 onward,
+including all 21 current active build targets. Both whitelist and blacklist use
+the existing shared `ITEM` multi-select picker on every target. Their
+selection/commit path applies `RestockPreferencePolicy.valid` uniformly;
+modern-only snow and block-sound pickers retain their separate 1.21.11 gate.
+
+This is a client configuration/UI compatibility promise, **not** server authority:
+actual restocking still requires the matching CDA rule, protocol capability and
+server-side checks. A successful target build is not a substitute for testing
+the picker, saved lists and the CDA handshake in Minecraft.
 
 ## Adding a new version-limited feature
 

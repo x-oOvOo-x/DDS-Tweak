@@ -18,6 +18,34 @@ final class OrgPlayerInventoryAdapterContractTest{
         assertFalse(adapter.contains("DdsFakePlayer"));
     }
 
+    @Test void recognizedRemoteOrgMenuKeepsOnlineControlsWithoutDds()throws IOException{
+        String adapter=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryAdapter.java");
+        assertTrue(adapter.contains("if(session==null&&mc.getConnection()!=null)"));
+        assertTrue(adapter.contains("mc.getConnection().getOnlinePlayers()"));
+        assertTrue(adapter.contains("if(label.equals(name))"));
+        assertTrue(adapter.contains("new Identity(uuid,name,fake(uuid),PlayerInventoryTargetState.ONLINE)"));
+        assertTrue(adapter.contains("if(identity.state==PlayerInventoryTargetState.OFFLINE)return Collections.emptySet()"));
+        assertFalse(adapter.contains("getLatency()==0"));
+    }
+
+    @Test void org26xWaitsForNativeLayoutMarkerBeforeRemappingSlots()throws IOException{
+        String adapter=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryAdapter.java");
+        String coordinator=read("ddstweak/integration/provider/ProviderPlayerInventoryScreenCoordinator.java");
+        String menu=read("ddstweak/mixin/fakeplayer/MenuScreensMixin.java");
+        int modern=adapter.indexOf("//#if MC >= 260100");
+        int legacy=adapter.indexOf("//#else",modern);
+        assertTrue(modern>=0&&legacy>modern);
+        String rule=adapter.substring(modern,legacy);
+        assertTrue(rule.contains("if(!old&&!controls)return null"));
+        assertFalse(rule.contains("session==null"));
+        assertTrue(adapter.substring(legacy).contains("if(!old&&!controls&&session==null)return null"));
+        // The initial Org shell retains the original menu so that Org's
+        // WithButtonScreenSync / OldPlayerInventoryScreenSync can set its marker.
+        assertTrue(menu.contains("new EnhancedStorageScreen(menu,"));
+        assertTrue(coordinator.contains("OrgPlayerInventoryAdapter.tryContext(sourceMenu,title)"));
+        assertTrue(coordinator.contains("source instanceof EnhancedStorageScreen?false:tryUpgradeStorage"));
+    }
+
     @Test void org12111CanUpgradeFromCommandSessionWithoutAnyClientMarker()throws IOException{
         String adapter=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryAdapter.java");
         String dispatch=read("ddstweak/mixin/fakeplayer/MenuScreensMixin.java");
@@ -36,7 +64,10 @@ final class OrgPlayerInventoryAdapterContractTest{
     @Test void onlineOrgTargetsExposeServerAuthorizedCarpetActions()throws IOException{
         String adapter=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryAdapter.java");
         String binding=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryActionBinding.java");
-        assertTrue(adapter.contains("identity.state!=PlayerInventoryTargetState.ONLINE||identity.type==PlayerInventoryTargetType.REAL"));
+        assertTrue(adapter.contains("if(identity.state==PlayerInventoryTargetState.OFFLINE)return Collections.emptySet()"));
+        assertFalse(adapter.contains("\n        if(identity.type==PlayerInventoryTargetType.REAL)return Collections.emptySet()"));
+        assertFalse(binding.contains("if(type!=PlayerInventoryTargetType.FAKE)"));
+        assertTrue(binding.contains("return action.allowedWithoutFakeIdentity()&&CarpetPlayerCommandBridge.supports(action)"));
         assertTrue(adapter.contains("actions.addAll(CarpetPlayerCommandBridge.supportedActions())"));
         assertTrue(adapter.contains("actions.add(PlayerInventoryAction.STOP_ATTACK)"));
         assertTrue(adapter.contains("actions.add(PlayerInventoryAction.STOP_USE)"));
@@ -56,11 +87,14 @@ final class OrgPlayerInventoryAdapterContractTest{
         assertTrue(binding.contains("menu.targetType()==PlayerInventoryTargetType.FAKE"));
     }
 
-    @Test void orgRoutesExactNativeThenCommandWithoutDdsDependency()throws IOException{
+    @Test void orgRoutesCarpetFirstOnFourTargetsAndKeepsLegacyNativeFirst()throws IOException{
         String binding=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryActionBinding.java");
-        int nativeRoute=binding.indexOf("sendNative(slot)");
-        int command=binding.indexOf("CarpetPlayerCommandBridge.send",nativeRoute);
-        assertTrue(nativeRoute>=0&&command>nativeRoute);
+        int modern=binding.indexOf("//#if MC >= 12111",binding.indexOf("@Override public boolean send("));
+        int legacy=binding.indexOf("//#else",modern);
+        String modernRoute=binding.substring(modern,legacy);
+        assertTrue(modernRoute.indexOf("CarpetPlayerCommandBridge.send")<modernRoute.indexOf("sendNative(slot)"));
+        assertTrue(modernRoute.contains("if(!CarpetPlayerCommandBridge.send(menu.context().targetName(),action,value))return false"));
+        assertTrue(binding.indexOf("sendNative(slot)",legacy)<binding.indexOf("CarpetPlayerCommandBridge.send",legacy));
         assertFalse(binding.contains("DdsFakePlayer"));
         assertTrue(binding.contains("PlayerInventoryLayouts.isOrgControls"));
         assertTrue(binding.contains("case ATTACK_CONTINUOUS:return 6"));
@@ -123,7 +157,7 @@ final class OrgPlayerInventoryAdapterContractTest{
         assertTrue(intent.contains("carpet-org-addition.operation.offline_player_name"));
         assertTrue(intent.contains("carpet.commands.player.inventory.offline.display_name"));
         assertTrue(intent.contains("MinecraftCompat.translatable"));
-        assertTrue(adapter.contains("identity.state!=PlayerInventoryTargetState.ONLINE||identity.type==PlayerInventoryTargetType.REAL"));
+        assertTrue(adapter.contains("if(identity.state==PlayerInventoryTargetState.OFFLINE)return Collections.emptySet()"));
     }
 
     @Test void unrelatedOpenScreenDoesNotConsumeTrustedOrgCommandOrReturn() throws IOException {
@@ -264,6 +298,65 @@ final class OrgPlayerInventoryAdapterContractTest{
         assertTrue(adapter.contains("ORG_ENDER_3_V1"));
         assertTrue(mixin.contains("OrgPlayerInventoryOpenIntent.observeCommand"));
         assertTrue(layouts.contains("ORG_ENDER_3_V1"));
+    }
+
+    @Test void orgStyledAccountInsertionResolvesOnlyUniqueKnownProfile(){
+        net.minecraft.network.chat.Component title=net.minecraft.network.chat.Component.empty()
+                .append(net.minecraft.network.chat.Component.literal("[Log head] "))
+                .append(net.minecraft.network.chat.Component.literal("假的Log")
+                        .withStyle(style->style.withInsertion("Log")));
+        java.util.List<String> profiles=java.util.Arrays.asList("Log","OtherPlayer");
+        assertEquals("Log",OrgPlayerInventoryAdapter.profileInsertion(title,profiles));
+        assertEquals("",OrgPlayerInventoryAdapter.profileInsertion(title,
+                java.util.Collections.singletonList("OtherPlayer")));
+        assertEquals("",OrgPlayerInventoryAdapter.profileInsertion(
+                net.minecraft.network.chat.Component.literal("假的Log"),profiles));
+        net.minecraft.network.chat.Component ambiguous=title.copy().append(
+                net.minecraft.network.chat.Component.literal("Other")
+                        .withStyle(style->style.withInsertion("OtherPlayer")));
+        assertEquals("",OrgPlayerInventoryAdapter.profileInsertion(ambiguous,profiles));
+        // A literal account starting with "bot_" is not silently stripped.
+        net.minecraft.network.chat.Component bot=net.minecraft.network.chat.Component.literal("Robot")
+                .withStyle(style->style.withInsertion("bot_Log"));
+        assertEquals("bot_Log",OrgPlayerInventoryAdapter.profileInsertion(bot,
+                java.util.Arrays.asList("Log","bot_Log")));
+    }
+
+    @Test void directOrgEnderRequiresClickedProfileAndStyledAccountMarker()throws IOException{
+        net.minecraft.network.chat.Component label=net.minecraft.network.chat.Component.literal("假的Log")
+                .withStyle(style->style.withInsertion("Log")
+                        .withClickEvent(new net.minecraft.network.chat.ClickEvent.SuggestCommand("/tell Log "))
+                        .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
+                                net.minecraft.network.chat.Component.literal("Log"))));
+        net.minecraft.network.chat.Component title=net.minecraft.network.chat.Component.empty()
+                .append(net.minecraft.network.chat.Component.literal("[Log head] "))
+                .append(label);
+        assertTrue(OrgPlayerInventoryAdapter.hasOrgPlayerMarker(title,"Log"));
+        assertFalse(OrgPlayerInventoryAdapter.hasOrgPlayerMarker(title,"OtherPlayer"));
+        assertFalse(OrgPlayerInventoryAdapter.hasOrgPlayerMarker(
+                net.minecraft.network.chat.Component.literal("假的Log")
+                        .withStyle(style->style.withInsertion("Log")),"Log"));
+        assertFalse(OrgPlayerInventoryAdapter.hasOrgPlayerMarker(
+                title.copy().append(net.minecraft.network.chat.Component.literal("Other")
+                        .withStyle(style->style.withInsertion("OtherPlayer"))),"Log"));
+
+        String adapter=read("ddstweak/integration/org/playerinventory/OrgPlayerInventoryAdapter.java");
+        String intent=read("ddstweak/integration/gca/playerinventory/GcaPlayerInteractionIntent.java");
+        String dispatch=read("ddstweak/mixin/fakeplayer/MenuScreensMixin.java");
+        String screen=read("ddstweak/integration/dds/playerinventory/screen/UnifiedPlayerInventoryScreen.java");
+        assertTrue(adapter.contains("type==MenuType.GENERIC_9x3&&hasOrgPlayerMarker(title,name)"));
+        assertTrue(adapter.contains("GcaPlayerInteractionIntent.consumeOrgEnder(containerId)"));
+        assertTrue(adapter.contains("PlayerInventoryLayouts.ORG_ENDER_3_V1,false"));
+        assertTrue(adapter.contains("PlayerInventoryTargetState.ONLINE"));
+        assertTrue(intent.contains("OrgPlayerInventoryAdapter.isClickedEnderTitle(type,title,previous.name)"));
+        assertTrue(intent.contains("previous.menuSource=gca?SOURCE_GCA:SOURCE_ORG_ENDER"));
+        assertTrue(intent.contains("previous.containerId!=containerId"));
+        assertTrue(dispatch.indexOf("GcaPlayerInteractionIntent.observeMenu(type,containerId,title)")
+                <dispatch.indexOf("OrgPlayerInventoryAdapter.observeMenu(type,containerId,title)"));
+        assertTrue(screen.contains("private void initEnder()"));
+        assertTrue(screen.contains("ENDER_SNEAK_X,ENDER_BUTTON_Y,ICON_SNEAK"));
+        assertTrue(screen.contains("ENDER_DISCONNECT_X,ENDER_BUTTON_Y,ICON_DISCONNECT"));
+        assertFalse(screen.contains("addButton(ENDER_DROP_ALL"));
     }
 
     private static String read(String path)throws IOException{return Files.readString(JAVA.resolve(path));}

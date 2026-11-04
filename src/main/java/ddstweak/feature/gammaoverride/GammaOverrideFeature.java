@@ -7,5 +7,6 @@ public final class GammaOverrideFeature {
     public static boolean enabled(){return Configs.Visual.GAMMA_OVERRIDE.getBooleanValue();}
     public static double value(){return Configs.Visual.GAMMA_OVERRIDE_VALUE.getDoubleValue();}
     public static double resolve(double vanillaGamma){return enabled()?value():vanillaGamma;}
+    public static Object resolve(Object vanillaGamma){return enabled()?Double.valueOf(value()):vanillaGamma;}
     private GammaOverrideFeature(){}
 }

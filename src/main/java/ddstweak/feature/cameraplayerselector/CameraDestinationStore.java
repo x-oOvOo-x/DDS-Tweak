@@ -3,7 +3,7 @@ package ddstweak.feature.cameraplayerselector;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import ddstweak.platform.malilib.MalilibCompat;
+import ddstweak.config.DdsTweakConfigPaths;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -12,21 +12,21 @@ import java.util.Collections;
 import java.util.List;
 
 final class CameraDestinationStore {
-    private static final String FILE="dds-tweak-camera-destinations.json";
     private static final String KEY="destinations";
     private CameraDestinationStore(){}
 
     static synchronized List<CameraDestination> load(){
         Path path=path();
-        if(!Files.isReadable(path))return Collections.emptyList();
-        JsonElement root=MalilibCompat.readJson(path);
-        if(root==null||!root.isJsonObject())return Collections.emptyList();
-        JsonElement element=root.getAsJsonObject().get(KEY);
-        if(element==null||!element.isJsonArray())return Collections.emptyList();
+        JsonObject root=CameraConfigFiles.read(path);
+        JsonElement element=root.get(KEY);
+        if(element==null)return Collections.emptyList();
+        if(!element.isJsonArray())throw new IllegalStateException("Invalid destination list; original JSON kept");
         List<CameraDestination> result=new ArrayList<>();
         for(JsonElement entry:element.getAsJsonArray()){
             CameraDestination destination=read(entry);
-            if(destination!=null&&destination.isValid())result.add(destination);
+            if(destination==null||!destination.isValid())
+                throw new IllegalStateException("Invalid destination entry; original JSON kept");
+            result.add(destination);
         }
         return result;
     }
@@ -70,8 +70,7 @@ final class CameraDestinationStore {
         }
         root.add(KEY,array);
         Path path=path();
-        MalilibCompat.ensureDirectory(path.getParent());
-        MalilibCompat.writeJson(root,path);
+        CameraConfigFiles.write(path,root);
     }
 
     private static CameraDestination read(JsonElement element){
@@ -104,6 +103,6 @@ final class CameraDestinationStore {
     }
 
     private static Path path(){
-        return MalilibCompat.configDirectory().resolve(FILE);
+        return DdsTweakConfigPaths.cameraDestinations();
     }
 }

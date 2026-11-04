@@ -10,18 +10,18 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-//#if MC >= 11904
+//#if MC >= 11800
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //#endif
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftInputMixin {
-    @Inject(method="startUseItem",at=@At("HEAD"))
+    @Inject(method="startUseItem",at=@At("HEAD"),cancellable=true)
     private void ddstweak$silentAutoEatUse(CallbackInfo ci){
-        SilentAutoEat.onExplicitPlayerAction((Minecraft)(Object)this);
+        if(SilentAutoEat.onExplicitUse((Minecraft)(Object)this))ci.cancel();
     }
 
-    //#if MC >= 11904
+    //#if MC >= 11800
     @Inject(method="startAttack",at=@At("HEAD"))
     private void ddstweak$silentAutoEatAttack(CallbackInfoReturnable<Boolean> cir){
         SilentAutoEat.onExplicitPlayerAction((Minecraft)(Object)this);

@@ -32,6 +32,22 @@ final class DdsFakePlayerContextUiContractTest{
         assertFalse(transition.contains("canonicalSize()==54"));
     }
 
+    @Test void uncutoverCdaContextSidecarDoesNotTakeOverLegacyQca()throws IOException{
+        String bootstrap=read("ddstweak/integration/dds/DdsIntegrationBootstrap.java");
+        assertTrue(bootstrap.contains("ownership==DdsLocalOwnershipDecision.LEGACY_COMPAT"));
+        assertTrue(bootstrap.contains("//#if MC >= 12111"));
+        int full=bootstrap.indexOf("if(ownership.tweakOwnsFeatureClient())");
+        int legacy=bootstrap.indexOf("ownership==DdsLocalOwnershipDecision.LEGACY_COMPAT",full);
+        int qca=bootstrap.indexOf("DdsQcaClientNetwork.initialize()",full);
+        int undo=bootstrap.indexOf("DdsUndoRedoClientNetwork.initialize()",full);
+        int fullEnd=bootstrap.indexOf("}else{",full);
+        assertTrue(full>=0&&qca>full&&qca<fullEnd&&undo>full&&undo<fullEnd);
+        assertTrue(legacy>fullEnd);
+        assertTrue(bootstrap.substring(fullEnd).contains("DdsFakePlayerClientNetwork.initializeExtension()"));
+        assertFalse(bootstrap.substring(fullEnd,bootstrap.indexOf("ClientTickEvents.END_CLIENT_TICK",fullEnd))
+                .contains("DdsQcaClientNetwork.initialize()"));
+    }
+
     @Test void ddsBootstrapRegistersOnlyProviderExtensionCapabilityNotLegacyMenuOwnership()throws IOException{
         String bootstrap=read("ddstweak/integration/dds/DdsIntegrationBootstrap.java");
         String network=read("ddstweak/integration/dds/fakeplayer/DdsFakePlayerClientNetwork.java");

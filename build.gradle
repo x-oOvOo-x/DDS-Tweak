@@ -232,7 +232,7 @@ tasks.register('verifyDDSTweak') {
         def modJson = file('src/main/resources/fabric.mod.json').getText('UTF-8')
         if (!modJson.contains('"id": "dds-tweak"') || !modJson.contains('"ddstweak.DDSTweak"')) throw new GradleException('fabric.mod.json identity changed')
         if (!modJson.contains('"minecraft": "${minecraft_dependency}"')) throw new GradleException('Minecraft runtime compatibility must use per-target minecraft_dependency, not the build minecraft_version')
-        if (!modJson.contains('"fabric-api": "${fabric_api_dependency}"')) throw new GradleException('Fabric API must remain a required per-target dependency')
+        if (!modJson.contains('"${fabric_api_mod_id}": "${fabric_api_dependency}"')) throw new GradleException('Fabric API must remain a required per-target dependency using the versioned mod ID')
         if (!modJson.contains('"malilib": "${malilib_dependency}"')) throw new GradleException('MaLiLib must remain a required per-target dependency')
         if (modJson.contains('"carpet-dds-addition"')) throw new GradleException('DDS Tweak must not require DDS at mod-load time')
 
@@ -274,6 +274,7 @@ tasks.register('buildAll') {
     group = 'build'
     dependsOn 'verifyDDSTweak'
     dependsOn supportedVersions.collect { ":${it}:build" }
+    dependsOn supportedVersions.collect { ":${it}:verifySilentAutoEatVanillaTargets" }
 }
 tasks.register('build') {
     group = 'build'
@@ -296,13 +297,21 @@ tasks.register('buildAndGather') {
             def processedMod = new JsonSlurper().parse(processedModFile)
             if (processedMod.depends?.minecraft?.toString() != target.minecraft_dependency.toString())
                 throw new GradleException("Processed Minecraft dependency mismatch for ${version}: expected ${target.minecraft_dependency}, found ${processedMod.depends?.minecraft}")
-            def processedFabricApiDependency = processedMod.depends?.get('fabric-api')?.toString()
-            if (processedFabricApiDependency != target.fabric_api_dependency.toString())
-                throw new GradleException("Processed Fabric API dependency mismatch for ${version}: expected ${target.fabric_api_dependency}, found ${processedFabricApiDependency}")
+            if (processedMod.depends?.fabricloader?.toString() != target.loader_dependency.toString())
+                throw new GradleException("Processed Fabric Loader dependency mismatch for ${version}: expected ${target.loader_dependency}, found ${processedMod.depends?.fabricloader}")
+            def fabricApiId = target.mcVersion < 1_19_02 ? 'fabric' : 'fabric-api'
+            def alternateFabricApiId = fabricApiId == 'fabric' ? 'fabric-api' : 'fabric'
+            def processedFabricApiDependency = processedMod.depends?.get(fabricApiId)?.toString()
+            if (processedFabricApiDependency != target.fabric_api_dependency.toString()
+                    || processedMod.depends?.containsKey(alternateFabricApiId))
+                throw new GradleException("Processed Fabric API dependency mismatch for ${version}: expected ${fabricApiId}=${target.fabric_api_dependency}, got ${processedMod.depends}")
 
             def mixinFile = target.layout.buildDirectory.file('resources/main/dds-tweak.mixins.json').get().asFile
             if (!mixinFile.isFile()) throw new GradleException("Missing processed mixin config for ${version}")
-            def clientMixins = (new JsonSlurper().parse(mixinFile).client ?: []) as Set
+            def processedMixins = new JsonSlurper().parse(mixinFile)
+            if (processedMixins.mixinextras?.minVersion?.toString() != '0.5.0')
+                throw new GradleException("MixinExtras >=0.5.0 must be declared for @Expression on ${version}")
+            def clientMixins = (processedMixins.client ?: []) as Set
             def modernHelpfulHitboxes = 'feature.helpfulhitboxes.BlockStateBaseMixin'
             def legacyHelpfulHitboxes = 'feature.helpfulhitboxes.LegacyBlockShapeMixin'
             if (target.mcVersion < 1_16_00) {
@@ -318,10 +327,15 @@ tasks.register('buildAndGather') {
                 while (entries.hasMoreElements()) entryNames.add(entries.nextElement().name)
 
                 def embeddedFabricApi = entryNames.findAll { name ->
-                    name.startsWith('META-INF/jars/') && name.toLowerCase().contains('fabric-')
+                    name.toLowerCase().startsWith('meta-inf/jars/fabric-')
                 }
                 if (!embeddedFabricApi.isEmpty())
                     throw new GradleException("Release JAR must not embed Fabric API modules for ${version}: ${embeddedFabricApi.sort().join(', ')}")
+                def embeddedMixinExtras = entryNames.findAll { name ->
+                    name.toLowerCase().startsWith('meta-inf/jars/mixinextras-')
+                }
+                if (!embeddedMixinExtras.isEmpty())
+                    throw new GradleException("Release JAR must not embed MixinExtras for ${version}: ${embeddedMixinExtras.sort().join(', ')}")
 
                 versionCapabilityFeatures.each { feature ->
                     def id = feature.id.toString()

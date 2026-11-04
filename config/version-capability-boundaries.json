@@ -45,6 +45,21 @@
       ]
     },
     {
+      "id": "happyGhastRidingSpeed",
+      "minMinecraft": "1.21.6",
+      "minMcVersionCode": 12106,
+      "configOwner": "Tweaks",
+      "configKey": "happyGhastRidingSpeedMultiplier",
+      "javaPrefixes": [
+        "ddstweak/feature/happyghastspeed/",
+        "ddstweak/mixin/feature/happyghastspeed/"
+      ],
+      "mixins": [
+        "feature.happyghastspeed.HappyGhastRidingInputMixin",
+        "feature.happyghastspeed.HappyGhastSpeedMouseHandlerMixin"
+      ]
+    },
+    {
       "id": "disableEndFlash",
       "minMinecraft": "1.21.9",
       "minMcVersionCode": 12109,
@@ -67,6 +82,62 @@
       "configKey": "betterSnowCoverage",
       "javaPrefixes": [
         "ddstweak/feature/bettersnowcoverage/"
+      ],
+      "mixins": []
+    },
+    {
+      "id": "locatorHeads",
+      "minMinecraft": "1.21.8",
+      "minMcVersionCode": 12108,
+      "configOwner": "Visual",
+      "configKey": "locatorHeads",
+      "javaPrefixes": [
+        "ddstweak/feature/locatorheads/",
+        "ddstweak/mixin/feature/locatorheads/"
+      ],
+      "mixins": [
+        "feature.locatorheads.LocatorBarMixin",
+        "feature.locatorheads.LocatorSkinDownloadMixin",
+        "feature.locatorheads.LocatorPriorityMixin",
+        "feature.locatorheads.LocatorExperienceMixin"
+      ]
+    },
+    {
+      "id": "tabFakePlayersLast",
+      "minMinecraft": "1.21.11",
+      "minMcVersionCode": 12111,
+      "configOwner": "Visual",
+      "configKey": "tabFakePlayersLast",
+      "javaPrefixes": [
+        "ddstweak/feature/tabgroups/",
+        "ddstweak/mixin/feature/tabgroups/"
+      ],
+      "mixins": [
+        "feature.tabgroups.PlayerTabOverlayMixin"
+      ]
+    },
+    {
+      "id": "blockSoundTracker",
+      "minMinecraft": "1.21.11",
+      "minMcVersionCode": 12111,
+      "configOwner": "Visual",
+      "configKey": "blockSoundTracker",
+      "javaPrefixes": [
+        "ddstweak/feature/blocksoundtracker/",
+        "ddstweak/mixin/feature/blocksoundtracker/"
+      ],
+      "mixins": [
+        "feature.blocksoundtracker.ClientLevelEventMixin"
+      ]
+    },
+    {
+      "id": "shulkerRestock",
+      "minMinecraft": "1.14.4",
+      "minMcVersionCode": 11404,
+      "configOwner": "Tweaks",
+      "configKey": "shulkerRestockEnabled",
+      "javaPrefixes": [
+        "ddstweak/feature/shulkerrestock/"
       ],
       "mixins": []
     }
