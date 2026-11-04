@@ -194,7 +194,7 @@ jobs:
           if not isinstance(versions, list):
               raise SystemExit("CurseForge versions API did not return a list")
           print("READ ONLY: no upload POST requests will be made.")
-          for name in ("Fabric", "26.3"):
+          for name in ("Fabric", "Client", "26.3", "26.1.2"):
               matches = [
                   item for item in versions
                   if isinstance(item, dict) and item.get("name") == name
@@ -216,9 +216,9 @@ jobs:
                   raise SystemExit("Invalid non-Bukkit Minecraft 26.3 ID")
               targets = json.loads(Path("settings.json").read_text())["activeVersions"]
               ids = resolve_versions(versions, targets, {"26.3": int(anchor)})
-              if len(ids) != len(set(targets)) + 1:
+              if len(ids) != len(set(targets)) + 2:
                   raise SystemExit("Not all active Minecraft versions resolved")
-              print(f"Full preflight OK: {len(targets)} Minecraft versions + Fabric")
+              print(f"Full preflight OK: {len(targets)} Minecraft versions + Fabric + Client")
               for name, version_id in ids.items():
                   print(f"  {name}: {version_id}")
           else:
