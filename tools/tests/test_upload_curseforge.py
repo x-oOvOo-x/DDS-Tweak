@@ -38,6 +38,62 @@ class CurseForgeUploadTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "26.3"):
             cf.resolve_versions(versions + [versions[2]], ["26.3"], {"26.3": 111})
 
+    def test_26_3_anchor_resolves_all_same_name_minecraft_versions(self):
+        versions = [
+            {"id": 7499, "name": "Fabric", "gameVersionTypeID": 68441},
+            {"id": 17045, "name": "26.3", "gameVersionTypeID": 88556},
+            {"id": 17046, "name": "26.3", "gameVersionTypeID": 1},
+            {"id": 16498, "name": "26.2", "gameVersionTypeID": 86297},
+            {"id": 16500, "name": "26.2", "gameVersionTypeID": 1},
+            {"id": 16401, "name": "26.1.2", "gameVersionTypeID": 90001},
+            {"id": 16402, "name": "26.1.2", "gameVersionTypeID": 1},
+            {"id": 100, "name": "1.21.11", "gameVersionTypeID": 1},
+        ]
+        expected = {"Fabric": 7499, "26.3": 17046, "26.2": 16500,
+                    "26.1.2": 16402, "1.21.11": 100}
+        for order in (versions, list(reversed(versions))):
+            self.assertEqual(
+                cf.resolve_versions(order, ["26.3", "26.2", "26.1.2", "1.21.11"],
+                                    {"26.3": 17046}),
+                expected,
+            )
+        # The wrong 26.3 family must not silently select a different category.
+        with self.assertRaisesRegex(ValueError, "26.2"):
+            cf.resolve_versions(versions, ["26.3", "26.2"], {"26.3": 17045})
+        with self.assertRaisesRegex(ValueError, "26.2"):
+            cf.resolve_versions(versions, ["26.3", "26.2"])
+        with self.assertRaisesRegex(ValueError, "expected one exact ID"):
+            cf.resolve_versions(
+                versions + [{"id": 16501, "name": "26.2", "gameVersionTypeID": 1}],
+                ["26.3", "26.2"], {"26.3": 17046},
+            )
+        without_anchor_type = [
+            {k: v for k, v in item.items() if k != "gameVersionTypeID"}
+            if item["id"] == 17046 else item for item in versions
+        ]
+        with self.assertRaisesRegex(ValueError, "no unique version type"):
+            cf.resolve_versions(without_anchor_type, ["26.3", "26.2"],
+                                {"26.3": 17046})
+
+    def test_same_type_duplicates_block_entire_batch_before_any_post(self):
+        manifest = {"mod_version": "0.1.0", "source_sha": "a" * 40,
+                    "active_versions": ["26.3", "26.2"], "artifacts": [
+                        {"minecraft": "26.3", "filename": "unused.jar", "sha256": "a" * 64},
+                    ]}
+        versions = [
+            {"id": 1, "name": "Fabric"},
+            {"id": 17046, "name": "26.3", "gameVersionTypeID": 1},
+            {"id": 16500, "name": "26.2", "gameVersionTypeID": 1},
+            {"id": 16501, "name": "26.2", "gameVersionTypeID": 1},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(cf, "request_json", return_value=versions) as request:
+                with self.assertRaisesRegex(ValueError, "26.2"):
+                    cf.publish(Path(directory), manifest, "Changes", "token",
+                               cf.PROJECT_ID, "release", Path(directory) / "receipt.json",
+                               {"26.3": 17046})
+                request.assert_called_once_with(cf.API_BASE + "/api/game/versions", "token")
+
     def test_author_api_http_error_is_attributed_and_token_redacted(self):
         url = cf.API_BASE + "/api/game/versions"
         error = urllib.error.HTTPError(
