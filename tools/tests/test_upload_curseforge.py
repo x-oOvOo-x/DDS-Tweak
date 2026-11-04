@@ -16,17 +16,17 @@ import upload_curseforge as cf
 class CurseForgeUploadTests(unittest.TestCase):
     def test_exact_names_and_approved_duplicate_id(self):
         versions = [
-            {"id": 42, "name": "Fabric"},
-            {"id": 101, "name": "1.21.11", "gameVersionTypeID": 10},
-            {"id": 111, "name": "26.3", "gameVersionTypeID": 20, "slug": "26-3"},
-            {"id": 112, "name": "26.3", "gameVersionTypeID": 30, "slug": "26-3"},
+            {"id": 42, "name": "Fabric", "gameVersionTypeID": 68441},
+            {"id": 101, "name": "1.21.11", "gameVersionTypeID": 77784},
+            {"id": 111, "name": "26.3", "gameVersionTypeID": 88556},
+            {"id": 112, "name": "26.3", "gameVersionTypeID": 1},
         ]
-        with self.assertRaisesRegex(ValueError, "available candidates: id=111 type=20"):
-            cf.resolve_versions(versions, ["1.21.11", "26.3"])
-        self.assertEqual(
-            cf.resolve_versions(versions, ["1.21.11", "26.3"], {"26.3": 111}),
-            {"Fabric": 42, "1.21.11": 101, "26.3": 111},
-        )
+        expected = {"Fabric": 42, "1.21.11": 101, "26.3": 111}
+        self.assertEqual(cf.resolve_versions(versions, ["1.21.11", "26.3"]), expected)
+        self.assertEqual(cf.resolve_versions(versions, ["1.21.11", "26.3"],
+                                             {"26.3": 111}), expected)
+        with self.assertRaisesRegex(ValueError, "non-Bukkit"):
+            cf.resolve_versions(versions, ["26.3"], {"26.3": 112})
         with self.assertRaisesRegex(ValueError, "26.3"):
             cf.resolve_versions(versions, ["26.3"], {"26.3": 999})
         with self.assertRaisesRegex(ValueError, "override"):
@@ -38,42 +38,40 @@ class CurseForgeUploadTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "26.3"):
             cf.resolve_versions(versions + [versions[2]], ["26.3"], {"26.3": 111})
 
-    def test_26_3_anchor_resolves_all_same_name_minecraft_versions(self):
+    def test_bukkit_duplicates_never_override_minecraft_version_ids(self):
         versions = [
             {"id": 7499, "name": "Fabric", "gameVersionTypeID": 68441},
             {"id": 17045, "name": "26.3", "gameVersionTypeID": 88556},
             {"id": 17046, "name": "26.3", "gameVersionTypeID": 1},
             {"id": 16498, "name": "26.2", "gameVersionTypeID": 86297},
             {"id": 16500, "name": "26.2", "gameVersionTypeID": 1},
-            {"id": 16401, "name": "26.1.2", "gameVersionTypeID": 90001},
-            {"id": 16402, "name": "26.1.2", "gameVersionTypeID": 1},
-            {"id": 100, "name": "1.21.11", "gameVersionTypeID": 1},
+            {"id": 16084, "name": "26.1.2", "gameVersionTypeID": 85000},
+            {"id": 16085, "name": "26.1.2", "gameVersionTypeID": 1},
+            {"id": 14416, "name": "1.21.11", "gameVersionTypeID": 77784},
+            {"id": 14417, "name": "1.21.11", "gameVersionTypeID": 1},
+            {"id": 9008, "name": "1.18.2", "gameVersionTypeID": 73250},
+            {"id": 9016, "name": "1.18.2", "gameVersionTypeID": 1},
         ]
-        expected = {"Fabric": 7499, "26.3": 17046, "26.2": 16500,
-                    "26.1.2": 16402, "1.21.11": 100}
+        target = ["26.3", "26.2", "26.1.2", "1.21.11", "1.18.2"]
+        expected = {"Fabric": 7499, "26.3": 17045, "26.2": 16498,
+                    "26.1.2": 16084, "1.21.11": 14416, "1.18.2": 9008}
         for order in (versions, list(reversed(versions))):
-            self.assertEqual(
-                cf.resolve_versions(order, ["26.3", "26.2", "26.1.2", "1.21.11"],
-                                    {"26.3": 17046}),
-                expected,
-            )
-        # The wrong 26.3 family must not silently select a different category.
+            self.assertEqual(cf.resolve_versions(order, target), expected)
+            self.assertEqual(cf.resolve_versions(order, target, {"26.3": 17045}), expected)
+        for wrong_id in (17046,):
+            with self.assertRaisesRegex(ValueError, "Bukkit"):
+                cf.resolve_versions(versions, target, {"26.3": wrong_id})
         with self.assertRaisesRegex(ValueError, "26.2"):
-            cf.resolve_versions(versions, ["26.3", "26.2"], {"26.3": 17045})
-        with self.assertRaisesRegex(ValueError, "26.3"):
-            cf.resolve_versions(versions, ["26.3", "26.2"])
-        with self.assertRaisesRegex(ValueError, "expected one exact ID"):
             cf.resolve_versions(
-                versions + [{"id": 16501, "name": "26.2", "gameVersionTypeID": 1}],
-                ["26.3", "26.2"], {"26.3": 17046},
+                versions + [{"id": 16499, "name": "26.2", "gameVersionTypeID": 86297}],
+                target, {"26.3": 17045},
             )
-        without_anchor_type = [
+        no_type = [
             {k: v for k, v in item.items() if k != "gameVersionTypeID"}
-            if item["id"] == 17046 else item for item in versions
+            if item["id"] == 17045 else item for item in versions
         ]
-        with self.assertRaisesRegex(ValueError, "no unique version type"):
-            cf.resolve_versions(without_anchor_type, ["26.3", "26.2"],
-                                {"26.3": 17046})
+        with self.assertRaisesRegex(ValueError, "26.3"):
+            cf.resolve_versions(no_type, target, {"26.3": 17045})
 
     def test_same_type_duplicates_block_entire_batch_before_any_post(self):
         manifest = {"mod_version": "0.1.0", "source_sha": "a" * 40,
@@ -81,17 +79,18 @@ class CurseForgeUploadTests(unittest.TestCase):
                         {"minecraft": "26.3", "filename": "unused.jar", "sha256": "a" * 64},
                     ]}
         versions = [
-            {"id": 1, "name": "Fabric"},
+            {"id": 7499, "name": "Fabric", "gameVersionTypeID": 68441},
+            {"id": 17045, "name": "26.3", "gameVersionTypeID": 88556},
             {"id": 17046, "name": "26.3", "gameVersionTypeID": 1},
-            {"id": 16500, "name": "26.2", "gameVersionTypeID": 1},
-            {"id": 16501, "name": "26.2", "gameVersionTypeID": 1},
+            {"id": 16498, "name": "26.2", "gameVersionTypeID": 86297},
+            {"id": 16499, "name": "26.2", "gameVersionTypeID": 86297},
         ]
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(cf, "request_json", return_value=versions) as request:
                 with self.assertRaisesRegex(ValueError, "26.2"):
                     cf.publish(Path(directory), manifest, "Changes", "token",
                                cf.PROJECT_ID, "release", Path(directory) / "receipt.json",
-                               {"26.3": 17046})
+                               {"26.3": 17045})
                 request.assert_called_once_with(cf.API_BASE + "/api/game/versions", "token")
 
     def test_author_api_http_error_is_attributed_and_token_redacted(self):
