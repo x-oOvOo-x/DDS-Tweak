@@ -36,9 +36,9 @@ def verified_manifest(root: Path, directory: Path, manifest_path: Path) -> dict:
 
 
 def resolve_versions(available: list, minecraft_versions: list, approved_ids=None) -> dict:
-    """Resolve Fabric/MC IDs while excluding Bukkit's duplicate type=1 entries."""
+    """Resolve exact Minecraft, Fabric and Client IDs without invalid category IDs."""
     approved_ids = approved_ids or {}
-    names = list(dict.fromkeys(["Fabric", *minecraft_versions]))
+    names = list(dict.fromkeys(["Fabric", "Client", *minecraft_versions]))
     if any(name not in names or type(value) is not int or value <= 0
            for name, value in approved_ids.items()):
         raise ValueError("Invalid CurseForge approved version override")
@@ -50,12 +50,13 @@ def resolve_versions(available: list, minecraft_versions: list, approved_ids=Non
             if isinstance(item, dict) and item.get("name") == name
             and type(item.get("id")) is int and item["id"] > 0
         ]
-        # CurseForge repeats Minecraft version names for Bukkit (type ID 1).
-        # Fabric mods must use a non-Bukkit Minecraft game-version type.
-        matches = candidates if name == "Fabric" else [
+        # The Author API repeats some Minecraft names under non-Minecraft
+        # categories: type=1 (mod-class) and type=615 (addons).
+        # Do not filter the independent Fabric and Client groups by these IDs.
+        matches = candidates if name in ("Fabric", "Client") else [
             item for item in candidates
             if type(item.get("gameVersionTypeID")) is int
-            and item["gameVersionTypeID"] != 1
+            and item["gameVersionTypeID"] not in (1, 615)
         ]
         if name in approved_ids:
             matches = [item for item in matches if item["id"] == approved_ids[name]]
@@ -65,9 +66,9 @@ def resolve_versions(available: list, minecraft_versions: list, approved_ids=Non
                 for item in candidates
             ) or "none"
             raise ValueError(
-                f"CurseForge version {name!r}: expected one non-Bukkit exact ID, "
+                f"CurseForge version {name!r}: expected one valid exact ID, "
                 f"found {len(matches)}; candidates: {detail}. "
-                "Bukkit gameVersionTypeID=1 cannot be used for a Fabric mod."
+                "Non-Minecraft version types 1 and 615 are invalid for Fabric mods."
             )
         result[name] = matches[0]["id"]
     return result
@@ -78,7 +79,7 @@ def metadata_for(artifact: dict, version: str, changelog: str, ids: dict, releas
         "changelog": changelog,
         "changelogType": "markdown",
         "displayName": f"DDS Tweak {version} (Minecraft {artifact['minecraft']})",
-        "gameVersions": [ids[artifact["minecraft"]], ids["Fabric"]],
+        "gameVersions": [ids[artifact["minecraft"]], ids["Fabric"], ids["Client"]],
         "releaseType": release_type,
         "isMarkedForManualRelease": False,
         "relations": {"projects": [
