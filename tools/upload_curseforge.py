@@ -33,15 +33,37 @@ def verified_manifest(root: Path, directory: Path, manifest_path: Path) -> dict:
     return manifest
 
 
-def resolve_versions(available: list, minecraft_versions: list) -> dict:
-    """Resolve exact names; refuse unavailable or ambiguous CurseForge IDs."""
+def resolve_versions(available: list, minecraft_versions: list, version_types: list) -> dict:
+    """Resolve exact IDs by both version name and Minecraft edition/version type."""
+    types = {
+        item["id"]: item for item in version_types
+        if isinstance(item, dict) and type(item.get("id")) is int
+    }
+    if len(types) != len(version_types):
+        raise ValueError("CurseForge returned invalid or duplicate version types")
     result = {}
     for name in ["Fabric", *minecraft_versions]:
-        matches = [entry["id"] for entry in available
-                   if entry.get("name") == name and isinstance(entry.get("id"), int)]
+        matches = [
+            entry for entry in available
+            if isinstance(entry, dict) and entry.get("name") == name
+            and type(entry.get("id")) is int
+        ]
+        if name != "Fabric":
+            family = ".".join(name.split(".")[:2])
+            slug = "minecraft-" + family.replace(".", "-")
+            valid_type_ids = {
+                item["id"] for item in version_types
+                if item.get("slug", "").casefold() == slug
+                or item.get("name", "").casefold() == f"Minecraft {family}".casefold()
+            }
+            matches = [entry for entry in matches
+                       if entry.get("gameVersionTypeID") in valid_type_ids]
         if len(matches) != 1:
-            raise ValueError(f"CurseForge version {name!r}: expected one exact ID, found {len(matches)}")
-        result[name] = matches[0]
+            raise ValueError(
+                f"CurseForge version {name!r}: expected one exact ID in its Minecraft "
+                f"version type, found {len(matches)}"
+            )
+        result[name] = matches[0]["id"]
     return result
 
 
@@ -92,9 +114,10 @@ def request_json(url: str, token: str, data=None, content_type=None):
 def publish(directory: Path, manifest: dict, changelog: str,
             token: str, project_id: int, release_type: str, receipt: Path) -> dict:
     versions = request_json(f"{API_BASE}/api/game/versions", token)
-    if not isinstance(versions, list):
-        raise ValueError("CurseForge returned an unexpected game version inventory")
-    ids = resolve_versions(versions, manifest["active_versions"])
+    version_types = request_json(f"{API_BASE}/api/game/version-types", token)
+    if not isinstance(versions, list) or not isinstance(version_types, list):
+        raise ValueError("CurseForge returned an unexpected version/type inventory")
+    ids = resolve_versions(versions, manifest["active_versions"], version_types)
     records = []
     result = {"schema": 1, "project_id": project_id, "version": manifest["mod_version"],
               "source_sha": manifest["source_sha"], "files": records}
