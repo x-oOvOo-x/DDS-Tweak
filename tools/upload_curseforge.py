@@ -10,6 +10,7 @@ import json
 import os
 import re
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from pathlib import Path
@@ -18,6 +19,7 @@ from validate_release_artifacts import validate
 
 API_BASE = "https://minecraft.curseforge.com"
 PROJECT_ID = 1734610
+USER_AGENT = "DDS-Tweak GitHub-Actions"
 
 
 def verified_manifest(root: Path, directory: Path, manifest_path: Path) -> dict:
@@ -33,39 +35,36 @@ def verified_manifest(root: Path, directory: Path, manifest_path: Path) -> dict:
     return manifest
 
 
-def resolve_versions(available: list, minecraft_versions: list, version_types: list) -> dict:
-    """Resolve exact IDs by both version name and Minecraft edition/version type."""
-    types = {
-        item["id"]: item for item in version_types
-        if isinstance(item, dict) and type(item.get("id")) is int
-    }
-    if len(types) != len(version_types):
-        raise ValueError("CurseForge returned invalid or duplicate version types")
+def resolve_versions(available: list, minecraft_versions: list, approved_ids=None) -> dict:
+    """Only use exact Author API version IDs; never guess between duplicate names."""
+    approved_ids = approved_ids or {}
+    names = list(dict.fromkeys(["Fabric", *minecraft_versions]))
+    if any(name not in names or type(value) is not int or value <= 0
+           for name, value in approved_ids.items()):
+        raise ValueError("Invalid CurseForge approved version override")
     result = {}
-    for name in ["Fabric", *minecraft_versions]:
+    for name in names:
         matches = [
-            entry for entry in available
-            if isinstance(entry, dict) and entry.get("name") == name
-            and type(entry.get("id")) is int
+            item for item in available
+            if isinstance(item, dict) and item.get("name") == name
+            and type(item.get("id")) is int and item["id"] > 0
         ]
-        if name != "Fabric":
-            family = ".".join(name.split(".")[:2])
-            slug = "minecraft-" + family.replace(".", "-")
-            valid_type_ids = {
-                item["id"] for item in version_types
-                if item.get("slug", "").casefold() == slug
-                or item.get("name", "").casefold() == f"Minecraft {family}".casefold()
-            }
-            matches = [entry for entry in matches
-                       if entry.get("gameVersionTypeID") in valid_type_ids]
+        candidate_info = ", ".join(
+            f"id={item['id']} type={item.get('gameVersionTypeID')} slug={item.get('slug')}"
+            for item in matches
+        ) or "none"
+        selected_id = approved_ids.get(name)
+        if selected_id is not None:
+            matches = [item for item in matches if item["id"] == selected_id]
         if len(matches) != 1:
             raise ValueError(
-                f"CurseForge version {name!r}: expected one exact ID in its Minecraft "
-                f"version type, found {len(matches)}"
+                f"CurseForge version {name!r}: expected one exact ID, "
+                f"found {len(matches)}; available candidates: {candidate_info}. "
+                "Inspect /api/game/versions and explicitly approve the correct ID; "
+                "do not choose the first match automatically."
             )
         result[name] = matches[0]["id"]
     return result
-
 
 def metadata_for(artifact: dict, version: str, changelog: str, ids: dict, release_type: str) -> dict:
     return {
@@ -99,25 +98,34 @@ def multipart(metadata: dict, filename: str, data: bytes) -> tuple:
 
 
 def request_json(url: str, token: str, data=None, content_type=None):
-    headers = {"X-Api-Token": token, "Accept": "application/json"}
+    headers = {"X-Api-Token": token, "Accept": "application/json",
+               "User-Agent": USER_AGENT}
     if content_type:
         headers["Content-Type"] = content_type
     request = urllib.request.Request(url, data=data, headers=headers,
                                      method="POST" if data is not None else "GET")
     try:
-        with urllib.request.urlopen(request, timeout=90) as response:
+        with urllib.request.urlopen(request, timeout=120) as response:
             return json.load(response)
     except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"CurseForge Author API rejected request (HTTP {exc.code})") from exc
+        # The known API path and a bounded, redacted response are safe to log;
+        # request headers / token must never be printed.
+        raw = exc.read().decode("utf-8", errors="replace").replace(token, "[REDACTED]")
+        detail = raw[:700].replace("\r", " ").replace("\n", " ") or "<empty>"
+        path = urllib.parse.urlsplit(url).path
+        raise RuntimeError(
+            f"CurseForge Author API {request.get_method()} {path}: HTTP {exc.code}; "
+            f"response: {detail}"
+        ) from exc
 
 
 def publish(directory: Path, manifest: dict, changelog: str,
-            token: str, project_id: int, release_type: str, receipt: Path) -> dict:
+            token: str, project_id: int, release_type: str, receipt: Path,
+            approved_ids=None) -> dict:
     versions = request_json(f"{API_BASE}/api/game/versions", token)
-    version_types = request_json(f"{API_BASE}/api/game/version-types", token)
-    if not isinstance(versions, list) or not isinstance(version_types, list):
-        raise ValueError("CurseForge returned an unexpected version/type inventory")
-    ids = resolve_versions(versions, manifest["active_versions"], version_types)
+    if not isinstance(versions, list):
+        raise ValueError("CurseForge returned an unexpected game version inventory")
+    ids = resolve_versions(versions, manifest["active_versions"], approved_ids)
     records = []
     result = {"schema": 1, "project_id": project_id, "version": manifest["mod_version"],
               "source_sha": manifest["source_sha"], "files": records}
@@ -149,6 +157,7 @@ def main() -> None:
     parser.add_argument("--project-id", type=int, default=PROJECT_ID)
     parser.add_argument("--release-type", choices=("release", "beta", "alpha"), default="release")
     parser.add_argument("--dry-run", action="store_true", help="check local files without HTTP or token")
+    parser.add_argument("--mc-26-3-id", type=int, help="explicitly approved Author API ID for ambiguous 26.3")
     args = parser.parse_args()
     try:
         manifest = verified_manifest(args.root, args.directory, args.manifest)
@@ -163,8 +172,9 @@ def main() -> None:
         token = os.environ.get("CURSEFORGE_API_TOKEN", "")
         if not token:
             raise ValueError("CURSEFORGE_API_TOKEN secret is required")
+        overrides = {"26.3": args.mc_26_3_id} if args.mc_26_3_id is not None else None
         publish(args.directory, manifest, changelog, token,
-                args.project_id, args.release_type, args.receipt)
+                args.project_id, args.release_type, args.receipt, overrides)
     except (OSError, ValueError, KeyError, RuntimeError) as exc:
         parser.exit(1, f"CurseForge publication FAILED: {exc}\n")
 

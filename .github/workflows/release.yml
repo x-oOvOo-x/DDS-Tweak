@@ -4,8 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: 'Type RECOVER v0.1.0 to resume the existing Draft (never reupload automatically)'
+        description: 'INSPECT v0.1.0 (read-only) or RECOVER v0.1.0 (upload)'
         required: true
+        type: string
+      mc_26_3_version_id:
+        description: 'Exact Minecraft 26.3 ID confirmed after inspection (required for recovery)'
+        required: false
         type: string
   pull_request:
     paths:
@@ -139,14 +143,19 @@ jobs:
       - name: Upload verified files to CurseForge
         env:
           CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          MC_26_3_ID: ${{ vars.CURSEFORGE_MC_26_3_VERSION_ID }}
+        shell: bash
         run: |
+          set -euo pipefail
+          args=()
+          if [[ -n "$MC_26_3_ID" ]]; then args+=(--mc-26-3-id "$MC_26_3_ID"); fi
           python3 tools/upload_curseforge.py \
             --directory build/releases \
             --manifest build/p5/public-release-manifest.json \
             --changelog "$RELEASE_NOTES" \
             --project-id 1734610 \
             --release-type release \
-            --receipt build/p5/curseforge-receipt.json
+            --receipt build/p5/curseforge-receipt.json "${args[@]}"
       - name: Publish verified GitHub draft and retain CurseForge receipt
         env:
           GH_TOKEN: ${{ github.token }}
@@ -156,9 +165,54 @@ jobs:
           gh release upload "$GITHUB_REF_NAME" build/p5/curseforge-receipt.json
           gh release edit "$GITHUB_REF_NAME" --draft=false
 
+  inspect-v010:
+    name: Inspect CurseForge v0.1.0 version IDs (read-only)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirmation == 'INSPECT v0.1.0' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Query supported CurseForge Author API without uploading
+        env:
+          CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CURSEFORGE_API_TOKEN" || { echo 'Missing CurseForge Author API token'; exit 1; }
+          python3 - <<'PY'
+          import os
+          import sys
+          sys.path.insert(0, "tools")
+          from upload_curseforge import API_BASE, request_json
+          versions = request_json(API_BASE + "/api/game/versions",
+                                  os.environ["CURSEFORGE_API_TOKEN"])
+          if not isinstance(versions, list):
+              raise SystemExit("CurseForge versions API did not return a list")
+          print("READ ONLY: no upload POST requests will be made.")
+          for name in ("Fabric", "26.3"):
+              matches = [
+                  item for item in versions
+                  if isinstance(item, dict) and item.get("name") == name
+              ]
+              print(f"CurseForge {name}: {len(matches)} candidate(s)")
+              for item in matches:
+                  typ = item.get("gameVersionTypeID")
+                  siblings = sorted({
+                      other.get("name", "")
+                      for other in versions
+                      if isinstance(other, dict) and other.get("gameVersionTypeID") == typ
+                      and isinstance(other.get("name"), str)
+                  })
+                  print(f"  id={item.get('id')}, type={typ}, slug={item.get('slug')},"
+                        f" same-type examples={siblings[:12]}")
+          print("Verify the Minecraft 26.3 version ID against CurseForge "
+                "Author Dashboard before running RECOVER.")
+          PY
+
   recover-v010:
     name: Resume verified v0.1.0 Draft (manual, one time)
-    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'x-oOvOo-x/DDS-Tweak' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirmation == 'RECOVER v0.1.0' && github.repository == 'x-oOvOo-x/DDS-Tweak' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -175,6 +229,14 @@ jobs:
           git fetch --no-tags origin refs/tags/v0.1.0
           [[ "$(git rev-parse 'FETCH_HEAD^{commit}')" == 'f85b69257847d95a68de963bb71bf3b08ce0e183' ]] || {
             echo 'The v0.1.0 tag moved; refusing to publish'; exit 1;
+          }
+      - name: Require reviewed Minecraft 26.3 version ID
+        env:
+          MC_26_3_ID: ${{ inputs.mc_26_3_version_id }}
+        shell: bash
+        run: |
+          [[ "$MC_26_3_ID" =~ ^[1-9][0-9]*$ ]] || {
+            echo 'Inspect the Author API first and provide a verified 26.3 ID'; exit 1;
           }
       - name: Download and verify the existing 22 Draft assets (no rebuild)
         env:
@@ -219,6 +281,7 @@ jobs:
       - name: Upload v0.1.0 JARs to CurseForge
         env:
           CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          MC_26_3_ID: ${{ inputs.mc_26_3_version_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -228,7 +291,8 @@ jobs:
             --manifest build/p5/public-release-manifest.json \
             --changelog docs/release-notes/v0.1.0.md \
             --project-id 1734610 --release-type release \
-            --receipt build/p5/curseforge-receipt.json
+            --receipt build/p5/curseforge-receipt.json \
+            --mc-26-3-id "$MC_26_3_ID"
       - name: Publish GitHub Draft only after all CurseForge file IDs are confirmed
         env:
           GH_TOKEN: ${{ github.token }}
