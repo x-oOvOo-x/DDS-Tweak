@@ -14,32 +14,28 @@ Fabric API is an external runtime dependency and is not bundled inside the DDS T
 
 ## Current target
 
-- Minecraft 1.21.11
-- Fabric Loader 0.19.3
-- Java 21
+- Core development target: Minecraft 1.21.11
+- Active build targets: 21 versions, from Minecraft 1.14.4 through 26.3; not every feature is available on every version (see [version capabilities](docs/VERSION_CAPABILITY_BOUNDARIES.md)).
+- Fabric Loader, MaLiLib and Java requirements depend on the selected Minecraft target; refer to `versions/<minecraft>/gradle.properties` and [BUILDING.md](BUILDING.md). For example, 1.21.11 requires Java 21, while 26.3 requires Java 25 and Fabric Loader >=0.19.5.
 - DDS Protocol v1
 
 The project is client-only. Carpet DDS Addition remains authoritative for server state, permissions, fake-player inventories and actions. DDS Tweak may provide client UI and interaction enhancements when the server advertises compatible DDS protocol capabilities.
 
-## Beta publication
+## Mod Menu integration
 
-The `beta/0.1.0-beta.1` branch is a separate Minecraft 1.21.11 Beta candidate for the initial Modrinth review. It excludes the Happy Ghast riding speed modifier; the development `main` branch retains that feature. Do not merge the Beta branch into `main`.
+Mod Menu is **optional**. When it is installed for the current Minecraft version,
+open **Mods → DDS Tweak → Configure** to open the existing MaLiLib settings screen.
+Closing the screen returns to Mod Menu. With Mod Menu absent, DDS Tweak still
+starts normally and its existing MaLiLib config selector and `Left Alt + V`
+configuration shortcut remain available. No server mod or CDA integration is needed.
 
-Publication copy, version notes and checklist: `docs/publishing/BETA_0.1.0.md`.
+## Client configuration
 
-## Licensing and upstream material
-
-DDS Tweak's project metadata declares LGPL-3.0-only; see `LICENSE`.
-The optional CozyUI+-derived resource pack is GPL-3.0; see its embedded license and notice.
-Better Snow Coverage-derived portions are credited in `THIRD_PARTY_NOTICES.md` (MIT).
-
-An accessible corresponding-source distribution must accompany public binary distribution as required by the applicable licenses. A private development repository URL is not a public source link.
+DDS Tweak stores its local client settings under `config/dds-tweak/` in the Minecraft instance. Existing root-level DT configs are copied on first use and preserved for rollback. See [Client configuration](docs/CLIENT_CONFIGURATION.md).
 
 ## Development
 
-- Architecture: `docs/ARCHITECTURE.md`
-- Development workflow: `docs/DEVELOPMENT_WORKFLOW.md`
+- Tab fake-player groups: `docs/features/tab-fake-player-groups.md`
 - Build instructions: `BUILDING.md`
-- Release workflow: `docs/RELEASE_WORKFLOW.md`
 
 The canonical Java package root is `ddstweak` and the Fabric mod id is `dds-tweak`.

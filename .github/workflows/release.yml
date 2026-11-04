@@ -1,6 +1,10 @@
 name: Release DDS Tweak
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'tools/**'
   push:
     tags:
       - 'v*'
@@ -13,49 +17,98 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate-release-tooling:
+    name: Verify release tooling (no publication)
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run offline release tooling tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_*.py'
+
   release:
-    if: ${{ github.repository == 'x-oOvOo-x/DDS-Tweak' }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.repository == 'x-oOvOo-x/DDS-Tweak' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 21
+      - uses: actions/checkout@v5
+      - name: Set up all game Java toolchains (Gradle on JDK 25)
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: '21'
-      - name: Set up Gradle 9.6
+          distribution: zulu
+          java-version: |
+            8
+            16
+            17
+            21
+            25
+      - name: Set up Gradle wrapper
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.6.0'
       - name: Validate release metadata
         shell: bash
         run: |
           set -euo pipefail
           MOD_VERSION="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')"
-          [[ -n "$MOD_VERSION" ]] || { echo 'mod_version is missing'; exit 1; }
+          [[ "$MOD_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Formal mod_version must be X.Y.Z'; exit 1; }
           [[ "$GITHUB_REF_NAME" == "v${MOD_VERSION}" ]] || { echo "Tag $GITHUB_REF_NAME does not match mod_version=$MOD_VERSION"; exit 1; }
           NOTES="docs/release-notes/${GITHUB_REF_NAME}.md"
           [[ -f "$NOTES" ]] || { echo "Release notes not found: $NOTES"; exit 1; }
           echo "MOD_VERSION=$MOD_VERSION" >> "$GITHUB_ENV"
           echo "RELEASE_NOTES=$NOTES" >> "$GITHUB_ENV"
-      - name: Verify and build
-        run: gradle build --stacktrace
-      - name: Locate release jar
+      - name: Check CurseForge publication credentials
+        env:
+          CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
         shell: bash
         run: |
+          test -n "$CURSEFORGE_API_TOKEN" || { echo 'Configure CURSEFORGE_API_TOKEN in Public repository secrets'; exit 1; }
+      - name: Verify and build all active versions
+        run: |
+          chmod +x ./gradlew
+          ./gradlew buildAndGather --stacktrace
+      - name: Validate all runtime JARs and production manifest
+        run: |
           set -euo pipefail
-          JAR="$(find build/libs -maxdepth 1 -type f -name 'dds-tweak-v*.jar' ! -name '*-sources.jar' | head -n 1)"
-          [[ -n "$JAR" ]] || { echo 'Release jar not found'; exit 1; }
-          echo "RELEASE_JAR=$JAR" >> "$GITHUB_ENV"
-      - name: Create or update GitHub Release
+          python3 -m unittest discover -s tools/tests -p 'test_*.py'
+          python3 tools/validate_release_artifacts.py \
+            --directory build/releases \
+            --source-sha "$GITHUB_SHA" \
+            --manifest build/p5/public-release-manifest.json \
+            --production
+      - name: Stage, verify and publish complete formal release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release edit "$GITHUB_REF_NAME" --title "DDS Tweak $MOD_VERSION" --notes-file "$RELEASE_NOTES"
-          else
-            gh release create "$GITHUB_REF_NAME" --verify-tag --title "DDS Tweak $MOD_VERSION" --notes-file "$RELEASE_NOTES"
+            echo "Release already exists: $GITHUB_REF_NAME; refusing to overwrite it"
+            exit 1
           fi
-          gh release upload "$GITHUB_REF_NAME" "$RELEASE_JAR" --clobber
+          gh release create "$GITHUB_REF_NAME" --verify-tag --draft \
+            --title "DDS Tweak $MOD_VERSION" --notes-file "$RELEASE_NOTES"
+          gh release upload "$GITHUB_REF_NAME" build/releases/*.jar build/p5/public-release-manifest.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" > build/p5/staged-release.json
+          python3 tools/check_release_assets.py \
+            --manifest build/p5/public-release-manifest.json \
+            --release-json build/p5/staged-release.json \
+            --tag "$GITHUB_REF_NAME"
+      - name: Upload verified files to CurseForge
+        env:
+          CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+        run: |
+          python3 tools/upload_curseforge.py \
+            --directory build/releases \
+            --manifest build/p5/public-release-manifest.json \
+            --changelog "$RELEASE_NOTES" \
+            --project-id 1734610 \
+            --release-type release \
+            --receipt build/p5/curseforge-receipt.json
+      - name: Publish verified GitHub draft and retain CurseForge receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$GITHUB_REF_NAME" build/p5/curseforge-receipt.json
+          gh release edit "$GITHUB_REF_NAME" --draft=false
