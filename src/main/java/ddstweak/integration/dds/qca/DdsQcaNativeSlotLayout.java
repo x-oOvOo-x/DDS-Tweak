@@ -2,7 +2,10 @@ package ddstweak.integration.dds.qca;
 
 import ddstweak.integration.dds.playerinventory.PlayerInventoryLayouts;
 
-/** Slot allowlist for server-attested native GCA/Org menus (no enhanced UI). */
+/**
+ * Slot allowlist for server-attested native GCA/Org menus (no enhanced UI).
+ * 仅允许已验证的原生 GCA/Org 菜单布局对应槽位。
+ */
 final class DdsQcaNativeSlotLayout {
     private DdsQcaNativeSlotLayout() {}
 

@@ -27,6 +27,10 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 //#else
 @Mixin(Gui.class)
 //#endif
+/**
+ * Adapts HUD presentation while Auto Eat temporarily owns a swap.
+ * 自动进食临时持有交换事务时调整 HUD 显示。
+ */
 public abstract class GuiMixin {
     //#if MC >= 260300
     //$$ // Replace the actual Player.getOffhandItem read, BEFORE the vanilla
@@ -172,7 +176,7 @@ public abstract class GuiMixin {
     //#if MC >= 12111
     /** Vanilla slot popTime squeezes the HUD icon after an automated SWAP. */
     @WrapOperation(
-            //#if MC >= 260200
+            //#if MC >= 260100
             //$$ method="extractSlot",
             //#else
             method="renderSlot",

@@ -8,7 +8,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Passive wheel intent, before vanilla updates the selected hotbar slot. */
+/**
+ * Passive wheel intent, before vanilla updates the selected hotbar slot.
+ * 原版切换快捷栏前记录玩家滚轮意图。
+ */
 @Mixin(MouseHandler.class)
 public abstract class MouseHandlerScrollMixin {
     @Inject(method="onScroll(JDD)V",at=@At("HEAD"))

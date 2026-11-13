@@ -9,7 +9,10 @@ import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 //#endif
 
-/** Object-payload transport shared by DDS_PAYLOAD_CODEC and DDS_PAYLOAD_READER_MAP targets. */
+/**
+ * Object-payload transport shared by DDS_PAYLOAD_CODEC and DDS_PAYLOAD_READER_MAP targets.
+ * 将新版对象式数据包适配到 DDS 共享协议。
+ */
 public final class PayloadCodecClientTransport implements DdsClientTransport {
     @Override
     public boolean send(ClientPacketListener connection, String packetId, CompoundTag data) {

@@ -24,6 +24,10 @@ import net.minecraft.world.item.Items;
 import java.util.Locale;
 import java.util.function.Consumer;
 
+/**
+ * Edits a camera destination and its presentation settings.
+ * 编辑相机目的地及其显示设置。
+ */
 final class CameraDestinationEditorScreen extends Screen {
     private static final int FIELD_H=18,BUTTON_H=20,GAP=5,ICON_SLOT=24,DIM_SLOT=24,DIM_GAP=28,DELETE_ICON=14,FOOTER_WIDTH=72;
     private static final String OVERWORLD="minecraft:overworld",NETHER="minecraft:the_nether",END="minecraft:the_end";

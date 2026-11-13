@@ -59,6 +59,10 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ShelfBlockEntity;
 //#endif
 
+/**
+ * Allows traversal only when vanilla foreground interactions remain safe.
+ * 仅在不破坏原版前景交互时允许穿透。
+ */
 public final class ClickThroughSupportPolicy {
     private ClickThroughSupportPolicy(){}
 

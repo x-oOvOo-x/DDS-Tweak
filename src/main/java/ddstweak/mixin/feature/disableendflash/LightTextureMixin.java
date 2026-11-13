@@ -14,6 +14,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 //#if MC >= 260102
+//$$ // Suppresses End flash effects only in the lightmap rendering path.
+//$$ // 仅在光照贴图渲染中抑制末地闪烁效果。
 //$$ @Mixin(LightmapRenderStateExtractor.class)
 //$$ public abstract class LightTextureMixin {
 //$$     @Redirect(method="extract",at=@At(value="INVOKE",target="Lnet/minecraft/client/multiplayer/ClientLevel;endFlashState()Lnet/minecraft/client/renderer/EndFlashState;"),require=0)

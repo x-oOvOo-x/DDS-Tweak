@@ -3,6 +3,10 @@ package ddstweak.feature.autologcleanup;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.util.StringUtils;
 
+/**
+ * Selects time-based or count-based history log retention.
+ * 选择按时间或数量保留历史日志。
+ */
 public enum AutoLogCleanupMode implements IConfigOptionListEntry {
     DAYS("days"),
     LIMIT("limit");

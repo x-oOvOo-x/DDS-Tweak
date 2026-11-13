@@ -5,6 +5,10 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
+/**
+ * Accesses optional Scribble page state without linking Scribble directly.
+ * 通过可选 Mixin 读取 Scribble 页面状态。
+ */
 @Pseudo
 @Mixin(targets="me.chrr.scribble.screen.ScribbleBookScreen",remap=false)
 public interface ScribbleBookScreenAccess {

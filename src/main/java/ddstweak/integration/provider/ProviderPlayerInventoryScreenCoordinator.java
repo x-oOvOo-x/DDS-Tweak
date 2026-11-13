@@ -16,7 +16,10 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
-/** Performs an in-place client screen upgrade after an authoritative provider marker becomes available. */
+/**
+ * Performs an in-place client screen upgrade after an authoritative provider marker becomes available.
+ * 获得服务端权威 Provider 上下文后才升级客户端界面。
+ */
 public final class ProviderPlayerInventoryScreenCoordinator{
     private static final boolean TRACE=Boolean.getBoolean("ddstweak.playerinventory.trace");
     private static final org.apache.logging.log4j.Logger TRACE_LOG=

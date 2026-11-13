@@ -12,6 +12,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Canceling before vanilla's addRecentChat also prevents command_history.txt writes in 26.3.
  */
 @Mixin(ChatComponent.class)
+/**
+ * Excludes only matching DT-generated commands from chat history.
+ * 仅排除 DT 自动生成的匹配命令，不影响手动历史。
+ */
 public abstract class ChatHistoryGuardMixin {
     @Inject(method="addRecentChat",at=@At("HEAD"),cancellable=true)
     private void ddstweak$hideAutomatedCommandFromHistory(String message,CallbackInfo ci){

@@ -2,6 +2,7 @@ package ddstweak.feature.cameraplayerselector;
 
 import ddstweak.platform.minecraft.MinecraftCompat;
 import ddstweak.platform.minecraft.ScreenRenderCompat;
+import ddstweak.gui.DdsUiPalette;
 //#if MC >= 260100
 //$$ import net.minecraft.client.gui.GuiGraphicsExtractor;
 //#elseif MC >= 12000
@@ -16,9 +17,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Compact upward popup at the bottom-left of the Camera content area. */
+/**
+ * Compact upward popup at the bottom-left of the Camera content area.
+ * 在相机导航界面内显示紧凑的快捷指令弹层。
+ */
 final class CameraQuickCommandOverlay {
     private static final int BUTTON=14,WIDTH=88,ROW_HEIGHT=18,MAX_ROWS=6;
+    private static final int STROKE=0x556B7883,ACTIVE_STROKE=0xFF68C993;
     private final CameraPlayerSelectorScreen parent;
     private List<CameraQuickCommandStore.Entry> entries=Collections.emptyList();
     private boolean open,loadFailed;
@@ -66,30 +71,30 @@ final class CameraQuickCommandOverlay {
             Font font,int width,int actionY,int mouseX,int mouseY){
         int bx=buttonX(width),by=buttonY(actionY);
         boolean hoverButton=inside(mouseX,mouseY,bx,by,BUTTON,BUTTON);
-        CameraSlotRender.fill(graphics,bx,by,BUTTON,BUTTON,hoverButton||open?0x90000000:0x32000000);
-        CameraSlotRender.outline(graphics,bx,by,BUTTON,BUTTON,hoverButton||open?0xFFD8DEE3:0x728A9299);
-        ScreenRenderCompat.text(graphics,font,"/",bx+(BUTTON-font.width("/"))/2,by+3,0xFFE4E8EC,false);
+        CameraSlotRender.fill(graphics,bx,by,BUTTON,BUTTON,open?DdsUiPalette.SELECTED:hoverButton?DdsUiPalette.HOVER:DdsUiPalette.ROW);
+        CameraSlotRender.outline(graphics,bx,by,BUTTON,BUTTON,open?ACTIVE_STROKE:hoverButton?0xB097A6A8:STROKE);
+        ScreenRenderCompat.text(graphics,font,"/",bx+(BUTTON-font.width("/"))/2,by+3,0xFFF4F4FA,false);
         if(!open)return;
 
         int x=popupX(width),y=popupY(actionY),h=popupHeight();
-        CameraSlotRender.fill(graphics,x,y,WIDTH,h,0xE80A0B0D);
-        CameraSlotRender.outline(graphics,x,y,WIDTH,h,0xB0929BA4);
+        CameraSlotRender.fill(graphics,x,y,WIDTH,h,DdsUiPalette.ROW);
+        CameraSlotRender.outline(graphics,x,y,WIDTH,h,STROKE);
         for(int i=0;i<visibleRows();i++){
             int rowY=y+2+i*ROW_HEIGHT;
             boolean hover=inside(mouseX,mouseY,x+2,rowY,WIDTH-4,ROW_HEIGHT);
-            if(hover)CameraSlotRender.fill(graphics,x+2,rowY,WIDTH-4,ROW_HEIGHT,0x686B727A);
+            if(hover)CameraSlotRender.fill(graphics,x+2,rowY,WIDTH-4,ROW_HEIGHT,DdsUiPalette.HOVER);
             CameraQuickCommandStore.Entry entry=entries.get(offset+i);
             String label=entry.name;
             while(label.length()>1&&font.width(label)>WIDTH-12)label=label.substring(0,label.length()-1);
-            ScreenRenderCompat.text(graphics,font,label,x+5,rowY+5,0xFFE5E8EB,false);
+            ScreenRenderCompat.text(graphics,font,label,x+5,rowY+5,0xFFF4F4FA,false);
             if(i<visibleRows()-1)
-                ScreenRenderCompat.fill(graphics,x+5,rowY+ROW_HEIGHT-1,x+WIDTH-5,rowY+ROW_HEIGHT,0x274F5358);
+                ScreenRenderCompat.fill(graphics,x+5,rowY+ROW_HEIGHT-1,x+WIDTH-5,rowY+ROW_HEIGHT,STROKE);
         }
         int addY=y+2+visibleRows()*ROW_HEIGHT;
         boolean addHover=inside(mouseX,mouseY,x+2,addY,WIDTH-4,ROW_HEIGHT);
-        ScreenRenderCompat.fill(graphics,x+3,addY-1,x+WIDTH-3,addY,0x506A6E75);
-        if(addHover)CameraSlotRender.fill(graphics,x+2,addY,WIDTH-4,ROW_HEIGHT,0x686B727A);
-        ScreenRenderCompat.text(graphics,font,"+",x+(WIDTH-font.width("+"))/2,addY+5,0xFFD9DEE2,false);
+        ScreenRenderCompat.fill(graphics,x+3,addY-1,x+WIDTH-3,addY,STROKE);
+        if(addHover)CameraSlotRender.fill(graphics,x+2,addY,WIDTH-4,ROW_HEIGHT,DdsUiPalette.HOVER);
+        ScreenRenderCompat.text(graphics,font,"+",x+(WIDTH-font.width("+"))/2,addY+5,0xFFD9E7DD,false);
     }
 
     boolean handleClick(Minecraft minecraft,int width,int actionY,double mx,double my,int button){

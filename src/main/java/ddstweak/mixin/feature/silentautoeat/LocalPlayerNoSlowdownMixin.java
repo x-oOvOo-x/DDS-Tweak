@@ -8,6 +8,8 @@ import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+// Skips item-use slowdown only for Auto Eat-owned offhand use.
+// 仅对自动进食持有的副手使用跳过减速。
 
 @Mixin(LocalPlayer.class)
 public abstract class LocalPlayerNoSlowdownMixin {

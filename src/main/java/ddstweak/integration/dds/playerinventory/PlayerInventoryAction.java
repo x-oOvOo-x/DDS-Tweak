@@ -1,10 +1,17 @@
 package ddstweak.integration.dds.playerinventory;
 
+/**
+ * Lists player-inventory actions subject to server authorization.
+ * 定义需要服务端授权的玩家背包操作。
+ */
 public enum PlayerInventoryAction{
     SELECT_HOTBAR,ATTACK_ONCE,ATTACK_INTERVAL,ATTACK_CONTINUOUS,STOP_ATTACK,USE_ONCE,USE_INTERVAL,USE_CONTINUOUS,STOP_USE,STOP_ALL,
     DROP_ALL,ENDER_DROP_ALL,ENDER_STORE_ALL,ENDER_TAKE_ALL,TOGGLE_SNEAK,DISCONNECT;
 
-    /** Ordinary Carpet commands are authorized by the server, not by fake-player identity. */
+    /**
+     * Ordinary Carpet commands are authorized by the server, not by fake-player identity.
+     * 普通 Carpet 指令由服务端授权，不依赖假人身份。
+     */
     public boolean allowedWithoutFakeIdentity(){
         switch(this){
             case SELECT_HOTBAR:

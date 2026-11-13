@@ -5,7 +5,10 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Invocation-level diagnostics; never interprets method calls as GPU draw counts. */
+/**
+ * Invocation-level diagnostics; never interprets method calls as GPU draw counts.
+ * 统计诊断调用次数，不将其等同于 GPU 绘制次数。
+ */
 public final class LocatorHudTrace {
     private static final boolean ENABLED=Boolean.getBoolean("ddstweak.locatorHeads.hudTrace");
     private static final Logger LOGGER=LoggerFactory.getLogger(LocatorHudTrace.class);

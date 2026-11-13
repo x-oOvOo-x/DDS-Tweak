@@ -131,6 +131,12 @@ sourceSets {
     main {
         java {
             unavailableJavaPrefixes.each { prefix -> exclude "${prefix}**" }
+            if (mcVersion < 26_01_02 || mcVersion >= 26_03_00) {
+                exclude 'ddstweak/gui/LegacyGpuSdfRenderer.java'
+                exclude 'ddstweak/gui/LegacyGpuSdfAccess.java'
+                exclude 'ddstweak/mixin/gui/SdfGuiRenderStateMixin.java'
+                exclude 'ddstweak/mixin/gui/RenderPipelinesAccess.java'
+            }
         }
     }
     test {
@@ -213,6 +219,15 @@ processResources {
         }
 
         def unavailable = [] as Set
+        if (mcVersion < 26_01_02 || mcVersion >= 26_03_00) {
+            unavailable.addAll(['gui.SdfGuiRenderStateMixin', 'gui.RenderPipelinesAccess'])
+            new File(destinationDir, 'assets/dds-tweak/shaders/core/rounded_rect_legacy.vsh').delete()
+            new File(destinationDir, 'assets/dds-tweak/shaders/core/rounded_rect_legacy.fsh').delete()
+        }
+        if (mcVersion < 26_03_00) {
+            new File(destinationDir, 'assets/dds-tweak/shaders/core/rounded_rect.vsh').delete()
+            new File(destinationDir, 'assets/dds-tweak/shaders/core/rounded_rect.fsh').delete()
+        }
         unavailableVersionFeatures.each { feature ->
             unavailable.addAll((feature.mixins ?: []).collect { it.toString() })
         }
@@ -619,6 +634,17 @@ tasks.register('verifySilentAutoEatVanillaTargets') {
             if (hotbars.isEmpty() || !hotbars.any { stores(it) > 0 })
                 throw new GradleException('Silent Auto Eat ' + project.name +
                         ': modern hotbar local-stack target missing; candidates=' + report.availableHotbarMethods)
+            // A compile cannot establish whether a runtime Mixin method target exists.
+            if (mcVersion >= 1_21_11 && mcVersion < 26_03_00) {
+                String slotMethod = mcVersion >= 26_01_02 ? 'extractSlot' : 'renderSlot'
+                def popSlots = hud.methods.findAll { it.name == slotMethod }
+                report.hudPopTimeTarget = [method: slotMethod, descriptors: popSlots.collect { it.desc },
+                        calls: popSlots.collect { invokes(it, 'net/minecraft/world/item/ItemStack', 'getPopTime') }]
+                if (popSlots.size() != 1 ||
+                        invokes(popSlots.first(), 'net/minecraft/world/item/ItemStack', 'getPopTime') < 1)
+                    throw new GradleException('Silent Auto Eat ' + project.name +
+                            ': HUD pop-time Mixin target missing or changed: ' + report.hudPopTimeTarget)
+            }
         } else {
             if (mcVersion == 1_20_01) {
                 def renderSlots = screen.methods.findAll { it.name == 'renderSlot' }

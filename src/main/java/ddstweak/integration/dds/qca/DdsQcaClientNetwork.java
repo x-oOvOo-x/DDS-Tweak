@@ -28,7 +28,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 
-/** Client network/session slice for DDS quickContainerAccess. */
+/**
+ * Client network/session slice for DDS quickContainerAccess.
+ * 维护客户端 QCA 数据包与会话交互状态。
+ */
 public final class DdsQcaClientNetwork {
     private static final long CREATIVE_TIMEOUT_NANOS=5_000_000_000L,OWNER_ENDER_TIMEOUT_NANOS=3_000_000_000L;
     private static final Queue<Integer> CREATIVE_QUEUE=new ArrayDeque<>();

@@ -3,7 +3,10 @@ package ddstweak.integration.dds.fakeplayer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/** Connection-bound FIFO pairing DDS extension contexts with the following GCA OpenScreen packet. */
+/**
+ * Connection-bound FIFO pairing DDS extension contexts with the following GCA OpenScreen packet.
+ * 在当前连接内匹配扩展上下文与菜单打开事件。
+ */
 final class DdsFakePlayerExtensionOpenState<C>{
     private static final int MAX_PENDING=128;
     private final long maxAgeNanos;

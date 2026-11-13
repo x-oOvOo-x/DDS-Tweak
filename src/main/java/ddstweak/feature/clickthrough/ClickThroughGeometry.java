@@ -9,6 +9,10 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+/**
+ * Resolves hit geometry when interaction passes through foreground blocks.
+ * 计算穿过前景方块后的有效射线命中位置。
+ */
 final class ClickThroughGeometry {
     private static final double FACE_EPSILON=1.0E-4D;
 

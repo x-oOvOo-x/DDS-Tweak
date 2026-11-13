@@ -35,7 +35,7 @@ final class DdsFakePlayerContextUiContractTest{
     @Test void uncutoverCdaContextSidecarDoesNotTakeOverLegacyQca()throws IOException{
         String bootstrap=read("ddstweak/integration/dds/DdsIntegrationBootstrap.java");
         assertTrue(bootstrap.contains("ownership==DdsLocalOwnershipDecision.LEGACY_COMPAT"));
-        assertTrue(bootstrap.contains("//#if MC >= 12111"));
+        assertTrue(bootstrap.contains("//#if MC >= 11904"));
         int full=bootstrap.indexOf("if(ownership.tweakOwnsFeatureClient())");
         int legacy=bootstrap.indexOf("ownership==DdsLocalOwnershipDecision.LEGACY_COMPAT",full);
         int qca=bootstrap.indexOf("DdsQcaClientNetwork.initialize()",full);

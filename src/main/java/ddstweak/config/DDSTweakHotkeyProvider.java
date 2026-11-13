@@ -5,6 +5,10 @@ import ddstweak.DDSTweakReference;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.hotkeys.*;
 
+/**
+ * Exposes DDS Tweak hotkeys to MaLiLib's keybind manager.
+ * 向 MaLiLib 的快捷键管理器提供 DT 按键。
+ */
 public final class DDSTweakHotkeyProvider implements IKeybindProvider {
     public static final DDSTweakHotkeyProvider INSTANCE=new DDSTweakHotkeyProvider();
     private DDSTweakHotkeyProvider(){}

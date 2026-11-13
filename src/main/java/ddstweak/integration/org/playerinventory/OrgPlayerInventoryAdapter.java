@@ -19,6 +19,7 @@ import java.util.*;
 /**
  * Org client adapter. Command correlation covers versions such as 1.21.11 that expose no client marker;
  * provider markers remain preferred when newer Org versions expose richer control layouts.
+ * 识别 Org 玩家菜单，优先使用服务端 Provider 标记。
  */
 public final class OrgPlayerInventoryAdapter{
     public static final String SOURCE="org",BEHAVIOR_MENU="provider_menu_v1",BEHAVIOR_CONTROLS="provider_controls_v1";

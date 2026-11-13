@@ -9,7 +9,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //#endif
 
-/** Captures the actual right-clicked player, without relying on its display name. */
+/**
+ * Captures the actual right-clicked player, without relying on its display name.
+ * 按实体身份记录 GCA 右键目标，不依赖显示名称。
+ */
 @Mixin(Minecraft.class)
 public abstract class GcaPlayerInteractionMixin {
     //#if MC >= 12111

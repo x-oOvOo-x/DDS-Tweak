@@ -10,9 +10,17 @@ import net.minecraft.world.inventory.Slot;
 import java.lang.reflect.*;
 import java.util.*;
 
+/**
+ * Adapts optional IPN sorting areas to the unified inventory menu.
+ * 将可选 IPN 整理区域适配到统一背包菜单。
+ */
 public final class DdsIpnCompat {
     private static final String AREA_TYPES="org.anti_ad.mc.ipnext.inventory.AreaTypes",AREA_TYPE="org.anti_ad.mc.ipnext.inventory.AreaType",ITEM_AREA="org.anti_ad.mc.ipnext.inventory.ItemArea";private static Object sortSource,sortProxy,storageSource,storageProxy;private static volatile boolean broken;
     private DdsIpnCompat(){}
+    /**
+     * Detect a compatible IPN interface without requiring IPN at startup.
+     * 按需探测 IPN 接口，启动时不强制依赖。
+     */
     public static boolean level1Ready(){if(broken)return false;try{Class<?> types=Class.forName(AREA_TYPES),area=Class.forName(AREA_TYPE),itemArea=Class.forName(ITEM_AREA);Object instance=types.getField("INSTANCE").get(null);Method storage=types.getDeclaredMethod("getItemStorage"),sortable=types.getDeclaredMethod("getSortableItemStorage");if(storage.getReturnType()!=area||sortable.getReturnType()!=area||storage.invoke(instance)!=storageProxy||sortable.invoke(instance)!=sortProxy)return false;boolean get=false;Method factory=null;for(Method m:area.getMethods())if(m.getName().equals("getItemArea")&&m.getParameterCount()==2&&m.getReturnType()==itemArea)get=true;Object companion=itemArea.getField("Companion").get(null);for(Method m:companion.getClass().getMethods())if(m.getName().equals("invoke")&&m.getParameterCount()==3&&m.getReturnType()==itemArea){factory=m;break;}if(!get||factory==null)return false;Object empty=factory.invoke(companion,Collections.emptyList(),Collections.emptyList(),false);Method minus=itemArea.getMethod("minus",itemArea);return minus.getReturnType()==itemArea&&itemArea.isInstance(minus.invoke(empty,empty));}catch(ReflectiveOperationException|LinkageError|RuntimeException ignored){return false;}}
     public static synchronized Object wrapSortableArea(Object area){return wrapArea(area,true);}public static synchronized Object wrapStorageArea(Object area){return wrapArea(area,false);}
     private static Object wrapArea(Object area,boolean sortable){if(area==null)return null;Object source=sortable?sortSource:storageSource,cached=sortable?sortProxy:storageProxy;if(area==cached||area==source&&cached!=null)return cached;try{Class<?> type=Class.forName(AREA_TYPE);if(!type.isInstance(area))return area;Object wrapped=areaProxy(type,area,sortable);if(sortable){sortSource=area;sortProxy=wrapped;}else{storageSource=area;storageProxy=wrapped;}return wrapped;}catch(ReflectiveOperationException|LinkageError|RuntimeException e){broken=true;return area;}}

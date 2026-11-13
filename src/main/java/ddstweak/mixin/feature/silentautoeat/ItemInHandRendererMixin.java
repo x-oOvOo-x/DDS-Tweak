@@ -32,6 +32,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //#else
 @Mixin(ItemInHandRenderer.class)
 //#endif
+/**
+ * Adapts first-person hand rendering during Auto Eat transactions.
+ * 自动进食事务中适配第一人称手持物品显示。
+ */
 public abstract class ItemInHandRendererMixin {
     @Shadow private ItemStack mainHandItem;
     @Shadow private float mainHandHeight;

@@ -9,6 +9,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+// Hides the client block outline when its display rule disables it.
+// 显示规则关闭时隐藏客户端方块轮廓。
 @Mixin(LevelRenderer.class)
 public abstract class BlockOutlineVisibilityMixin {
     //#if MC >= 260200

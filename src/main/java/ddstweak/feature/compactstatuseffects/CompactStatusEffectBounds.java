@@ -1,5 +1,9 @@
 package ddstweak.feature.compactstatuseffects;
 
+/**
+ * Represents the rectangle occupied by compact status effects.
+ * 表示紧凑状态效果占用的界面区域。
+ */
 public final class CompactStatusEffectBounds {
     private final int x,y,width,height;
     public CompactStatusEffectBounds(int x,int y,int width,int height){this.x=x;this.y=y;this.width=width;this.height=height;}

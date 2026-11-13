@@ -3,7 +3,10 @@ package ddstweak.feature.locatorheads;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Thread-safe, bounded LRU of CPU skin alpha snapshots (no GPU access). */
+/**
+ * Thread-safe, bounded LRU of CPU skin alpha snapshots (no GPU access).
+ * 以有限容量 LRU 缓存皮肤透明度数据，不操作 GPU。
+ */
 final class LocatorAlphaSnapshots {
     private final int capacity;
     private final Map<String,LocatorContourMask.SkinAlpha> entries=new LinkedHashMap<>(32,0.75f,true);

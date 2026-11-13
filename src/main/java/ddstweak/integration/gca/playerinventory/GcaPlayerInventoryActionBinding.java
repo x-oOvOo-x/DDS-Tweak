@@ -16,7 +16,10 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.Items;
 import java.util.*;
 
-/** Executes GCA fixed control slots or standard Carpet commands; local command state survives screen reopenings. */
+/**
+ * Executes GCA fixed control slots or standard Carpet commands; local command state survives screen reopenings.
+ * 按目标维护状态并适配 GCA 控制槽位与 Carpet 命令。
+ */
 public final class GcaPlayerInventoryActionBinding implements PlayerInventoryActionBinding{
     //#if MC >= 12111
     // GCA turns a native button OFF by scheduling Action.once(): not an exact stop.

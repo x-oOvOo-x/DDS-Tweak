@@ -25,7 +25,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Render locator markers, not their background, when XP is preferred. */
+/**
+ * Render locator markers, not their background, when XP is preferred.
+ * 在经验条上叠加定位标记，不替换经验条背景。
+ */
 //#if MC >= 260200
 //$$ @Mixin(ExperienceBar.class)
 //#else

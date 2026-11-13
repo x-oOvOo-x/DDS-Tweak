@@ -1,6 +1,12 @@
 package ddstweak;
 
 import ddstweak.feature.cameraplayerselector.CameraPlayerSelectorFeature;
+import ddstweak.feature.carpetrules.CarpetRuleClientNetwork;
+//#if MC >= 260100
+//#if MC < 260300
+//$$ import ddstweak.gui.LegacyGpuSdfRenderer;
+//#endif
+//#endif
 import ddstweak.feature.windowplayerhead.WindowPlayerHeadFeature;
 //#if MC >= 12111
 import ddstweak.integration.carpet.playerinventory.CarpetPlayerCommandActionBinding;
@@ -17,9 +23,18 @@ import ddstweak.feature.locatorheads.LocatorNameFades;
 import fi.dy.masa.malilib.event.InitializationHandler;
 import net.fabricmc.api.ClientModInitializer;
 
+/**
+ * Initializes the DDS Tweak client mod.
+ * 初始化 DDS Tweak 客户端模组。
+ */
 public final class DDSTweak implements ClientModInitializer {
     public static final String MOD_ID=DDSTweakReference.MOD_ID;
     @Override public void onInitializeClient(){
+        //#if MC >= 260100
+        //#if MC < 260300
+        //$$ LegacyGpuSdfRenderer.initialize();
+        //#endif
+        //#endif
         //#if MC >= 12111
         BetterSnowCoverage.registerModelLoading();
         //#endif
@@ -34,6 +49,7 @@ public final class DDSTweak implements ClientModInitializer {
         //#if MC >= 12111
         CarpetPlayerCommandActionBinding.initialize();
         //#endif
+        CarpetRuleClientNetwork.initialize();
         DdsIntegrationBootstrap.initialize();
     }
 }

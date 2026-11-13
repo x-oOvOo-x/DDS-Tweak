@@ -4,7 +4,10 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.metadata.CustomValue;
 
-/** Loader-safe local DDS ownership metadata resolver. */
+/**
+ * Loader-safe local DDS ownership metadata resolver.
+ * 依据已安装模组元数据判定本地接管权。
+ */
 public final class DdsLocalOwnershipResolver {
     public static final String DDS_MOD_ID="carpet-dds-addition",OWNERSHIP_KEY="dds:network_ownership";
     private static volatile DdsLocalOwnershipDecision cached;

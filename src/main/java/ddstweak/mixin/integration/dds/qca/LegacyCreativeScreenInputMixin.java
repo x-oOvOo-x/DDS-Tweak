@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 /**
  * Before 1.17, the creative inventory overrides mouse input and can bypass
  * AbstractContainerScreen hooks. Forward handled gestures to the same QCA state.
+ * 将旧版创造界面输入交给统一 QCA 处理器。
  */
 @Mixin(CreativeModeInventoryScreen.class)
 public abstract class LegacyCreativeScreenInputMixin {

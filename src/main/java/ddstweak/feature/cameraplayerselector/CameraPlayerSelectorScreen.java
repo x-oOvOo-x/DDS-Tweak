@@ -23,6 +23,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import java.util.*;
 
+/**
+ * Displays available players and destinations for camera commands.
+ * 展示相机指令可选的玩家与目的地。
+ */
 public final class CameraPlayerSelectorScreen extends Screen {
     private static final int SLOT=22,ICON=16,GAP=3,PEEK=6,ROW_H=25,MAX_VISIBLE=5;
     // Anchors calibrated from the 4K reference using Minecraft GUI units, not screenshot pixels.

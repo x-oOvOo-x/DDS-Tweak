@@ -22,6 +22,7 @@ import net.minecraft.client.input.KeyEvent;
 /**
  * The normal in-bed screen without the chat UI.
  * The vanilla leave-bed button and Escape behavior are kept intact.
+ * 保留离床操作，同时不自动打开完整聊天界面。
  */
 public final class QuietInBedChatScreen extends InBedChatScreen {
     //#if MC >= 12109

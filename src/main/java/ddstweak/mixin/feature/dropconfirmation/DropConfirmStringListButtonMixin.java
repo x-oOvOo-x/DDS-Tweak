@@ -14,6 +14,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+// Opens the item picker for drop-confirmation list settings.
+// 为丢弃确认名单配置打开物品选择器。
 @Mixin(value=ConfigButtonStringList.class,remap=false)
 public abstract class DropConfirmStringListButtonMixin {
     @Shadow @Final private IConfigStringList config;

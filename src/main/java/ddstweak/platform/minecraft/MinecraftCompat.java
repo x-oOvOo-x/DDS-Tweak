@@ -29,6 +29,10 @@ import net.minecraft.resources.Identifier;
 //#endif
 import java.util.UUID;
 
+/**
+ * Centralizes cross-version Minecraft client API differences.
+ * 集中隔离 Minecraft 客户端 API 的版本差异。
+ */
 public final class MinecraftCompat {
     private MinecraftCompat(){}
 
@@ -306,6 +310,15 @@ public final class MinecraftCompat {
         return tag.getLongOr(key,fallback);
         //#else
         //$$ return tag.contains(key)?tag.getLong(key):fallback;
+        //#endif
+    }
+
+    public static boolean shiftDown(Minecraft minecraft){
+        if(minecraft==null)return false;
+        //#if MC >= 12109
+        return minecraft.hasShiftDown();
+        //#else
+        //$$ return Screen.hasShiftDown();
         //#endif
     }
 

@@ -13,6 +13,10 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.Locale;
 
+/**
+ * Scales client riding input for an eligible Happy Ghast.
+ * 仅对符合条件的快乐恶魂调整客户端骑乘输入。
+ */
 public final class HappyGhastRidingSpeedFeature {
     private static final double MIN=0.5D,MAX=2.0D,STEP=0.1D;
     private static final long SCROLL_RESET_NANOS=500_000_000L;

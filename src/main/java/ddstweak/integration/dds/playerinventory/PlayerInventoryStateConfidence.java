@@ -1,6 +1,9 @@
 package ddstweak.integration.dds.playerinventory;
 
-/** Describes how strongly the client knows a displayed action state. */
+/**
+ * Describes how strongly the client knows a displayed action state.
+ * 表示客户端显示的操作状态有多可靠。
+ */
 public enum PlayerInventoryStateConfidence {
     /** Provider/server state was observed directly. */
     AUTHORITATIVE,

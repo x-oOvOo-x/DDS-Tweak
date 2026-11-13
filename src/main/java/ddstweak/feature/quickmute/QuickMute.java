@@ -6,6 +6,10 @@ import net.minecraft.client.Minecraft;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+/**
+ * Preserves prior volume while applying reversible quick mute.
+ * 快捷静音时保存原音量，以便恢复。
+ */
 public final class QuickMute {
     private static final QuickMuteVolumeState VOLUME=new QuickMuteVolumeState();
     private static boolean appliedMuted;
@@ -13,7 +17,10 @@ public final class QuickMute {
 
     private QuickMute(){}
 
-    /** Internal recovery metadata, not a separate editable volume setting. */
+    /**
+     * Internal recovery metadata, not a separate editable volume setting.
+     * 这是内部恢复信息，不是独立的音量配置。
+     */
     public static void loadState(JsonObject root){
         JsonElement section=root.get("QuickMute");
         if(section==null||!section.isJsonObject())return;

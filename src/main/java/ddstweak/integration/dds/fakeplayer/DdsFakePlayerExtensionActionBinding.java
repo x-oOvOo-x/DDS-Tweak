@@ -6,7 +6,10 @@ import ddstweak.integration.dds.playerinventory.menu.UnifiedPlayerInventoryMirro
 import ddstweak.integration.provider.PlayerIdentityResolver;
 import ddstweak.playerinventory.PlayerInventoryClientActionState;
 
-/** DDS RPC compatibility fallback for provider menus when the standard Carpet command is unavailable. */
+/**
+ * DDS RPC compatibility fallback for provider menus when the standard Carpet command is unavailable.
+ * 仅在常规命令不可用时使用 DDS 兼容操作通道。
+ */
 public final class DdsFakePlayerExtensionActionBinding implements PlayerInventoryActionBinding{
     private UnifiedPlayerInventoryMirrorMenu menu;
     private PlayerInventoryClientActionState.State local;

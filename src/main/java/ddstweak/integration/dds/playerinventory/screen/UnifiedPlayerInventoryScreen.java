@@ -32,7 +32,10 @@ import net.minecraft.world.inventory.Slot;
 import java.util.*;
 import java.util.function.BooleanSupplier;
 
-/** Shared player-inventory client UI. Source-specific adapters provide context and action binding; vanilla packets own item/data state. */
+/**
+ * Shared player-inventory client UI. Source-specific adapters provide context and action binding; vanilla packets own item/data state.
+ * 展示统一玩家背包及远程交互界面。
+ */
 public class UnifiedPlayerInventoryScreen extends AbstractContainerScreen<UnifiedPlayerInventoryMirrorMenu>{
     private static final boolean TRACE=Boolean.getBoolean("ddstweak.playerinventory.trace");
     private static final org.apache.logging.log4j.Logger TRACE_LOG=

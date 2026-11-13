@@ -6,6 +6,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvents;
 
+/**
+ * Plays the configured startup cue once after client initialization.
+ * 客户端初始化完成后按配置播放一次启动音效。
+ */
 public final class ClientStartupSound {
     private static boolean pending=true;
 

@@ -5,7 +5,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Client-side preflight for the server's bounded item-ID preference protocol. */
+/**
+ * Client-side preflight for the server's bounded item-ID preference protocol.
+ * 发送前校验客户端补货偏好的数量及长度限制。
+ */
 public final class RestockPreferencePolicy {
     public static final int MAX_IDS=128, MAX_ID_LENGTH=128, MAX_ENCODED_LENGTH=8192;
     private RestockPreferencePolicy(){}

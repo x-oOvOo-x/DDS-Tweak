@@ -15,6 +15,7 @@ import net.minecraft.nbt.CompoundTag;
  *
  * Decode uses a duplicate buffer so Tweak can observe a packet without moving
  * the original reader index when a legacy DDS client is co-installed.
+ * 使用副本缓冲区读取旧协议数据，避免改变原读取位置。
  */
 public final class LegacyCustomPayloadClientTransport implements DdsClientTransport {
     @Override

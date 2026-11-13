@@ -3,6 +3,10 @@ package ddstweak.feature.clickthrough;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.util.StringUtils;
 
+/**
+ * Defines the selectable Click Through interaction modes.
+ * 定义穿透点击的可选模式。
+ */
 public enum ClickThroughMode implements IConfigOptionListEntry {
     SMART("smart"),
     ALWAYS("always");

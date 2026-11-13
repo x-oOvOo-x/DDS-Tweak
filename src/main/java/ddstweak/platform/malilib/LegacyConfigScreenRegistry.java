@@ -12,6 +12,10 @@ import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.function.Supplier;
 
+/**
+ * Discovers optional config screens without requiring their mods at runtime.
+ * 发现可选模组的配置界面，不强制运行时依赖。
+ */
 public final class LegacyConfigScreenRegistry {
     private static final Logger LOGGER=LogManager.getLogger("DDS Tweak/LegacyConfigSelector");
     private static final List<Entry> ENTRIES=new ArrayList<>();

@@ -18,7 +18,10 @@ import net.minecraft.client.input.MouseButtonEvent;
 //#endif
 import java.util.function.Consumer;
 
-/** Three compact editing categories, with unsaved drafts isolated by scope. */
+/**
+ * Three compact editing categories, with unsaved drafts isolated by scope.
+ * 编辑全局及当前服务器的相机指令配置。
+ */
 final class CameraCommandConfigScreen extends Screen {
     private enum Tab { PLAYER, CAMERA, DESTINATION }
     private static final int PANEL_W=316,FIELD_H=18,BUTTON_H=18,GAP=4;

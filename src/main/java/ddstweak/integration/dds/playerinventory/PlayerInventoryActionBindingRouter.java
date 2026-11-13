@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 /**
  * Late-bound action route chain. Preferred protocol routes are registered independently;
  * provider bindings stay provider-neutral and are always the final fallback.
+ * 优先使用已注册协议通道，Provider 保留为兜底。
  */
 public final class PlayerInventoryActionBindingRouter implements PlayerInventoryActionBinding{
     private static final List<Supplier<PlayerInventoryActionBinding>> PREFERRED=new ArrayList<>();

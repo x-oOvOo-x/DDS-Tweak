@@ -26,6 +26,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** Tweak owns supported screens when enabled. GCA resolves immediately; Org upgrades from the Tweak storage shell after its command context binds. */
+/**
+ * Chooses a unified client screen only after compatible menu ownership is known.
+ * 确认菜单归属后才切换为统一客户端界面。
+ */
 @Mixin(MenuScreens.class)
 public abstract class MenuScreensMixin{
     private static final boolean TRACE = Boolean.getBoolean("ddstweak.playerinventory.trace");

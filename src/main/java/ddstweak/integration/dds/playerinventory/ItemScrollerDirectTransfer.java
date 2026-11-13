@@ -20,6 +20,7 @@ import net.minecraft.world.inventory.ClickType;
  * Direct, explicitly addressed ItemScroller transfers on GCA/Org mirror menus.
  * One gesture plans all PICKUP slots before sending any packets. The native
  * QUICK_MOVE auto-equip/offhand path is never used here.
+ * 规划精确的 ItemScroller 拾取路径，避免原版自动装备流程。
  */
 public final class ItemScrollerDirectTransfer {
     private static final boolean TRACE=Boolean.getBoolean("dds.playerinventory.trace");

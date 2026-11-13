@@ -23,6 +23,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 /** Keeps Item Scroller sorting inside the unified target region and off the viewer hotbar. */
+/**
+ * Restricts Item Scroller operations to the unified target inventory region.
+ * 将 ItemScroller 操作限制在统一背包目标区域。
+ */
 @Pseudo
 @Mixin(targets="fi.dy.masa.itemscroller.util.InventoryUtils",remap=false)
 public abstract class InventoryUtilsMixin{

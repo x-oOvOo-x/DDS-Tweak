@@ -7,7 +7,10 @@ import ddstweak.platform.minecraft.MinecraftCompat;
 import net.minecraft.nbt.CompoundTag;
 import java.util.UUID;
 
-/** Optional DDS authority. Absent/disabled DDS leaves provider UI independent. */
+/**
+ * Optional DDS authority. Absent/disabled DDS leaves provider UI independent.
+ * 使用可选 DDS 身份信息，不影响独立 Provider 界面。
+ */
 public final class DdsFakePlayerIdentityClient {
     public static final String PACKET_ID="fake_player_identity_s2c";
     private static final FakePlayerIdentityState STATE=new FakePlayerIdentityState();

@@ -14,6 +14,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //#endif
 
+// Arbitrates explicit item use and attack during Auto Eat transactions.
+// 自动进食事务期间协调玩家主动使用与攻击输入。
 @Mixin(Minecraft.class)
 public abstract class MinecraftInputMixin {
     @Inject(method="startUseItem",at=@At("HEAD"),cancellable=true)

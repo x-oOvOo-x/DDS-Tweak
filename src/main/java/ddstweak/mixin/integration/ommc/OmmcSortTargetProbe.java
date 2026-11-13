@@ -14,7 +14,10 @@ import java.util.Optional;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Reads optional OMMC jar bytecode without ever loading OMMC classes. */
+/**
+ * Reads optional OMMC jar bytecode without ever loading OMMC classes.
+ * 只检查可选 OMMC 字节码，不主动加载其类。
+ */
 public final class OmmcSortTargetProbe {
     private OmmcSortTargetProbe(){}
     public static final String LEGACY="com.plusls.ommc.feature.sortInventory.SortInventoryUtil";

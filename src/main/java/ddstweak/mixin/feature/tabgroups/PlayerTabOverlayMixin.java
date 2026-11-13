@@ -27,6 +27,10 @@ import java.util.Comparator;
 import java.util.List;
 
 /** Client-only Tab grouping, without fake PlayerInfo rows or rewritten packets. */
+/**
+ * Groups visible Tab rows without altering server-supplied player entries.
+ * 对 Tab 玩家列表分组，不修改服务端下发的条目。
+ */
 @Mixin(PlayerTabOverlay.class)
 public abstract class PlayerTabOverlayMixin {
     @Shadow @Final private Minecraft minecraft;

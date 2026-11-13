@@ -19,6 +19,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Optional AyakaCraft modern OMMC sorter; gated by bytecode signature probe. */
 @Pseudo
 @Mixin(targets="com.plusls.ommc.impl.feature.sortInventory.SortInventoryHelper",remap=false)
+/**
+ * Guards modern OMMC sorting through a verified bytecode signature.
+ * 仅对字节码验证通过的新版 OMMC 整理器注入。
+ */
 public abstract class SortInventoryModernMixin {
     //#if MC < 260200
     @Inject(method="getSortRange",at=@At("HEAD"),cancellable=true,require=0,remap=false)

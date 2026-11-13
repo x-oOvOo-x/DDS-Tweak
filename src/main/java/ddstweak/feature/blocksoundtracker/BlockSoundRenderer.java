@@ -25,7 +25,10 @@ import org.slf4j.LoggerFactory;
 //#endif
 //#endif
 
-/** Identical through-wall purple outlines and translucent faces for every sound location. */
+/**
+ * Identical through-wall purple outlines and translucent faces for every sound location.
+ * 在已记录的声音位置绘制轮廓提示。
+ */
 public final class BlockSoundRenderer implements IRenderer {
     public static final BlockSoundRenderer INSTANCE=new BlockSoundRenderer();
     private static final Logger LOGGER=LoggerFactory.getLogger(BlockSoundRenderer.class);

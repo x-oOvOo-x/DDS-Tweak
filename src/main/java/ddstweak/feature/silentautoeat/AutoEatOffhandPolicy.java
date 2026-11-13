@@ -3,7 +3,10 @@ package ddstweak.feature.silentautoeat;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.util.StringUtils;
 
-/** Controls whether Auto Eat may temporarily remove a real offhand item. */
+/**
+ * Controls whether Auto Eat may temporarily remove a real offhand item.
+ * 控制自动进食是否允许临时移动副手物品。
+ */
 public enum AutoEatOffhandPolicy implements IConfigOptionListEntry {
     PROTECT_CRITICAL("protect_critical"),
     NEVER_REPLACE("never_replace"),

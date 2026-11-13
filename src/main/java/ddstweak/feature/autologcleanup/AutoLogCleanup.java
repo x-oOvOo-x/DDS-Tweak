@@ -11,6 +11,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Prunes historical logs at client startup under configured retention limits.
+ * 客户端启动时按保留策略清理历史日志。
+ */
 public final class AutoLogCleanup {
     private static final Pattern HISTORICAL_LOG=Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]+\\.log(?:\\.gz)?");
     private static boolean cleaned;
@@ -21,6 +25,10 @@ public final class AutoLogCleanup {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> cleanOnce());
     }
 
+    /**
+     * Prune only historical log files, once per client process.
+     * 每次客户端运行仅清理一次历史日志文件。
+     */
     static void cleanOnce(){
         if(cleaned)return;
         cleaned=true;

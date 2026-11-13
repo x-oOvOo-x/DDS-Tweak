@@ -5,6 +5,7 @@ package ddstweak.mixin.integration.ommc;
  * OMMC source tree (calboot/dev) and its per-version Gradle projects.
  * Upstream availability is necessary, never sufficient: bytecode probing
  * must independently verify that the installed sorter is safe to intercept.
+ * 以版本清单筛选 OMMC，并要求字节码再次验证。
  */
 public final class OmmcSortVersionMatrix {
     private OmmcSortVersionMatrix(){}

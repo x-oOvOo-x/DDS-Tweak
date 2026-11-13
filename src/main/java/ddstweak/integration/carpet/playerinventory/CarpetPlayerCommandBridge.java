@@ -10,7 +10,10 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
-/** Provider-neutral fake-player controller backed by the standard Carpet /player command tree. */
+/**
+ * Provider-neutral fake-player controller backed by the standard Carpet /player command tree.
+ * 通过服务端下发的 Carpet 命令树执行玩家操作。
+ */
 public final class CarpetPlayerCommandBridge {
     private static final Set<PlayerInventoryAction> SUPPORTED=EnumSet.of(
             PlayerInventoryAction.SELECT_HOTBAR,

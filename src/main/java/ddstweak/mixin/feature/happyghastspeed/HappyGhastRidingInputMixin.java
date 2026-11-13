@@ -16,6 +16,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(HappyGhast.class)
+/**
+ * Scales Happy Ghast riding input only after vanilla computes it.
+ * 原版计算骑乘输入后再调整快乐恶魂速度。
+ */
 public abstract class HappyGhastRidingInputMixin implements HappyGhastRidingSpeedTarget {
     @Inject(method="getRiddenInput",at=@At("RETURN"),cancellable=true)
     private void ddstweak$scaleRiddenInput(Player controller,Vec3 selfInput,CallbackInfoReturnable<Vec3> cir){

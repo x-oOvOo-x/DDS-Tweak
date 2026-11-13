@@ -8,13 +8,25 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import java.util.*;
 import net.fabricmc.loader.api.FabricLoader;
 
-/** Early ownership gate: a valid DDS marker hands logical client features to Tweak while DDS may retain wire registration. */
+/**
+ * Early ownership gate: a valid DDS marker hands logical client features to Tweak while DDS may retain wire registration.
+ * 按模组安装状态和 DDS 本地接管权启用可选 Mixin。
+ */
 public final class DdsTweakMixinConfigPlugin implements IMixinConfigPlugin {
     private static final Set<String> CODEC_MIXINS=Collections.unmodifiableSet(new LinkedHashSet<String>(Arrays.asList("ddstweak.mixin.network.ClientboundCustomPayloadPacketMixin","ddstweak.mixin.network.ServerboundCustomPayloadPacketMixin")));
     private static final String DDS_FEATURE_PREFIX="ddstweak.mixin.integration.dds.";
     @Override public void onLoad(String mixinPackage){}
     @Override public String getRefMapperConfig(){return null;}
     @Override public boolean shouldApplyMixin(String targetClassName,String mixinClassName){
+        if(mixinClassName.endsWith(".carpetrules.VanillaGameRulePacketMixin")){
+            String game=FabricLoader.getInstance().getModContainer("minecraft")
+                    .map(m->m.getMetadata().getVersion().getFriendlyString()).orElse("");
+            return game.startsWith("26.");
+        }
+        if(mixinClassName.endsWith("CarpetRuleClientboundPayloadMixin")||mixinClassName.endsWith("CarpetRuleServerboundPayloadMixin")){
+            String game=FabricLoader.getInstance().getModContainer("minecraft").map(m->m.getMetadata().getVersion().getFriendlyString()).orElse("");
+            return !FabricLoader.getInstance().isModLoaded("carpet")&&!game.startsWith("1.14.")&&!game.startsWith("1.15.")&&!game.startsWith("1.16.")&&!game.startsWith("1.17.")&&!game.startsWith("1.18.")&&!game.startsWith("1.19.")&&!game.startsWith("1.20.1");
+        }
         if(mixinClassName.startsWith("ddstweak.mixin.integration.ommc.")){
             boolean modern=mixinClassName.contains("Modern");
             boolean fallback=mixinClassName.endsWith("FallbackMixin");

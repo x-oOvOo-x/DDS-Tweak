@@ -14,7 +14,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickType;
 //#endif
 
-/** Carpet-command controller with Org native-slot fallback and per-target client-session state. */
+/**
+ * Carpet-command controller with Org native-slot fallback and per-target client-session state.
+ * 按服务端权限通过 Carpet 命令或 Org 原生槽位执行操作。
+ */
 public final class OrgPlayerInventoryActionBinding implements PlayerInventoryActionBinding{
     private static final Set<PlayerInventoryAction> NATIVE_ACTIONS=Collections.unmodifiableSet(EnumSet.of(
             PlayerInventoryAction.SELECT_HOTBAR,PlayerInventoryAction.ATTACK_CONTINUOUS,

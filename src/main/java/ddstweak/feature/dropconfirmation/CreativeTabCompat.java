@@ -14,6 +14,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
 
+/**
+ * Adapts creative inventory tab lists across Minecraft versions.
+ * 适配不同版本创造模式物品栏分类。
+ */
 public final class CreativeTabCompat {
     private CreativeTabCompat(){}
 

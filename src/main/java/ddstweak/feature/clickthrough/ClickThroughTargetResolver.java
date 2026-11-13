@@ -16,6 +16,10 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
+/**
+ * Chooses the target hit result after Click Through eligibility checks.
+ * 通过穿透资格检查后确定最终交互目标。
+ */
 public final class ClickThroughTargetResolver {
     private ClickThroughTargetResolver(){}
 

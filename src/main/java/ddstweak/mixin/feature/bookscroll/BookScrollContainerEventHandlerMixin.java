@@ -10,6 +10,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Routes book mouse-wheel input without disrupting other container scrolling.
+ * 独立处理书本滚轮输入，避免干扰容器滚动。
+ */
 @Mixin(ContainerEventHandler.class)
 public interface BookScrollContainerEventHandlerMixin {
     //#if MC >= 12002

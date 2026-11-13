@@ -5,7 +5,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.Locale;
 
-/** Pure, idempotent migration of preview Locator Heads settings before MaLiLib loads them. */
+/**
+ * Pure, idempotent migration of preview Locator Heads settings before MaLiLib loads them.
+ * 幂等迁移旧版定位栏设置，不重复修改新配置。
+ */
 public final class LocatorConfigMigration {
     private LocatorConfigMigration(){}
 

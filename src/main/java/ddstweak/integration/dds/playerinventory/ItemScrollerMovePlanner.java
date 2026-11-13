@@ -9,6 +9,7 @@ import java.util.Map;
 /**
  * Predicts exact, left-click PICKUP routes for one item type. All positions
  * are menu IDs, not inventory backing indices. No server or MC classes here.
+ * 仅计算单类物品的菜单槽位移动，不访问服务端。
  */
 public final class ItemScrollerMovePlanner {
     public static final int MAX_CLICKS=512;

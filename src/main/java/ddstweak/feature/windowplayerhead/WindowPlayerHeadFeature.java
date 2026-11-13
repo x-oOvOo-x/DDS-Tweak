@@ -7,6 +7,10 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.nio.file.Path;
 import java.util.UUID;
 
+/**
+ * Coordinates player-head window icon setup and lifecycle.
+ * 管理玩家头像窗口图标的初始化与生命周期。
+ */
 public final class WindowPlayerHeadFeature {
     private static boolean initialized;
     public static void initialize(){if(initialized)return;initialized=true;ClientLifecycleEvents.CLIENT_STARTED.register(client->{

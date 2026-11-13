@@ -7,6 +7,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+/**
+ * Suppresses End flash rendering only when its toggle is enabled.
+ * 仅在配置开启时跳过末地闪烁渲染。
+ */
 
 @Mixin(SkyRenderer.class)
 public abstract class SkyRendererMixin {

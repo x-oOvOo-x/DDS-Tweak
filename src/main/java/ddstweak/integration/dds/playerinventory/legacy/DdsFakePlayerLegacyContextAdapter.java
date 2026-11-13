@@ -4,7 +4,10 @@ import ddstweak.integration.dds.fakeplayer.*;
 import ddstweak.integration.dds.playerinventory.*;
 import java.util.*;
 
-/** Maps the existing Protocol-v1 fake_player_open_menu_s2c contract into the neutral GUI-v2 model without changing the wire contract. */
+/**
+ * Maps the existing Protocol-v1 fake_player_open_menu_s2c contract into the neutral GUI-v2 model without changing the wire contract.
+ * 转换旧版假人菜单上下文，不修改协议标识。
+ */
 public final class DdsFakePlayerLegacyContextAdapter{
     public static final String LAYOUT_INVENTORY=PlayerInventoryLayouts.INVENTORY_V1,LAYOUT_ENDER_3=PlayerInventoryLayouts.ENDER_3_V1,LAYOUT_ENDER_6=PlayerInventoryLayouts.ENDER_6_V1;
     private static final Map<DdsFakePlayerAction,PlayerInventoryAction>ACTIONS=createActions();

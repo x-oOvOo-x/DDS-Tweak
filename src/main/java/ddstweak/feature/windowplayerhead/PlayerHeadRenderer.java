@@ -6,6 +6,10 @@ import org.apache.logging.log4j.*;
 import java.nio.*;
 import java.nio.file.*;
 
+/**
+ * Builds window icon pixels from a player's cached skin.
+ * 根据缓存皮肤绘制窗口头像图标。
+ */
 final class PlayerHeadRenderer {
     private static final Logger LOGGER=LogManager.getLogger("DDS Tweak/PlayerHeadWindowIcon");
     static final int FACE_X=8,FACE_Y=8,HAT_X=40,HAT_Y=8;

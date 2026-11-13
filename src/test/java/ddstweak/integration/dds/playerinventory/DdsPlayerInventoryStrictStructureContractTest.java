@@ -10,6 +10,21 @@ import static org.junit.jupiter.api.Assertions.*;
 final class DdsPlayerInventoryStrictStructureContractTest {
     private static final Path ROOT=findRepositoryRoot(), JAVA=ROOT.resolve("src/main/java");
 
+    @Test void legacyVersionsShareStrictStructuralTransportAndCloseReturn() throws IOException {
+        String network=read("ddstweak/integration/dds/fakeplayer/DdsFakePlayerClientNetwork.java");
+        String mixin=read("ddstweak/mixin/integration/dds/playerinventory/PlayerInventoryReturnMixin.java");
+        String bootstrap=read("ddstweak/integration/dds/DdsIntegrationBootstrap.java");
+        assertTrue(bootstrap.contains("//#if MC >= 11904"));
+        assertTrue(bootstrap.contains("DdsFakePlayerClientNetwork.initializeExtension()"));
+        assertEquals(5, network.split("//#if MC >= 11904", -1).length - 1);
+        assertTrue(network.contains("registerC2S(DdsFakePlayerPackets.CANONICAL_ENDER_C2S)"));
+        assertTrue(network.contains("registerC2S(DdsFakePlayerPackets.RETURN_PARENT_C2S)"));
+        assertTrue(network.contains("stageProviderEnderAwaitingStrict"));
+        assertTrue(network.contains("isStructuralTarget(context)"));
+        assertTrue(mixin.contains("//#if MC >= 11904"));
+        assertTrue(mixin.contains("DdsFakePlayerClientNetwork.sendReturnParent"));
+    }
+
     @Test void strictPacketsAndResultHandlerAreRegistered() throws IOException {
         String packets=read("ddstweak/integration/dds/fakeplayer/DdsFakePlayerPackets.java");
         String network=read("ddstweak/integration/dds/fakeplayer/DdsFakePlayerClientNetwork.java");
@@ -54,7 +69,7 @@ final class DdsPlayerInventoryStrictStructureContractTest {
         assertTrue(network.contains("type==PlayerInventoryTargetType.FAKE||type==PlayerInventoryTargetType.REAL"));
         assertTrue(guard.contains("DdsClientNetwork.canSend(DdsFakePlayerPackets.CANONICAL_ENDER_C2S)"));
         assertTrue(guard.contains("return defer;"));
-        assertTrue(guard.contains("return false;")); // 1.21.10 and older cannot use strict RPC
+        assertTrue(guard.contains("return false;")); // Builds without structural transport cannot use strict RPC
 
         assertTrue(screens.contains("boolean allowLegacyOwnerEnder=!DdsFakePlayerClientNetwork.shouldDeferLegacyOwnerEnder(context)"));
         assertTrue(screens.contains("allowLegacyOwnerEnder&&staging!=null&&DdsQcaClientNetwork.sendOpenOwnerEnder(staging,context)"));

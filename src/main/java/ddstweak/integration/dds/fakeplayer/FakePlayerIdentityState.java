@@ -5,7 +5,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-/** A complete server snapshot is required before absence can mean REAL. */
+/**
+ * A complete server snapshot is required before absence can mean REAL.
+ * 只有获得完整权威快照后，才能据缺席判断真实玩家。
+ */
 public final class FakePlayerIdentityState {
     private final Set<UUID> fake=new HashSet<>();
     private boolean complete;

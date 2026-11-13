@@ -46,6 +46,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
+/**
+ * Repositions status effects in inventory screens without changing potion state.
+ * 仅调整背包状态效果显示，不修改药水效果状态。
+ */
 @Mixin(value=EffectsInInventory.class,priority=1100)
 public abstract class EffectsInInventoryMixin {
     @Shadow @Final private AbstractContainerScreen<?> screen;

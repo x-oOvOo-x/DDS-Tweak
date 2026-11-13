@@ -5,7 +5,10 @@ import org.apache.logging.log4j.LogManager;
 import java.lang.reflect.Method;
 import java.util.*;
 
-/** Temporary C0 bridge that preserves capabilities advertised by an unmarked legacy DDS client. */
+/**
+ * Temporary C0 bridge that preserves capabilities advertised by an unmarked legacy DDS client.
+ * 在正式移交前保留旧版 DDS 声明的能力。
+ */
 public final class DdsLegacyClientCapabilityBridge {
     private static final Logger LOGGER=LogManager.getLogger("DDS Tweak");
     private static final String REGISTRY_CLASS="carpetddsaddition.network.DdsPacketRegistry";

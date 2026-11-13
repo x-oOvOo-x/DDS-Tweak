@@ -5,7 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
 
-/** Semantic menu-slot policy shared by optional inventory automation adapters. */
+/**
+ * Semantic menu-slot policy shared by optional inventory automation adapters.
+ * 为背包自动化适配器统一槽位语义与资格判断。
+ */
 public final class PlayerInventorySlotPolicy {
     private PlayerInventorySlotPolicy(){}
 

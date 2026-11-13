@@ -24,6 +24,10 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import java.util.function.Predicate;
 
+/**
+ * Wraps block models to render conditional snow coverage.
+ * 按条件为方块模型叠加积雪渲染。
+ */
 public final class BetterSnowBlockStateModel extends WrapperBlockStateModel {
     private static final BlockState SNOW=Blocks.SNOW.defaultBlockState();
 

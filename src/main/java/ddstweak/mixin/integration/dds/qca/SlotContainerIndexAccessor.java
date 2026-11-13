@@ -6,7 +6,10 @@ import org.spongepowered.asm.mixin.Mixin;
 //$$ import org.spongepowered.asm.mixin.gen.Accessor;
 //#endif
 
-/** Pre-1.17 bridge for Slot#getContainerSlot(), which did not exist yet. */
+/**
+ * Pre-1.17 bridge for Slot#getContainerSlot(), which did not exist yet.
+ * 为 1.17 前版本补充容器槽位索引访问接口。
+ */
 @Mixin(Slot.class)
 public interface SlotContainerIndexAccessor {
     //#if MC < 11700

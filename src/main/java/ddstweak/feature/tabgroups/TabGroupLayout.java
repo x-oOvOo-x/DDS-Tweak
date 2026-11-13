@@ -1,6 +1,9 @@
 package ddstweak.feature.tabgroups;
 
-/** Pure row geometry: grouped entries retain vanilla row height and the 80-player cap. */
+/**
+ * Pure row geometry: grouped entries retain vanilla row height and the 80-player cap.
+ * 只计算 Tab 分组行偏移，不修改玩家列表。
+ */
 public final class TabGroupLayout {
     public static final int GAP_PIXELS = 3;
     private static final int MAX_ROWS_PER_COLUMN = 20;

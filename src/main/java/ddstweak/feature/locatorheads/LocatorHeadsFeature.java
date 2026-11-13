@@ -6,6 +6,10 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Reads locator HUD options and resolves feature availability.
+ * 读取定位栏配置并判断功能是否可用。
+ */
 public final class LocatorHeadsFeature {
     private LocatorHeadsFeature(){}
 

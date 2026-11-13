@@ -11,6 +11,10 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
 
+/**
+ * Suppresses hover tips only when the chat suggestions rectangle overlaps.
+ * 只有悬浮位置落在聊天补全区域时才隐藏提示。
+ */
 public final class ChatTooltipOcclusionFeature {
     private ChatTooltipOcclusionFeature(){}
 

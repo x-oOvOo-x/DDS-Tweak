@@ -7,6 +7,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+/**
+ * Consumes the wheel only while a controllable Happy Ghast uses speed adjustment.
+ * 仅在操控快乐恶魂调整速度时拦截滚轮。
+ */
 
 @Mixin(MouseHandler.class)
 public abstract class HappyGhastSpeedMouseHandlerMixin {

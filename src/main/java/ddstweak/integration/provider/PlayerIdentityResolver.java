@@ -9,7 +9,10 @@ import ddstweak.integration.org.playerinventory.OrgFakePlayerIdentityClient;
 import java.util.LinkedHashSet;
 import java.util.UUID;
 
-/** Composes optional authoritative UUID sources without coupling provider adapters to DDS. */
+/**
+ * Composes optional authoritative UUID sources without coupling provider adapters to DDS.
+ * 综合独立权威 UUID 来源判定玩家身份。
+ */
 public final class PlayerIdentityResolver {
     private PlayerIdentityResolver(){}
 

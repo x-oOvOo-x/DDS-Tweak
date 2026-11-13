@@ -10,7 +10,10 @@ import ddstweak.network.DdsClientSessionHooks;
 //$$ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 //#endif
 
-/** Org's explicit positive fake-player notifications; false means removal, not REAL. */
+/**
+ * Org's explicit positive fake-player notifications; false means removal, not REAL.
+ * 跟踪 Org 假人通知，不因缺席就判定真实玩家。
+ */
 public final class OrgFakePlayerIdentityClient {
     private static final Set<UUID> FAKE=ConcurrentHashMap.newKeySet();
     private static boolean initialized;

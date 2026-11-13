@@ -53,6 +53,10 @@ import net.minecraft.world.item.Items;
 import java.util.*;
 import java.util.function.Consumer;
 
+/**
+ * Provides an interactive item picker for drop-related configuration.
+ * 提供用于丢弃相关配置的物品选择界面。
+ */
 public final class DropConfirmationItemScreen extends Screen {
     private static final int SLOT=22,GAP=2,CATEGORY_SIZE=22,BUTTON_H=20,FIELD_H=18,FOOTER_WIDTH=72,FOOTER_GAP=4;
     private static final int LABEL_Y=24,LABEL_RULE_Y=40,SELECTED_Y=47,SEARCH_Y=45,CATEGORY_Y=67,ITEMS_Y=91;

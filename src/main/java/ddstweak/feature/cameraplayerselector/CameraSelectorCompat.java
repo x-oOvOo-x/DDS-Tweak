@@ -13,6 +13,10 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 import java.math.BigDecimal;
 import java.util.*;
 
+/**
+ * Adapts player snapshots and command availability across versions.
+ * 适配不同版本的玩家列表与指令可用性。
+ */
 final class CameraSelectorCompat {
     private CameraSelectorCompat(){}
 
@@ -69,12 +73,7 @@ final class CameraSelectorCompat {
     }
 
     static boolean shiftDown(Minecraft minecraft){
-        if(minecraft==null)return false;
-        //#if MC >= 12109
-        return minecraft.hasShiftDown();
-        //#else
-        //$$ return net.minecraft.client.gui.screens.Screen.hasShiftDown();
-        //#endif
+        return MinecraftCompat.shiftDown(minecraft);
     }
 
     static boolean sendAction(Minecraft minecraft,CameraCommandProfile profile,CameraCommandProfile.Action action){

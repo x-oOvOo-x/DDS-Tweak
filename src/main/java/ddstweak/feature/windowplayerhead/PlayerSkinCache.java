@@ -3,6 +3,10 @@ package ddstweak.feature.windowplayerhead;
 import java.io.*;
 import java.nio.file.*;
 
+/**
+ * Stores validated player skin PNG files on disk.
+ * 在磁盘缓存并校验玩家皮肤 PNG 文件。
+ */
 final class PlayerSkinCache {
     private static final byte[] PNG={(byte)137,80,78,71,13,10,26,10};
     static Path path(Path gameDir,String key){return gameDir.resolve("cache").resolve("dds-tweak").resolve("player-skin").resolve(key+".png");}

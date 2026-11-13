@@ -4,7 +4,10 @@ import ddstweak.platform.minecraft.MinecraftCompat;
 import net.minecraft.nbt.CompoundTag;
 import java.util.*;
 
-/** Backward-compatible metadata carried by fake_player_open_menu_s2c. */
+/**
+ * Backward-compatible metadata carried by fake_player_open_menu_s2c.
+ * 承载兼容旧版的假人菜单元数据。
+ */
 public final class DdsFakePlayerOpenContext {
     private static final int MAX_NAME=64,MAX_ACTIONS_TEXT=512,MAX_ACTION_TOKENS=32,MAX_ACTION_TOKEN=64;
     private final int containerId,layout,menuSchema;

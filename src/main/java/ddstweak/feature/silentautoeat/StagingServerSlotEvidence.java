@@ -13,6 +13,7 @@ import java.util.function.UnaryOperator;
  *
  * Kept independent of Minecraft registries so the comparison state machine
  * can be tested in ordinary JUnit without bootstrapping ItemStack/Items.
+ * 观察服务端槽位修正，不将本地预测当作确认。
  */
 final class StagingServerSlotEvidence<T> {
     private final BiPredicate<T,T> same;

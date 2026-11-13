@@ -3,7 +3,10 @@ package ddstweak.feature.blocksoundtracker;
 //#if MC >= 12111
 import com.google.common.collect.ImmutableList;
 
-/** Redstone-relevant sound events; blocks without operation sounds have no fabricated IDs. */
+/**
+ * Redstone-relevant sound events; blocks without operation sounds have no fabricated IDs.
+ * 定义默认过滤使用的红石相关声音事件。
+ */
 public final class BlockSoundDefaults {
     private BlockSoundDefaults(){}
 

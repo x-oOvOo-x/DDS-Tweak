@@ -4,6 +4,7 @@ package ddstweak.feature.blocksoundtracker;
 /**
  * Conservative sound-to-block attribution. A matching location alone is not evidence:
  * the emitted sound family must also be compatible with the actual block registry ID.
+ * 结合声音类型和方块 ID 校验来源，不只依靠坐标。
  */
 public final class BlockSoundSourceResolver {
     private BlockSoundSourceResolver(){}

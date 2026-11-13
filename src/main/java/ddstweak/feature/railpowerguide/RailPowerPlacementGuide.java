@@ -22,6 +22,10 @@ import net.minecraft.world.level.block.state.properties.RailShape;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
+/**
+ * Tracks target positions for rail power placement hints.
+ * 计算并维护铁轨供电放置提示位置。
+ */
 public final class RailPowerPlacementGuide {
     private static final int MAX_TRACE_RAILS=4096;
     private static final int DISPLAY_RADIUS=20;

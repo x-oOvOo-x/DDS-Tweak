@@ -24,7 +24,10 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import java.util.*;
 
-/** DDS fake-player client network: legacy DDS menu compatibility plus optional GCA extension metadata/RPC. */
+/**
+ * DDS fake-player client network: legacy DDS menu compatibility plus optional GCA extension metadata/RPC.
+ * 协调假人菜单消息与客户端会话状态。
+ */
 public final class DdsFakePlayerClientNetwork{
     private static final boolean TRACE = Boolean.getBoolean("dds.playerinventory.trace");
     private static final org.apache.logging.log4j.Logger TRACE_LOG =
@@ -48,7 +51,7 @@ public final class DdsFakePlayerClientNetwork{
         if(extensionInitialized)return;
         DdsClientNetwork.registerC2S(DdsFakePlayerPackets.ACTION_C2S);
         DdsClientNetwork.registerC2S(DdsFakePlayerPackets.PROVIDER_ACTION_C2S);
-        //#if MC >= 12111
+        //#if MC >= 11904
         DdsClientNetwork.registerC2S(DdsFakePlayerPackets.CANONICAL_ENDER_C2S);
         DdsClientNetwork.registerC2S(DdsFakePlayerPackets.RETURN_PARENT_C2S);
         DdsClientNetwork.registerOrderedS2CHandler(DdsFakePlayerPackets.STRUCTURE_RESULT_S2C,DdsFakePlayerClientNetwork::handleStructureResult);
@@ -257,7 +260,7 @@ public final class DdsFakePlayerClientNetwork{
     /** A provider menu can precede its strict Context packet. Do not let the historical
      * owner-Ender request replace it while the server advertises strict canonical support. */
     public static boolean stageProviderEnderAwaitingStrict(AbstractContainerMenu menu,PlayerInventoryContext context,Component title){
-        //#if MC >= 12111
+        //#if MC >= 11904
         if(menu==null||context==null||context.inventoryKind()!=PlayerInventoryKind.ENDER_CHEST
                 ||!isProvider(context)||!DdsClientNetwork.canSend(DdsFakePlayerPackets.CANONICAL_ENDER_C2S))return false;
         if(!isStructuralTarget(context))return false;
@@ -271,7 +274,7 @@ public final class DdsFakePlayerClientNetwork{
     }
 
     public static boolean shouldDeferLegacyOwnerEnder(PlayerInventoryContext context){
-        //#if MC >= 12111
+        //#if MC >= 11904
         boolean defer=context!=null&&context.inventoryKind()==PlayerInventoryKind.ENDER_CHEST
                 &&isProvider(context)&&context.targetUuid()!=null
                 &&isStructuralTarget(context)
@@ -285,7 +288,7 @@ public final class DdsFakePlayerClientNetwork{
     }
 
     public static boolean tryCanonicalEnder(AbstractContainerMenu menu,PlayerInventoryContext context){
-        //#if MC >= 12111
+        //#if MC >= 11904
         boolean providerEnder=context!=null&&context.inventoryKind()==PlayerInventoryKind.ENDER_CHEST
                 &&isProvider(context);
         if(menu==null||!providerEnder||!isStructuralTarget(context)){
@@ -327,7 +330,7 @@ public final class DdsFakePlayerClientNetwork{
     }
 
     public static boolean canReturnParent(UnifiedPlayerInventoryMirrorMenu menu){
-        //#if MC >= 12111
+        //#if MC >= 11904
         if(menu==null||menu.kind()!=PlayerInventoryKind.ENDER_CHEST
                 ||menu.context().targetUuid()==null
                 ||!menu.context().allows(PlayerInventoryInteractionCapability.RETURN_PARENT)

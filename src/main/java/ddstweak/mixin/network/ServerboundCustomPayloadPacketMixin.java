@@ -30,6 +30,8 @@ import java.util.List;
 //$$ import java.util.Map;
 //#endif
 //#endif
+// Registers the DDS serverbound codec without replacing unrelated entries.
+// 注册 DDS 服务端入站编解码器，保留其他协议项。
 
 @Mixin(ServerboundCustomPayloadPacket.class)
 public abstract class ServerboundCustomPayloadPacketMixin {

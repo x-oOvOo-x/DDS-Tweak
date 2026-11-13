@@ -18,6 +18,10 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.spongepowered.asm.mixin.injection.ModifyArgs;
 
 @Mixin(AbstractContainerScreen.class)
+/**
+ * Projects Auto Eat inventory visuals without modifying backing stacks.
+ * 仅投影自动进食的背包显示，不修改实际物品。
+ */
 public abstract class ContainerScreenRenderMixin {
     //#if MC >= 12111
     @Shadow protected Slot hoveredSlot;

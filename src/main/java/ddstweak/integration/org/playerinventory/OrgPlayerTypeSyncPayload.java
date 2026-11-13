@@ -7,7 +7,10 @@ package ddstweak.integration.org.playerinventory;
 //$$ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 //$$ import java.util.UUID;
 
-//$$ /** Wire-compatible with Org's player_type_sync; used only when the Org client is absent. */
+//$$ /**
+//$$  * Wire-compatible with Org's player_type_sync; used only when the Org client is absent.
+//$$  * 与 Org 的 player_type_sync 消息格式兼容，仅在未安装 Org 客户端时使用。
+//$$  */
 //$$ public record OrgPlayerTypeSyncPayload(UUID uuid,boolean fake) implements CustomPacketPayload {
 //$$     public static final Type<OrgPlayerTypeSyncPayload> TYPE=new Type<>(MinecraftCompat.id("carpet-org-addition","player_type_sync"));
 //$$     public static final StreamCodec<RegistryFriendlyByteBuf,OrgPlayerTypeSyncPayload> CODEC=new StreamCodec<>(){

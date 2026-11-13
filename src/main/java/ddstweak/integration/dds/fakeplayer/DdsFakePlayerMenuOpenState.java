@@ -3,7 +3,10 @@ package ddstweak.integration.dds.fakeplayer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/** Connection-bound FIFO pairing DDS menu markers with following vanilla OpenScreen packets. */
+/**
+ * Connection-bound FIFO pairing DDS menu markers with following vanilla OpenScreen packets.
+ * 按连接顺序匹配菜单标记与后续打开界面数据包。
+ */
 public final class DdsFakePlayerMenuOpenState<C>{
     private static final int DEFAULT_MAX_PENDING=128;private final long maxAgeNanos;private final int maxPending;private final Deque<Pending<C>> pending=new ArrayDeque<>();
     public DdsFakePlayerMenuOpenState(long maxAgeNanos){this(maxAgeNanos,DEFAULT_MAX_PENDING);}DdsFakePlayerMenuOpenState(long maxAgeNanos,int maxPending){if(maxAgeNanos<=0||maxPending<=0)throw new IllegalArgumentException("limits must be positive");this.maxAgeNanos=maxAgeNanos;this.maxPending=maxPending;}

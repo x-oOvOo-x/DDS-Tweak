@@ -11,6 +11,10 @@ import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 //#endif
 import net.fabricmc.loader.api.FabricLoader;
 
+/**
+ * Registers optional fake-player UI assets using version-appropriate APIs.
+ * 通过跨版本资源 API 注册可选假人界面素材。
+ */
 public final class DdsBuiltinResourcePackCompat {
     private DdsBuiltinResourcePackCompat(){}
     @SuppressWarnings("deprecation")

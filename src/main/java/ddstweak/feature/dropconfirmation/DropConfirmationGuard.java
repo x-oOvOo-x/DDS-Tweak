@@ -7,6 +7,10 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+/**
+ * Blocks configured drops until confirmation requirements are satisfied.
+ * 在满足确认条件前阻止指定物品丢弃。
+ */
 public final class DropConfirmationGuard {
     private static final long WINDOW_NS=1_000_000_000L;
     private static Pending pending;

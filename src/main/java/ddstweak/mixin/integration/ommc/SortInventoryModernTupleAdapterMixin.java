@@ -19,6 +19,10 @@ import java.util.List;
  */
 @Pseudo
 @Mixin(targets="com.plusls.ommc.impl.feature.sortInventory.SortInventoryHelper",remap=false)
+/**
+ * Adapts OMMC's own Tuple type without linking optional classes.
+ * 适配 OMMC 自有 Tuple 类型，不直接链接可选类。
+ */
 public abstract class SortInventoryModernTupleAdapterMixin {
     @Inject(method="getSortRange",at=@At("HEAD"),cancellable=true,require=0,remap=false)
     private static void ddsTweak$range(AbstractContainerMenu menu,Slot hovered,

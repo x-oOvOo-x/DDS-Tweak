@@ -73,6 +73,37 @@ final class ConfigRowGroupingTest {
         assertEquals(106,ConfigRowGrouping.displayWidth(60,160,ConfigRowGrouping.DEFAULT_NAME_SCALE));
     }
 
+    @Test void dtOriginalNameHasPriorityWithoutOverridingOtherModScreens() throws IOException {
+        String gui=Files.readString(Path.of("src/main/java/ddstweak/gui/DDSTweakConfigScreen.java"));
+        assertFalse(gui.contains("externalNameLabels"),
+                "Do not access subclass-initialized collections during the parent constructor's virtual callback");
+        assertTrue(gui.contains("if(firstLabel==null)return;"),
+                "An external label subclass must not disable DT's own name rendering");
+        assertTrue(gui.contains("plainLabel!=null?plainLabel:new WidgetLabel("),
+                "DT must supply a native label when another mod replaces it");
+        assertTrue(gui.contains("boolean externalFallback=!enabled&&hasExternalLabels"),
+                "DT-off must leave the external label renderer in control");
+        assertTrue(gui.contains("if(enabled&&hasExternalLabels"),
+                "Foreign labels must only be suppressed when DT is enabled");
+        assertTrue(gui.contains("subWidgets.removeIf(widget->widget instanceof WidgetLabel&&widget!=nativeNameLabel)"));
+        assertTrue(gui.contains("if(!subWidgets.contains(nativeNameLabel))subWidgets.add(0,nativeNameLabel)"));
+        assertTrue(gui.contains("}finally{"));
+        assertTrue(gui.contains("subWidgets.addAll(originalWidgets)"),
+                "External widgets must be restored after DT's local render");
+        assertFalse(gui.contains("if(labelCount!=1||plainLabel==null)return;"));
+        assertTrue(gui.contains("boolean hasExternalLabels=false;"),
+                "Discover external labels at render time, after subclass field initialization");
+    }
+
+    @Test void originalNameUsesTweakerMoreRelativeContrast() throws IOException {
+        assertEquals(0xFF999999,ConfigRowGrouping.darkerColor(0xFFFFFFFF));
+        assertEquals(0x801E3D7A,ConfigRowGrouping.darkerColor(0x803366CC));
+        assertEquals(0xFF000000,ConfigRowGrouping.darkerColor(0xFF000000));
+        String gui=Files.readString(Path.of("src/main/java/ddstweak/gui/DDSTweakConfigScreen.java"));
+        assertTrue(gui.contains("SECONDARY_NAME_COLOR=ConfigRowGrouping.darkerColor(0xFFFFFFFF)"));
+        assertFalse(gui.contains("0xFF888888"),"No fixed original-key gray may remain");
+    }
+
     @Test void onlyChildrenOfExpandedParentsAreVisibleWithoutChangingTheirOrder(){
         String camera="camera",shortcut="shortcut",click="click",mode="mode",standalone="standalone";
         List<String> all=List.of(camera,shortcut,click,mode,standalone);

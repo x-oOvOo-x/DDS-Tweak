@@ -36,6 +36,10 @@ import net.minecraft.world.item.crafting.RecipePropertySet;
 //$$ import net.minecraft.world.level.block.entity.SignTextSlot;
 //#endif
 
+/**
+ * Isolates version-specific item interactions used by Click Through.
+ * 隔离穿透点击的跨版本物品交互判定。
+ */
 final class ClickThroughCompat {
     private ClickThroughCompat(){}
 

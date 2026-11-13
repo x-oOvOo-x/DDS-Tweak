@@ -4,6 +4,10 @@ import ddstweak.config.Configs;
 import fi.dy.masa.malilib.config.IConfigStringList;
 import net.minecraft.world.item.Item;
 
+/**
+ * Checks configured item whitelist and blacklist membership.
+ * 检查物品是否在配置的黑白名单中。
+ */
 public final class DropConfirmationItems {
     private DropConfirmationItems(){}
 

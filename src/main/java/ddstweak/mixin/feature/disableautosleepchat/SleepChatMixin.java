@@ -17,6 +17,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+/**
+ * Prevents automatic sleep-chat opening in supported Minecraft versions.
+ * 禁止对应版本自动打开睡眠聊天界面。
+ */
 //#if MC >= 260200
 //$$ @Mixin(Gui.class)
 //$$ public abstract class SleepChatMixin {

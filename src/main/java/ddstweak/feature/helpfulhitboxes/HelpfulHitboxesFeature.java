@@ -25,9 +25,17 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+/**
+ * Adjusts eligible client targeting shapes without changing server collision.
+ * 只调整客户端选取形状，不改变服务端碰撞。
+ */
 public final class HelpfulHitboxesFeature {
     private static final double EXPAND=2.0D/16.0D;
 
+    /**
+     * Return a client targeting shape; never change server collision.
+     * 仅返回客户端选取形状，不改变服务端碰撞。
+     */
     public static VoxelShape adjust(Block block,CollisionContext context,VoxelShape original){
         if(!Configs.Tweaks.HELPFUL_HITBOXES.getBooleanValue()||block==null||context==null||original==null||isSneaking()||!isHoldingMatchingItem(block,context))return original;
         if(block instanceof FenceBlock||block instanceof IronBarsBlock)return Shapes.block();

@@ -9,6 +9,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(Minecraft.class)
+/**
+ * Redirects the client use target through Click Through resolution.
+ * 将客户端使用物品时的命中目标交给穿透点击判定。
+ */
 public abstract class MinecraftUseItemMixin {
     @Redirect(
             method="startUseItem",

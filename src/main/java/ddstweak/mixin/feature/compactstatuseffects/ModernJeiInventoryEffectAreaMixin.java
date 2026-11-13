@@ -14,6 +14,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Pseudo
 @Mixin(targets="mezz.jei.library.plugins.vanilla.gui.InventoryEffectRendererGuiHandler",remap=false)
+/**
+ * Reports compact status-effect exclusions to modern JEI.
+ * 向新版 JEI 提供紧凑状态效果排除区域。
+ */
 public abstract class ModernJeiInventoryEffectAreaMixin {
     @Inject(method="getGuiExtraAreas",at=@At("HEAD"),cancellable=true,require=0,remap=false)
     private void ddstweak$compactEffectArea(AbstractContainerScreen<?> screen,CallbackInfoReturnable<List<Rect2i>> ci){

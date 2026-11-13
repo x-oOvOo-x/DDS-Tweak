@@ -4,7 +4,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import java.util.*;
 
-/** Reset registry separating DDS protocol state from whole-connection provider state. */
+/**
+ * Reset registry separating DDS protocol state from whole-connection provider state.
+ * 区分协议重置与完整连接清理。
+ */
 public final class DdsClientSessionHooks {
     private static final Logger LOGGER=LogManager.getLogger("DDS Tweak");
     private static final List<Runnable> PROTOCOL_RESET_HOOKS=new ArrayList<Runnable>();

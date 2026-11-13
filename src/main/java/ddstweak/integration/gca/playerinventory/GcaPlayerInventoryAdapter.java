@@ -17,6 +17,7 @@ import java.util.*;
 /**
  * Dependency-free GCA recognition.
  * Prefer the translation key; fall back to the rendered title for GCA versions that send a resolved/literal title.
+ * 通过翻译键或兼容标题识别 GCA 菜单。
  */
 public final class GcaPlayerInventoryAdapter{
     public static final String SOURCE="gca",TITLE_INVENTORY="gca.player.inventory",TITLE_CONTROLLER="gca.player.other_controller",TITLE_ENDER="gca.player.ender_chest",BEHAVIOR_ID="gca_slot_control_v1";

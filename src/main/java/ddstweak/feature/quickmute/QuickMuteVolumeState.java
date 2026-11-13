@@ -1,6 +1,9 @@
 package ddstweak.feature.quickmute;
 
-/** Original user volume, persisted separately from vanilla's temporary zero. */
+/**
+ * Original user volume, persisted separately from vanilla's temporary zero.
+ * 独立保存原音量，不与临时静音值混淆。
+ */
 final class QuickMuteVolumeState {
     private float saved=Float.NaN;
 

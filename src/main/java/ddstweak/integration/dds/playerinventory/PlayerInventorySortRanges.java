@@ -1,6 +1,9 @@
 package ddstweak.integration.dds.playerinventory;
 
-/** Half-open menu-slot sort domains; invalid and non-storage roles are never sortable. */
+/**
+ * Half-open menu-slot sort domains; invalid and non-storage roles are never sortable.
+ * 为有效存储槽位定义左闭右开的整理范围。
+ */
 public final class PlayerInventorySortRanges{
     private PlayerInventorySortRanges(){}
 

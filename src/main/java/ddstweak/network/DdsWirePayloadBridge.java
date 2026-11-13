@@ -6,7 +6,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import java.lang.reflect.*;
 
-/** Optional same-JVM bridge between DDS Tweak Payload and a handoff DDS Payload class. */
+/**
+ * Optional same-JVM bridge between DDS Tweak Payload and a handoff DDS Payload class.
+ * 仅在本地协议接管需要时桥接 CDA 数据包类型。
+ */
 public final class DdsWirePayloadBridge {
     private static final Logger LOGGER=LogManager.getLogger("DDS Tweak");
     private static final String DDS_PAYLOAD_CLASS="carpetddsaddition.network.DdsProtocol$Payload";

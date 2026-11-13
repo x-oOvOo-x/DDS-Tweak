@@ -20,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+// Avoids rendering a tooltip over active chat completions.
+// 避免悬浮提示遮挡聊天补全列表。
 //#if MC >= 260100
 //$$ @Mixin(GuiGraphicsExtractor.class)
 //#elseif MC >= 12000

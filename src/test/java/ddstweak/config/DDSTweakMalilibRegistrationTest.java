@@ -70,7 +70,9 @@ final class DDSTweakMalilibRegistrationTest {
         assertTrue(features>=0&&features<tweaks&&tweaks<visual&&visual<client&&client<listener);
 
         String featureGroup=screen.substring(features,tweaks);
-        for(String token:new String[]{"ENHANCED_INVENTORY_GUI","CLICK_THROUGH","CONFIRM_ITEM_DROP","HELPFUL_HITBOXES","CAMERA_PLAYER_SELECTOR","QUICK_MUTE","HAPPY_GHAST_RIDING_SPEED_MULTIPLIER","RAIL_POWER_PLACEMENT_GUIDE","Hotkeys.OPEN_CONFIG_SCREEN","Hotkeys.CAMERA_PLAYER_SELECTOR"})assertTrue(featureGroup.contains(token),token);
+        for(String token:new String[]{"ENHANCED_INVENTORY_GUI","CLICK_THROUGH","CONFIRM_ITEM_DROP","HELPFUL_HITBOXES","CAMERA_PLAYER_SELECTOR","QUICK_MUTE","HAPPY_GHAST_RIDING_SPEED_MULTIPLIER","RAIL_POWER_PLACEMENT_GUIDE","Hotkeys.CAMERA_PLAYER_SELECTOR"})assertTrue(featureGroup.contains(token),token);
+        assertFalse(featureGroup.contains("Hotkeys.OPEN_CONFIG_SCREEN"));
+        assertFalse(featureGroup.contains("Hotkeys.OPEN_CARPET_RULE_MANAGER"));
         assertTrue(featureGroup.indexOf("Configs.Tweaks.CAMERA_PLAYER_SELECTOR")<featureGroup.indexOf("Hotkeys.CAMERA_PLAYER_SELECTOR"));
         assertTrue(featureGroup.indexOf("Hotkeys.CAMERA_PLAYER_SELECTOR")<featureGroup.indexOf("Configs.Tweaks.QUICK_MUTE"));
 
@@ -81,7 +83,7 @@ final class DDSTweakMalilibRegistrationTest {
         for(String token:new String[]{"DISABLE_END_FLASH","GAMMA_OVERRIDE","STACK_COUNT_SCALE_ENABLED","COMPACT_STATUS_EFFECTS","CHUNK_CENTER_INDICATOR","BETTER_SNOW_COVERAGE"})assertTrue(visualGroup.contains(token),token);
 
         String clientGroup=screen.substring(client,listener);
-        for(String token:new String[]{"PLAYER_HEAD_WINDOW_ICON","CLIENT_STARTUP_SOUND","AUTO_LOG_CLEANUP","AUTO_LOG_CLEANUP_MODE","AUTO_LOG_KEEP_DAYS","AUTO_LOG_KEEP_LIMIT","Hotkeys.DDS_UNDO","Hotkeys.DDS_REDO"})assertTrue(clientGroup.contains(token),token);
+        for(String token:new String[]{"PLAYER_HEAD_WINDOW_ICON","CLIENT_STARTUP_SOUND","AUTO_LOG_CLEANUP","AUTO_LOG_CLEANUP_MODE","AUTO_LOG_KEEP_DAYS","AUTO_LOG_KEEP_LIMIT","Hotkeys.DDS_UNDO","Hotkeys.DDS_REDO","Hotkeys.OPEN_CONFIG_SCREEN","Hotkeys.OPEN_CARPET_RULE_MANAGER"})assertTrue(clientGroup.contains(token),token);
     }
 
     @Test void enhancedInventoryGuiIsDefaultOnAndKeepsTweaksStorage() throws Exception {
@@ -157,6 +159,7 @@ final class DDSTweakMalilibRegistrationTest {
                 {"hotkey","ddsUndo"},
                 {"hotkey","ddsRedo"},
                 {"hotkey","openConfigScreen"},
+                {"hotkey","openCarpetRuleManager"},
                 {"hotkey","cameraPlayerSelector"}
         };
         String en=read("src/main/resources/assets/dds-tweak/lang/en_us.json");

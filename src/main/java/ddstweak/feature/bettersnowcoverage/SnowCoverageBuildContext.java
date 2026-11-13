@@ -8,6 +8,10 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Caches snow evaluations per section and invalidates them by generation.
+ * 按区块分节缓存积雪判定，并通过代次使缓存失效。
+ */
 public final class SnowCoverageBuildContext {
     private static final AtomicLong GENERATION=new AtomicLong();
     private static final ThreadLocal<SectionCache> CACHE=ThreadLocal.withInitial(SectionCache::new);

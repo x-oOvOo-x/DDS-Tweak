@@ -9,7 +9,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/** One-time, conservative conversion of legacy sound lists. Never guess shared sound owners. */
+/**
+ * One-time, conservative conversion of legacy sound lists. Never guess shared sound owners.
+ * 保守迁移旧声音设置，不推测有歧义的方块归属。
+ */
 public final class BlockSoundConfigMigration {
     private BlockSoundConfigMigration(){}
 

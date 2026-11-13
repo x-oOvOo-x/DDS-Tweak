@@ -9,6 +9,7 @@ import net.minecraft.nbt.CompoundTag;
  *
  * Feature code must use DdsClientNetwork rather than depending on concrete
  * Minecraft custom-payload packet classes.
+ * 隔离不同版本的数据包实现与功能处理器。
  */
 public interface DdsClientTransport {
     boolean send(ClientPacketListener connection, String packetId, CompoundTag data);

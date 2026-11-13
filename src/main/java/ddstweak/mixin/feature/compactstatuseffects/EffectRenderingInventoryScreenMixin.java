@@ -30,6 +30,10 @@ package ddstweak.mixin.feature.compactstatuseffects;
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //$$
+//$$ /**
+//$$  * Backports compact status-effect layout to supported older screens.
+//$$  * 为旧版背包界面提供紧凑状态效果布局。
+//$$  */
 //$$ @Mixin(value=EffectRenderingInventoryScreen.class,priority=1100)
 //$$ public abstract class EffectRenderingInventoryScreenMixin<T extends AbstractContainerMenu> extends AbstractContainerScreen<T> implements CompactStatusEffectsAccess {
 //$$     @Unique private boolean ddstweak$effectsExpanded;

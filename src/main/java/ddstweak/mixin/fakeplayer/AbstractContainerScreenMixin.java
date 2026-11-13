@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+// Clears per-menu fake-player state when a container closes.
+// 容器关闭时清理该菜单对应的假人状态。
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenMixin{
     @Shadow @Final protected AbstractContainerMenu menu;

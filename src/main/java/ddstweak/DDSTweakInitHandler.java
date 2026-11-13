@@ -17,6 +17,10 @@ import fi.dy.masa.malilib.interfaces.IInitializationHandler;
 import fi.dy.masa.malilib.registry.Registry;
 //#endif
 
+/**
+ * Registers DDS Tweak handlers with MaLiLib during client initialization.
+ * 在客户端初始化阶段向 MaLiLib 注册功能入口。
+ */
 public final class DDSTweakInitHandler implements IInitializationHandler {
     @Override public void registerModHandlers(){
         ConfigManager.getInstance().registerConfigHandler(DDSTweakReference.MOD_ID,new Configs());

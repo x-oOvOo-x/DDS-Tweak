@@ -11,6 +11,10 @@ import org.spongepowered.asm.mixin.Mixin;
 
 /** Legacy pre-signed-chat command observer. Empty on 1.19+ where ClientPacketListener owns command sending. */
 @Mixin(LocalPlayer.class)
+/**
+ * Observes old chat-based commands without claiming server authority.
+ * 监听旧版聊天命令，不代表服务端授权。
+ */
 public abstract class LegacyLocalPlayerCommandMixin {
     //#if MC < 11900
     //$$ @Inject(method="chat",at=@At("HEAD"))

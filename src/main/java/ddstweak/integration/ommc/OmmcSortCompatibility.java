@@ -20,7 +20,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Shared fail-closed semantics for both OMMC package layouts; never performs item clicks. */
+/**
+ * Shared fail-closed semantics for both OMMC package layouts; never performs item clicks.
+ * 统一校验两套 OMMC 整理路径，异常时整批拒绝，且自身不执行物品点击。
+ */
 public final class OmmcSortCompatibility {
     private static final org.apache.logging.log4j.Logger LOG=
             org.apache.logging.log4j.LogManager.getLogger("ddstweak.ommc");
@@ -64,7 +67,10 @@ public final class OmmcSortCompatibility {
         cir.setReturnValue(range==null?null:new Tuple<>(range[0],range[1]));
     }
 
-    /** Reject the entire OMMC queue before it can send a single PICKUP packet. */
+    /**
+     * Reject the entire OMMC queue before it can send a single PICKUP packet.
+     * 任何槽位不合法时，整批 OMMC 点击不得发出。
+     */
     public static void clicks(Player player,int syncId,MultiPlayerGameMode gameMode,
                               List<Integer> merges,List<Tuple<Integer,Integer>> swaps,CallbackInfo ci){
         Minecraft mc=Minecraft.getInstance();
@@ -135,7 +141,10 @@ public final class OmmcSortCompatibility {
         }
     }
 
-    /** Validate all swaps in OMMC's mod-owned Tuple queue before any click. */
+    /**
+     * Validate all swaps in OMMC's mod-owned Tuple queue before any click.
+     * 点击前校验 OMMC 自有 Tuple 队列中的全部交换。
+     */
     public static void clicksTupleAdapter(Player player,int syncId,MultiPlayerGameMode gameMode,
                                           List<Integer> merges,List<?> swaps,CallbackInfo ci){
         Minecraft mc=Minecraft.getInstance();

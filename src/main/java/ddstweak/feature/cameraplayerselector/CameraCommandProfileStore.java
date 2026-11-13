@@ -8,7 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
-/** Global defaults plus independently persisted server/world overrides. */
+/**
+ * Global defaults plus independently persisted server/world overrides.
+ * 分别持久化全局与服务器、世界专用的相机配置。
+ */
 final class CameraCommandProfileStore {
     private CameraCommandProfileStore(){}
 

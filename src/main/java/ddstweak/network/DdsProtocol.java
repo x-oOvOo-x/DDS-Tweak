@@ -16,7 +16,10 @@ import net.minecraft.resources.Identifier;
 //#endif
 import java.util.*;
 
-/** DDS Protocol v1 generic wire envelope shared with Carpet DDS Addition. */
+/**
+ * DDS Protocol v1 generic wire envelope shared with Carpet DDS Addition.
+ * 定义 DT 与 CDA 共用的 v1 网络消息封装。
+ */
 public final class DdsProtocol {
     public static final int VERSION=1;
     public static final String HELLO_C2S="hello_c2s",HELLO_S2C="hello_s2c";

@@ -7,6 +7,7 @@ import java.util.*;
  * Client-session memory for fake-player controls.
  * It preserves the most recent local request per target across screen reopenings while
  * bounded pending windows prevent an older authoritative snapshot from flashing back.
+ * 按目标缓存客户端请求，不当作服务端确认。
  */
 public final class PlayerInventoryClientActionState {
     private static final long PENDING_NANOS=2_000_000_000L;
@@ -33,7 +34,10 @@ public final class PlayerInventoryClientActionState {
         return state;
     }
 
-    /** Used only for commands sent by this client; it never claims server authority. */
+    /**
+     * Used only for commands sent by this client; it never claims server authority.
+     * 仅缓存本客户端发送的命令，不视为服务端确认。
+     */
     public static synchronized State forTargetName(String targetName){
         String name=normalizeName(targetName);
         if(name.isEmpty())return null;

@@ -325,6 +325,60 @@ tasks.register('buildAndGather') {
                 def entryNames = [] as Set
                 def entries = releaseJar.entries()
                 while (entries.hasMoreElements()) entryNames.add(entries.nextElement().name)
+                // Every version must ship replacement-friendly icon resources. Renderers
+                // on pre-GUI-atlas targets retain their explicit pixel fallbacks.
+                for (String name : ['rule_favorite_off', 'rule_favorite_on',
+                        'rule_default_off', 'rule_default_on', 'rule_reset',
+                        'rule_plan_edit', 'rule_plan_delete']) {
+                    String icon = "assets/dds-tweak/textures/gui/sprites/carpet/${name}.png"
+                    if (!entryNames.contains(icon))
+                        throw new GradleException("Missing resource-pack GUI icon on ${version}: ${icon}")
+                }
+
+                // Check the actual distribution archive, not merely source/JSON.
+                clientMixins.each { shortName ->
+                    String classFile = 'ddstweak/mixin/' + shortName.replace('.', '/') + '.class'
+                    if (!entryNames.contains(classFile))
+                        throw new GradleException("Registered Mixin missing from release JAR for ${version}: ${classFile}")
+                }
+                if (target.mcVersion < 26_01_02) {
+                    def unexpected = entryNames.findAll { entry ->
+                        entry.startsWith('ddstweak/gui/LegacyGpuSdf') ||
+                        entry.startsWith('ddstweak/gui/SdfGpu1218') ||
+                        entry.startsWith('ddstweak/gui/SdfTexture12111') ||
+                        entry.startsWith('ddstweak/gui/SdfCornerCoverage') ||
+                        entry.startsWith('ddstweak/mixin/gui/') ||
+                        entry.startsWith('assets/dds-tweak/textures/gui/sprites/sdf/') ||
+                        entry.startsWith('assets/dds-tweak/shaders/core/rounded_rect')
+                    }
+                    if (!unexpected.isEmpty())
+                        throw new GradleException("Pre-26.x build ${version} includes forbidden GPU SDF assets: ${unexpected.take(10)}")
+                }
+                boolean legacySdf = target.mcVersion >= 26_01_02 && target.mcVersion < 26_03_00
+                boolean pearlSdf = target.mcVersion >= 26_03_00
+                for (String mixin : ['gui.SdfGuiRenderStateMixin', 'gui.RenderPipelinesAccess']) {
+                    if (clientMixins.contains(mixin) != legacySdf)
+                        throw new GradleException("GPU SDF Mixin version mismatch on ${version}: ${mixin}")
+                }
+                if (legacySdf) {
+                    for (String path : ['ddstweak/gui/LegacyGpuSdfRenderer.class',
+                            'ddstweak/gui/LegacyGpuSdfAccess.class',
+                            'assets/dds-tweak/shaders/core/rounded_rect_legacy.vsh',
+                            'assets/dds-tweak/shaders/core/rounded_rect_legacy.fsh']) {
+                        if (!entryNames.contains(path))
+                            throw new GradleException("Missing Blaze3D GPU SDF artifact for ${version}: ${path}")
+                    }
+                }
+                if (pearlSdf) {
+                    for (String path : ['assets/dds-tweak/shaders/core/rounded_rect.vsh',
+                            'assets/dds-tweak/shaders/core/rounded_rect.fsh']) {
+                        if (!entryNames.contains(path))
+                            throw new GradleException("Missing RenderPearl GPU SDF shader for ${version}: ${path}")
+                    }
+                    if (entryNames.contains('ddstweak/gui/LegacyGpuSdfRenderer.class'))
+                        throw new GradleException("26.3 JAR must not contain legacy GPU SDF renderer")
+                }
+
 
                 def embeddedFabricApi = entryNames.findAll { name ->
                     name.toLowerCase().startsWith('meta-inf/jars/fabric-')

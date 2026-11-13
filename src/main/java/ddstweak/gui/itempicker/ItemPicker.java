@@ -8,7 +8,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-/** Shared picker entry points; selection policy and persistence remain with callers. */
+/**
+ * Shared picker entry points; selection policy and persistence remain with callers.
+ * 提供可复用的单选与多选物品选择界面。
+ */
 public final class ItemPicker {
     private ItemPicker() {}
 

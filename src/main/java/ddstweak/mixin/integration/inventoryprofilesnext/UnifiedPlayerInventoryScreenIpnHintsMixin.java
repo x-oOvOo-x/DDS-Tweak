@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.Mixin;
 
 // The fake-inventory layout uses the same IPN anchor across all supported versions.
 // UNKNOWN target identity does not change the visual layout or these annotations.
+// 为假人背包布局提供 IPN 按钮锚点。
 @IPNGuiHint(button=IPNButton.MOVE_TO_PLAYER,top=44)
 @IPNGuiHint(button=IPNButton.SORT,top=44)
 @IPNGuiHint(button=IPNButton.SORT_COLUMNS,top=44)

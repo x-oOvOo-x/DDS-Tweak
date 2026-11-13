@@ -1,6 +1,9 @@
 package ddstweak.gui;
 
-/** The old MaLiLib slider background must not sample into adjacent widgets.png UVs. */
+/**
+ * The old MaLiLib slider background must not sample into adjacent widgets.png UVs.
+ * 固定旧版滑块纹理取样范围，避免读取相邻控件。
+ */
 final class LegacySliderTextureSegments {
     private static final int BACKGROUND_UV_WIDTH=196;
     private static final int LEFT_EDGE=4;

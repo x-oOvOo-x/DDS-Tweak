@@ -8,6 +8,7 @@ import ddstweak.playerinventory.PlayerInventoryClientActionState;
 /**
  * Preferred route for standard Carpet /player actions on the new inventory nodes.
  * Provider native controls and DDS RPCs remain fallbacks when the command tree lacks an action.
+ * 优先使用 Carpet /player 指令，并保留已授权的备用通道。
  */
 public final class CarpetPlayerCommandActionBinding implements PlayerInventoryActionBinding {
     private static boolean initialized;

@@ -5,6 +5,10 @@ import ddstweak.config.Configs;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+/**
+ * Caches per-screen compact effect bounds without keeping screens alive.
+ * 按界面缓存紧凑状态效果区域，避免阻止界面回收。
+ */
 public final class CompactStatusEffectsFeature {
     private static final Map<Object,CompactStatusEffectBounds> BOUNDS=new WeakHashMap<>();
     private CompactStatusEffectsFeature(){}

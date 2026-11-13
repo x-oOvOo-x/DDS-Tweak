@@ -1,5 +1,9 @@
 package ddstweak.feature.compactstatuseffects;
 
+/**
+ * Calculates compact effect grid positions without rendering.
+ * 仅计算紧凑状态效果网格布局，不负责渲染。
+ */
 public final class CompactStatusEffectLayout {
     public static final int FRAME_SIZE=24;
     public static final int ICON_SIZE=16;

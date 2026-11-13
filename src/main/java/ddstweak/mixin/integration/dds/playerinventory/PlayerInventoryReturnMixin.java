@@ -11,12 +11,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Turns close into a strict parent return only when the server explicitly advertised a real parent. */
+/**
+ * Turns close into a strict parent return only when the server explicitly advertised a real parent.
+ * 关闭嵌套菜单时仅返回已验证的上级菜单。
+ */
 @Mixin(AbstractContainerScreen.class)
 public abstract class PlayerInventoryReturnMixin {
     @Shadow @Final protected AbstractContainerMenu menu;
 
-    //#if MC >= 12111
+    //#if MC >= 11904
     @Inject(method="onClose",at=@At("HEAD"),cancellable=true)
     private void ddsTweak$returnCanonicalEnderParent(CallbackInfo ci){
         if(DdsFakePlayerClientNetwork.consumeReturnCloseBypass(menu))return;

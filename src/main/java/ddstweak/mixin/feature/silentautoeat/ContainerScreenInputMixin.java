@@ -15,6 +15,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value=AbstractContainerScreen.class,priority=1100)
+/**
+ * Captures container input that may conflict with an active Auto Eat swap.
+ * 捕获可能与自动进食交换事务冲突的容器输入。
+ */
 public abstract class ContainerScreenInputMixin {
     @Shadow protected int leftPos,topPos;
     //#if MC >= 12109

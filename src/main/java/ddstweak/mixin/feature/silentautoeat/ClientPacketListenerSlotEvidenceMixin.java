@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Read-only server packet observation. TAIL runs after vanilla has applied its
  * slot update on the client thread; it never changes or cancels a packet.
+ * 只观察服务端槽位更新，不修改或取消数据包。
  */
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPacketListenerSlotEvidenceMixin {

@@ -6,6 +6,7 @@ import java.util.Objects;
  * One strict structural transition at a time.
  * Identity is connection + exact source menu object + target + generation + request id.
  * A matching next-generation Context only stages the destination; OpenScreen completes it.
+ * 每次仅允许一个结构切换，并绑定连接及菜单身份。
  */
 public final class DdsPlayerInventoryStructureState<C,M,T>{
     public enum Operation{CANONICAL_ENDER,RETURN_PARENT}

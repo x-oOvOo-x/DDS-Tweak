@@ -3,7 +3,10 @@ package ddstweak.integration.dds.qca;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.*;
 
-/** Client-side vanilla QCA target classification. */
+/**
+ * Client-side vanilla QCA target classification.
+ * 识别客户端 QCA 支持的原版物品。
+ */
 public final class DdsQcaItems {
     public enum MenuKind{SHULKER,ENDER_CHEST,CRAFTING_TABLE,STONECUTTER,ANVIL,LOOM,CARTOGRAPHY_TABLE,GRINDSTONE,SMITHING_TABLE,ENCHANTING_TABLE}
     private DdsQcaItems(){}

@@ -1,6 +1,9 @@
 package ddstweak.integration.dds.qca;
 
-/** Identity of the one creative gesture whose reply may still update the cursor. */
+/**
+ * Identity of the one creative gesture whose reply may still update the cursor.
+ * 仅允许匹配的创造模式操作响应更新光标物品。
+ */
 final class CreativeStorageSession<C,P,S,M> {
     private final C connection;
     private final P player;

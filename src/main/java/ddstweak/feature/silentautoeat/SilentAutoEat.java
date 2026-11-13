@@ -12,6 +12,10 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+/**
+ * Coordinates silent auto-eating state and client presentation.
+ * 协调静默自动进食状态与客户端表现。
+ */
 public final class SilentAutoEat {
     private static State state=State.IDLE;
     private static LocalPlayer owner;
@@ -125,6 +129,10 @@ public final class SilentAutoEat {
         //#endif
     }
 
+    /**
+     * Shows the temporary food presentation only while its transaction is owned.
+     * 仅在当前事务仍持有所有权时显示临时食物状态。
+     */
     public static boolean isPresentationActive(LocalPlayer player){
         if(owner!=player||state==State.IDLE||!swapped)return false;
         if(sourceIndex<0)
@@ -134,6 +142,7 @@ public final class SilentAutoEat {
             // Rendering must follow the owned pending transaction, not whether
             // a foreign/QCA menu currently allows sending the reverse SWAP.
             // Never mask a foreign offhand stack after ownership is lost.
+            // 所有权丢失后，不得遮蔽其他功能的副手物品。
             return SilentAutoEatRules.shouldMaskPendingRestore(
                     sourceStillOwnsOriginal(),canRestoreOwnedOffhand());
         }
@@ -157,7 +166,10 @@ public final class SilentAutoEat {
         return originalOffhand;
     }
 
-    /** 26.3 staging uses the selected mainhand slot, not another hotbar key. */
+    /**
+     * 26.3 staging uses the selected mainhand slot, not another hotbar key.
+     * 26.3 暂存使用当前主手槽位，而非其他快捷栏槽位。
+     */
     public static boolean isStagedMainhandVisualActive(LocalPlayer player){
         if(player==null)return false;
         int selected=SilentAutoEatCompat.selectedSlot(SilentAutoEatCompat.inventory(player));
@@ -210,7 +222,10 @@ public final class SilentAutoEat {
                 ||actual.getItem()==Items.GLASS_BOTTLE);
     }
 
-    /** Suppress only the HUD bounce caused by our own offhand SWAP. */
+    /**
+     * Suppress only the HUD bounce caused by our own offhand SWAP.
+     * 仅隐藏本功能副手交换引起的物品栏动画。
+     */
     public static boolean shouldSuppressHotbarPop(LocalPlayer player,int index,ItemStack rendered){
         if(player==null||player!=Minecraft.getInstance().player||rendered==null
                 ||rendered.isEmpty()||(index!=40&&(index<0||index>=9)))return false;
@@ -296,7 +311,10 @@ public final class SilentAutoEat {
     //$$ }
     //#endif
 
-    /** The real slots are restored, but vanilla's hand render cache may still hold the old offhand. */
+    /**
+     * The real slots are restored, but vanilla's hand render cache may still hold the old offhand.
+     * 实际槽位已恢复时，原版手部渲染缓存仍可能滞后。
+     */
     public static boolean isRestoredMainhandVisualActive(LocalPlayer player){
         if(player==null)return false;
         int selected=SilentAutoEatCompat.selectedSlot(SilentAutoEatCompat.inventory(player));
@@ -356,7 +374,10 @@ public final class SilentAutoEat {
         diagnoseServerSlotEvidence(paired,conflict);
     }
 
-    /** The direct player-inventory packet uses inventory indexes, not menu slots. */
+    /**
+     * The direct player-inventory packet uses inventory indexes, not menu slots.
+     * 背包直连消息使用背包索引，而非菜单槽位编号。
+     */
     public static void observeServerInventorySlot(int inventoryIndex,ItemStack stack){
         LocalPlayer observed=owner!=null&&stagingSwapSent&&state!=State.IDLE
                 ?owner:settledStageOwner;
@@ -391,7 +412,10 @@ public final class SilentAutoEat {
             STAGING_EVIDENCE_LOG.debug("Auto Eat staging: both slots appeared in S2C updates (not a click ACK)");
     }
 
-    /** Cancel a manual use, then defer it until our temporary swap is acknowledged as restored. */
+    /**
+     * Cancel a manual use, then defer it until our temporary swap is acknowledged as restored.
+     * 临时交换确认恢复后，再执行延后的手动使用操作。
+     */
     public static boolean onExplicitUse(Minecraft minecraft){
         boolean defer=minecraft!=null&&owner!=null&&owner==minecraft.player
                 &&ownerLevel==minecraft.level
@@ -401,7 +425,10 @@ public final class SilentAutoEat {
         return defer;
     }
 
-    /** Read-only wheel callback: leave inventory and use state on the client tick thread. */
+    /**
+     * Read-only wheel callback: leave inventory and use state on the client tick thread.
+     * 滚轮回调只读；背包和使用状态交给客户端刻处理。
+     */
     public static void onManualHotbarScroll(Minecraft minecraft,double vertical){
         if(vertical==0.0D||minecraft==null||minecraft.player==null
                 ||minecraft.level==null
@@ -446,7 +473,10 @@ public final class SilentAutoEat {
         return SilentAutoEatCompat.inventory(player).getItem(mainhandOriginalSelected);
     }
 
-    /** Real mainhand food use stays untouched; only its first-person pose is hidden. */
+    /**
+     * Real mainhand food use stays untouched; only its first-person pose is hidden.
+     * 不改变主手实际进食，仅隐藏第一人称动作表现。
+     */
     public static boolean isAutomatedMainhandUse(LocalPlayer player){
         return player!=null&&owner==player&&state==State.MAIN_HAND_USING
                 &&player.isUsingItem()&&player.getUsedItemHand()==InteractionHand.MAIN_HAND;
@@ -462,7 +492,10 @@ public final class SilentAutoEat {
                 ||(state==State.MAIN_HAND_USING&&player.getUsedItemHand()==InteractionHand.MAIN_HAND);
     }
 
-    /** Only a vanilla offhand use owned by Auto Eat can bypass local slowdown. */
+    /**
+     * Only a vanilla offhand use owned by Auto Eat can bypass local slowdown.
+     * 仅自动进食持有的原版副手使用可跳过本地减速。
+     */
     public static boolean bypassMovementSlowdown(LocalPlayer player){
         return player!=null&&SilentAutoEatRules.shouldBypassSlowdown(
                 Configs.Tweaks.AUTO_EAT_NO_SLOWDOWN.getBooleanValue(),ownsUse(player));
@@ -722,7 +755,10 @@ public final class SilentAutoEat {
         );
     }
 
-    /** Critical offhand items retain their real server-owned slot throughout fallback. */
+    /**
+     * Critical offhand items retain their real server-owned slot throughout fallback.
+     * 回退期间重要副手物品始终留在服务端实际槽位。
+     */
     private static boolean isProtectedOffhand(ItemStack stack){
         return !stack.isEmpty()
                 &&(stack.getItem()==Items.TOTEM_OF_UNDYING||stack.getItem()==Items.SHIELD);
@@ -809,7 +845,10 @@ public final class SilentAutoEat {
         }
     }
 
-    /** Never restore selection on top of a player's new hotbar choice. */
+    /**
+     * Never restore selection on top of a player's new hotbar choice.
+     * 不得覆盖玩家后来主动选择的快捷栏槽位。
+     */
     private static void requestStageRestore(Minecraft minecraft,boolean interrupted){
         if(!stagingSwapSent){clear();return;}
         // Wait for vanilla to finalize a consumed stack/remainder before
@@ -883,7 +922,10 @@ public final class SilentAutoEat {
         stagingRestoreDeadline=clientTicks+RESTORE_GRACE_TICKS;
     }
 
-    /** Only observed server corrections, not local optimistic state, can revoke settlement. */
+    /**
+     * Only observed server corrections, not local optimistic state, can revoke settlement.
+     * 仅服务端实际修正可撤销完成状态，不依据客户端预测。
+     */
     private static boolean isSettledStageContextValid(){
         Minecraft minecraft=Minecraft.getInstance();
         return settledStageOwner!=null&&clientTicks<=settledStageDeadline
@@ -940,7 +982,10 @@ public final class SilentAutoEat {
         settledStageEvidence.clear();
     }
 
-    /** Fail closed instead of guessing whether a sent SWAP succeeded. */
+    /**
+     * Fail closed instead of guessing whether a sent SWAP succeeded.
+     * 无法确认交换结果时默认拒绝后续操作。
+     */
     private static void expireStagedTransaction(){
         if(clientTicks<stagingRestoreDeadline)return;
         failedStagingOwner=owner;
@@ -966,7 +1011,10 @@ public final class SilentAutoEat {
                 ||source.getItem()==Items.GLASS_BOTTLE));
     }
 
-    /** A protected offhand stays in place: only the selected hotbar index changes. */
+    /**
+     * A protected offhand stays in place: only the selected hotbar index changes.
+     * 受保护的副手物品不移动，仅切换选中槽位。
+     */
     private static void selectMainhand(Minecraft minecraft){
         if(!canContinueTransaction(minecraft)||mainhandAutoSelected<0
                 ||mainhandAutoSelected>=9
@@ -1016,7 +1064,10 @@ public final class SilentAutoEat {
         if(completed)finishMainhand(minecraft,false);
     }
 
-    /** Preserve a new player-selected slot; never move any real item stack. */
+    /**
+     * Preserve a new player-selected slot; never move any real item stack.
+     * 保留玩家新选择的槽位，不移动实际物品。
+     */
     private static void finishMainhand(Minecraft minecraft,boolean interrupted){
         if(stagingSwapSent){
             requestStageRestore(minecraft,interrupted);

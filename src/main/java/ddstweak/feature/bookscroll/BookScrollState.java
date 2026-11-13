@@ -7,6 +7,10 @@ import net.minecraft.client.gui.screens.Screen;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+/**
+ * Accumulates fractional wheel deltas separately for each book screen.
+ * 按书本界面分别累计不足一格的滚轮增量。
+ */
 public final class BookScrollState {
     private static final Map<Object,Double> PROGRESS=new WeakHashMap<Object,Double>();
 

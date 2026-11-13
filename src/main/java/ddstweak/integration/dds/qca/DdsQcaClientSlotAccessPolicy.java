@@ -8,7 +8,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.inventory.Slot;
 
-/** Fail-closed client slot eligibility for dedicated QCA storage interactions. */
+/**
+ * Fail-closed client slot eligibility for dedicated QCA storage interactions.
+ * 未确认槽位可操作时默认拒绝 QCA 存储交互。
+ */
 public final class DdsQcaClientSlotAccessPolicy {
     private DdsQcaClientSlotAccessPolicy(){}
     public static boolean canDirectStorage(AbstractContainerMenu menu, Slot slot, Player player) {

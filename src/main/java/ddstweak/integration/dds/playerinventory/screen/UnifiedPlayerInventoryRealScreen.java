@@ -4,7 +4,10 @@ import ddstweak.integration.dds.playerinventory.menu.UnifiedPlayerInventoryMirro
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
-/** IPN placement marker only; real/offline inventory behavior and appearance are inherited unchanged. */
+/**
+ * IPN placement marker only; real/offline inventory behavior and appearance are inherited unchanged.
+ * 区分真实玩家与假人界面的 IPN 按钮位置。
+ */
 public final class UnifiedPlayerInventoryRealScreen extends UnifiedPlayerInventoryScreen {
     public UnifiedPlayerInventoryRealScreen(UnifiedPlayerInventoryMirrorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);

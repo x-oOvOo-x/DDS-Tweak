@@ -15,6 +15,10 @@ import net.minecraft.client.renderer.block.model.BlockStateModel;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Collects block-state models needed by the snow overlay.
+ * 缓存积雪覆盖渲染所需的方块状态模型。
+ */
 public final class BetterSnowModelLoading {
     private static final Map<BlockState,BlockStateModel> MODELS=new ConcurrentHashMap<>();
 

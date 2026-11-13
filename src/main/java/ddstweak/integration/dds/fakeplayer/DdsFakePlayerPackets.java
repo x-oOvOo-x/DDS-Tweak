@@ -1,6 +1,9 @@
 package ddstweak.integration.dds.fakeplayer;
 
-/** Stable DDS Protocol v1 fake-player packet ids. Legacy open-menu remains for older DDS servers. */
+/**
+ * Stable DDS Protocol v1 fake-player packet ids. Legacy open-menu remains for older DDS servers.
+ * 定义假人 v1 协议消息标识及旧版菜单兼容项。
+ */
 public final class DdsFakePlayerPackets {
     public static final String ACTION_C2S="fake_player_action_c2s";
     public static final String PROVIDER_ACTION_C2S="fake_player_provider_action_c2s";

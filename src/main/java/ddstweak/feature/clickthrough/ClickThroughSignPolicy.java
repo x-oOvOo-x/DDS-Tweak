@@ -7,6 +7,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 
+/**
+ * Keeps sign interactions when the carried item requires the foreground target.
+ * 手持物品需要操作告示牌时保留前景目标。
+ */
 final class ClickThroughSignPolicy {
     private ClickThroughSignPolicy(){}
 

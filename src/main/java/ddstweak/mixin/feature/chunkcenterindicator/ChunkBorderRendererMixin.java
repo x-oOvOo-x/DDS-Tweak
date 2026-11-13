@@ -43,6 +43,10 @@ import net.minecraft.util.debug.DebugValueAccess;
 //$$ import com.mojang.blaze3d.vertex.Tesselator;
 //#endif
 
+/**
+ * Overlays chunk-center indicators on vanilla debug chunk rendering.
+ * 在原版区块调试渲染中叠加区块中心标记。
+ */
 @Mixin(ChunkBorderRenderer.class)
 public abstract class ChunkBorderRendererMixin {
     @Shadow @Final private Minecraft minecraft;

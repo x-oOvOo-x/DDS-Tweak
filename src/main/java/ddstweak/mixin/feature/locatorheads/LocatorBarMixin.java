@@ -58,6 +58,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Replaces only the original waypoint sprite at the vanilla rendering position.
  * The server retains complete authority over waypoint transmission/visibility.
+ * 只替换原版定位图标绘制，不改变服务端可见性。
  */
 //#if MC >= 260200
 //$$ @Mixin(LocatorBar.class)

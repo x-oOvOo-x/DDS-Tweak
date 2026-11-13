@@ -3,7 +3,10 @@ package ddstweak.feature.blocksoundtracker;
 //#if MC >= 12111
 import java.util.List;
 
-/** Pure filtering and classification rules. No world or renderer dependency. */
+/**
+ * Pure filtering and classification rules. No world or renderer dependency.
+ * 独立判断声音类型及是否通过过滤。
+ */
 public final class BlockSoundPolicy {
     private BlockSoundPolicy(){}
 

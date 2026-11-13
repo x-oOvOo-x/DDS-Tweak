@@ -22,6 +22,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 /**
  * Tweak-owned storage screen for 9-wide storage menus.
  * The server menu remains authoritative; only client rendering/input ownership changes.
+ * 只接管服务端存储菜单的显示与输入，不修改其真实槽位。
  */
 public final class EnhancedStorageScreen extends AbstractContainerScreen<AbstractContainerMenu> {
     private static final int WIDTH=176;

@@ -13,7 +13,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-/** Global quick commands plus independently stored current-server/world commands. */
+/**
+ * Global quick commands plus independently stored current-server/world commands.
+ * 分别保存全局与服务器专用的相机快捷指令。
+ */
 final class CameraQuickCommandStore {
     private static final String PRESETS_INITIALIZED="presetsInitialized";
     enum Scope { GLOBAL, LOCAL }

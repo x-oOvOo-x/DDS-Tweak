@@ -8,6 +8,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickType;
 //#endif
 
+/**
+ * Describes the provider-neutral binding for player-inventory actions.
+ * 定义不依赖具体 Provider 的玩家背包操作接口。
+ */
 public interface PlayerInventoryActionBinding{
     boolean canSend();
     default boolean supports(PlayerInventoryAction action){return action!=null&&canSend();}

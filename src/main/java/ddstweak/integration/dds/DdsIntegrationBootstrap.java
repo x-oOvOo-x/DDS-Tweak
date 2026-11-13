@@ -14,7 +14,10 @@ import ddstweak.network.DdsClientSessionHooks;
 import ddstweak.playerinventory.PlayerInventorySessionState;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
-/** Registers DDS protocol slices that still require a DDS server. Player-inventory UI is intentionally not one of them. */
+/**
+ * Registers DDS protocol slices that still require a DDS server. Player-inventory UI is intentionally not one of them.
+ * 在基础初始化后注册 DDS 专用客户端集成。
+ */
 public final class DdsIntegrationBootstrap {
     private static boolean initialized;
     private DdsIntegrationBootstrap(){}
@@ -31,10 +34,10 @@ public final class DdsIntegrationBootstrap {
             DdsQcaClientNetwork.initialize();
             DdsUndoRedoClientNetwork.initialize();
         }else{
-            //#if MC >= 12111
+            //#if MC >= 11904
             // CDA still owns the legacy QCA/Undo client, but does not implement
-            // strict Extension Context/Session S2C. Advertise only the sidecar
-            // needed for server-authorized canonical Ender reopens.
+            // feature-client protocol on legacy ownership paths. Register only the
+            // negotiated Extension sidecar, not duplicate QCA/Undo packet handlers.
             if(ownership==DdsLocalOwnershipDecision.LEGACY_COMPAT){
                 DdsFakePlayerClientNetwork.initializeExtension();
                 DdsClientSessionHooks.registerResetHook(DdsQcaClientNetwork::resetSession);

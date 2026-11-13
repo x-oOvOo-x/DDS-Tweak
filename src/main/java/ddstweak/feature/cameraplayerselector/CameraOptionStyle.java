@@ -2,7 +2,10 @@ package ddstweak.feature.cameraplayerselector;
 
 import net.minecraft.client.gui.components.Button;
 
-/** Keep Camera option states within the vanilla Button renderer. */
+/**
+ * Keep Camera option states within the vanilla Button renderer.
+ * 通过原版按钮渲染更新相机选项状态。
+ */
 final class CameraOptionStyle {
     private CameraOptionStyle(){}
 

@@ -14,6 +14,8 @@
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //$$ import java.util.List;
 //$$
+//$$ // Adds the legacy configuration switcher only to supported MaLiLib screens.
+//$$ // 仅在受支持的旧 MaLiLib 界面添加配置切换器。
 //$$ @Mixin(value=GuiBase.class,remap=false)
 //$$ public abstract class LegacyConfigSelectorMixin {
 //$$     @Inject(method="initGui",at=@At("RETURN"),remap=false)

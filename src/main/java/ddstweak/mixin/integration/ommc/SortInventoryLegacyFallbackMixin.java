@@ -7,7 +7,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Unsupported sorter shape: only disable OMMC R-sort on DT mirror menus. */
+/**
+ * Unsupported sorter shape: only disable OMMC R-sort on DT mirror menus.
+ * 只在 DT 镜像背包禁用不兼容的旧版 OMMC 整理。
+ */
 @Pseudo
 @Mixin(targets="com.plusls.ommc.feature.sortInventory.SortInventoryUtil",remap=false)
 public abstract class SortInventoryLegacyFallbackMixin {

@@ -4,7 +4,10 @@ import ddstweak.platform.minecraft.MinecraftCompat;
 import net.minecraft.client.Minecraft;
 import java.util.regex.Pattern;
 
-/** Routes editable Camera inputs without interpreting chat triggers as slash commands. */
+/**
+ * Routes editable Camera inputs without interpreting chat triggers as slash commands.
+ * 区分聊天文本与斜杠命令输入。
+ */
 final class CameraCommandSyntax {
     private static final Pattern SERVER_ROOT=Pattern.compile("[A-Za-z0-9_:.+-]+");
     private static final Pattern CHAT_ROOT=Pattern.compile("(?:!+|#+)[A-Za-z0-9_:.+-]+");

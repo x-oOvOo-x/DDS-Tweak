@@ -3,6 +3,10 @@ package ddstweak.feature.dropconfirmation;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.util.StringUtils;
 
+/**
+ * Defines available item-drop confirmation policies.
+ * 定义物品丢弃确认的可选策略。
+ */
 public enum DropConfirmMode implements IConfigOptionListEntry {
     ALL("all"),
     WHITELIST("whitelist"),

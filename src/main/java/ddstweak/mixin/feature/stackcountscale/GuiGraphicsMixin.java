@@ -31,6 +31,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Adapts item stack count rendering without mutating stored quantities.
+ * 仅调整物品数量文本显示，不修改实际堆叠数量。
+ */
 //#if MC >= 260100
 //$$ @Mixin(GuiGraphicsExtractor.class)
 //#elseif MC >= 12000

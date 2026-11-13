@@ -987,3 +987,122 @@ test or compiling a target is not proof of its in-game navigation behavior.
 ## 2026-11-03 release-audit fixes
 
 Creative QCA transactions now require the original connection/player/Screen/Menu identity before applying replies or continuing queues; the active Creative screen menu is checked directly (it need not equal player.containerMenu). Camera normalizes ROOT before taking a world-folder key on 1.16+; pre-1.16 level IDs remain. Protected offhand Auto Eat filters unavailable inventory staging before choosing a source, keeping hotbar fallback available on older nodes. Quick Mute stores internal restore metadata without adding editable config entries. All existing targets remain; staging/ownership/protocol boundaries are unchanged. See [candidate checks](RELEASE_AUDIT_2026-11-03.md) and [release procedure](RELEASE_WORKFLOW.md).
+
+## 2026-11-06 · PR #195 GPU SDF integration onto latest PR #187
+
+- PR #187 at `abfb5ce44837` is the authoritative UI base. #195 is a Draft integration branch; it must not overwrite the current sidebar tab alignment, dropdown geometry, presets, tooltip and rule-editing changes.
+- MC 26.3: GPU SDF through RenderPearl RenderPipeline and GuiElementRenderState; MC 26.1.2/26.2: Blaze3D GPU SDF using gated LegacyGpuSdfRenderer.
+- MC 1.21.11 and older: native rectangular panels/Camera slots and 1 px rectangular outlines; exclude SDF shaders, Mixins, legacy renderer and supersampling masks from their release JARs.
+- This is a rendering change only, without updates to widget bounds, text alignment, data persistence, or game rules. The GPU path still needs runtime shader-load, pose/scissor/AA and performance tests on the exact head, including Vulkan where supported.
+
+## 2026-11-06 — SDF arrows and resource-pack icon sprites (PR #195)
+
+- **26.x selected accent**: Draw the left shifted selected tab/card shape through the same GPU SDF as its foreground, clipped to only the exposed strip. This removes the old CPU 4x4 rasterized accent on supported GPU versions and avoids painting below the translucent foreground.
+- **26.1.2 / 26.2 / 26.3**: Dropdown triangles and collapsed disclosure arrows are analytically antialiased using the existing GPU SDF pipeline with signed-distance modes 2 (down) and 3 (right). The existing shader still handles rounded fill and outline modes 0/1. Preserve the arrow anchor, button bounds, controls and mouse hit areas.
+- **Earlier than 26.x**: Keep the original 8x4/4x8 pixel arrows and CPU accent geometry; no GPU shader is loaded.
+- **Resource-pack sprites**: Store 32x32 RGBA reference PNGs under `assets/dds-tweak/textures/gui/sprites/carpet/` named `rule_favorite_off`, `rule_favorite_on`, `rule_default_off`, `rule_default_on`, and `rule_reset`. The native Minecraft GUI sprite atlas uses the full source sprite and adapts to resource-pack substitutions such as 64x64, 128x128 and larger, without hardcoded PNG dimensions or custom cache invalidation. Default scaling is stretch, retaining a fixed 16 GUI-pixel draw area.
+- **Availability boundary**: On Minecraft 1.20.2 and newer, use the native GUI atlas `blitSprite` API; before the GUI sprite atlas existed, retain the original procedural/font glyphs rather than assuming a fake full-resolution sampler. The resource files may still ship in those older JARs but the procedural fallback is used.
+- Full 21-target preprocessing, JAR checks and Minecraft runtime rendering (including custom-resource-pack F3+T reload and Vulkan where supported) are required before final acceptance.
+
+## 2026-11-07 · PR #195 selected accent curvature regression
+
+The selected accent should be the **positive coverage difference** of a rounded
+backing rectangle translated left by 1/2 GUI pixels and its original foreground.
+The previous 26.x left-boundary scissor clipped the upper/lower corner crescents
+that naturally extend inside the foreground's left edge. New SDF shader
+mode `4 + shift` renders the full difference on both RenderPearl (26.3) and
+legacy Blaze3D (26.1.2, 26.2), retaining the existing pose and outer scissor.
+Earlier Minecraft versions continue to use the original CPU coverage method.
+Do not change card geometry, mouse hitboxes or colors to compensate for this.
+
+## 2026-11-07 — Inline create/edit plan cards (PR #195)
+
+The sidebar title keeps its top-right edit button, with an 18–20px editable
+resource-pack sprite. Immediately below the title divider is a fixed-width
+36px *create card* with centered plus; clicking it expands that same card
+to 88px, showing **New plan / input / Cancel + Create**. There is no longer
+a bottom action footer or bottom-positioned name input.
+
+The selected existing card expands in place to 88px upon clicking top-right
+Edit, showing **Edit plan / input / Delete + Cancel + Save**. Subsequent rows
+move down by the expansion amount (52px); shared row geometry handles scroll
+and clicks so the expanded form never overlaps another row. Only one name form
+is active. Renaming changes the name, not its rule entries or apply mode.
+
+**Delete is Shift+left click**: the actual handler checks
+`MinecraftCompat.shiftDown(minecraft)` when invoked, not merely the UI hover
+state. No second-click confirmation is required. Without Shift, the plan is
+retained and a localized hint explains the modifier.
+
+Two pack-overridable default 64px sprites follow the five prior icon resources:
+`assets/dds-tweak/textures/gui/sprites/carpet/rule_plan_edit.png` and
+`rule_plan_delete.png`. Native GUI Sprite atlas renders complete high-DPI
+overrides on Minecraft 1.20.2+, and older versions retain procedural glyph
+fallbacks. The release JAR contract checks both resources.
+
+Review keyboard focus, ESC/Enter, cancelled edits, Shift deletion, viewport
+clipping, cross-version preprocessing and all 21 target builds before shipping.
+
+## 2026-11-07 — Rule hover dispatch and inline plan-editor refinement
+
+- Selected rule cards use a **7.5 GUI px rounded radius** for both their SDF
+  backing accent and foreground fill. Existing 7px unselected cards are
+  unchanged. Both 26.x GPU pipelines carry radius in half-GUI-pixel units in
+  `UV1.x` and decode it in their vertex shaders; pre-26.x selection coverages
+  use matching 4×4 subpixel sampling with a floating-point radius.
+- The collapsed New plan card is 22 GUI px high, matching the main rule
+  screen's 22px parent category tab. Only the expanded name form is 88px.
+- Plan Cancel and Save/Create use original Minecraft buttons. Delete is a
+  separate custom-rendered **20×20 square icon-only** control; its action
+  still requires actual Shift+left click.
+- During *either* create or rename, the middle and right panes remain as empty
+  panels with no rule list, counts, detail widgets or popups. Both native
+  and custom input routes for the hidden content are disabled.
+- Preset rule-remove hover shows the localized Shift+remove hint, not the
+  underlying rule details. Main favorite hover shows Favorite/Unfavorite;
+  rule toggle/choice/number/value controls suppress generic rule tooltips.
+  Default-save tooltip has a blank line between action instructions and the
+  saved-state message.
+
+Build all supported target versions; check 26.3 shader rendering in-game
+separately (CI compilation is not an OpenGL pixel test).
+
+## 2026-11-07 · 用户自定义七图标及编辑卡片删除入口
+
+- **图标资源：** 以用户提供的 `2.zip` 中 7 张 **64×64 RGBA PNG** 取代先前程序生成的 32×32 PNG；保留原像素和 Alpha，文件仅做无损重编码以去除嵌入的图片软件元数据。文件名及路径仍为 `assets/dds-tweak/textures/gui/sprites/carpet/rule_{default_off,default_on,favorite_off,favorite_on,plan_delete,plan_edit,reset}.png`。支持 Minecraft 1.20.2+ 原生 Sprite 图集及材质包同路径覆盖；旧版本仍使用绘制备用图标。
+- **方案编辑布局：** 删除按钮从底部操作行移至展开卡片**右上角**，保持 20×20 GUI px 正方形纯图标。标题文字为右侧图标预留宽度。底部只保留等宽的原版「取消」和「保存」按钮，两端对称留白。
+- **Shift 提示：** 「按住 Shift 删除」仅在鼠标悬停标题右侧的删除图标时显示为 Tooltip，移除卡片底部的常驻提示；没有 Shift 的点击直接忽略，实际删除仍再次检查 Shift，拒绝误删。支持旧版 Tooltip 回退分支。
+- **验证：** 保留原 7 个 Sprite 的文件存在性、Alpha 与图集渲染合同检查，内置贴图尺寸预期更新为 64×64；新增按钮位置、操作行布局、Tooltip 仅悬停显示等回归断言。全版本构建和实机鼠标操作仍需验收。
+
+## 2026-11-07 — Legacy rounded corners, independent singleplayer Carpet metadata and vanilla search
+
+- **1.14.4–1.21.x CPU corners:** Earlier targets no longer render rectangle-only fills. `SdfRoundedRectRenderer.fill` uses a bounded 4×4 subpixel coverage at four corners and ordinary full-width rectangles for interior rows. Selected rule foreground + offset accent remain radius **7.5 GUI px**; sidebar tab and controls retain their configured radius. The 26.x GPU SDF paths are untouched.
+- **Singleplayer without CDA:** Use the already registered, server-thread enumerated Carpet managers and rules. Each manager has a world-local `<manager>.conf`; if absent, Carpet can load `config/carpet/default_<manager>.conf`. The new read-only scanner checks exactly these locations, isolates unreadable managers, and only asserts saved/unsaved status for independently verified managers. On the same integrated server, reflectively read each Carpet rule's `defaultValue()` as its definition default (older APIs that lack it remain unknown). CDA remains optional and authoritative when it sends richer facts. Multiplayer never uses client-local world files as claims about remote servers. No config is modified.
+- **Search icon:** Minecraft 1.20.2+ supplies the actual native `minecraft:icon/search` 12×12 GUI sprite, now rendered at both manager/history/preset search controls via the existing wrapper; no custom pixel magnifier on those versions. Prior to the native GUI Sprite atlas, preserve the fallback pixel magnifier.
+- **Review:** Test pre-26 rounded corners, clean singleplayer with Fabric Carpet but without CDA, addon configs and Carpet fallback files, unavailable config permission states, search icon resource loading in 1.21.11 and 26.x, and all target builds before merging.
+
+
+## 2026-11-07 — 1.21.11 rule translations and legacy GUI render cost
+
+- **Rule translations:** The DDS Tweak UI locale file and the Carpet/CDA rule metadata are separate sources. Read the base Carpet language file through Fabric Loader's `ModContainer.findPath` first, with classloader fallback; invoke `canHasTranslations` and `extensionSettingsManager` through the public CarpetExtension API interface rather than a concrete implementation class. This avoids losing third-party metadata because an implementation class is not reflectively accessible. Static UI translation keys remain validated against `zh_cn.json`.
+- **Pre-26 rendering cost:** Cache each 4×4 rounded-corner coverage mask by radius, calculate each corner scanline once, and batch adjacent pixels with identical alpha into horizontal spans. Mirror the same spans onto top and bottom rows. This preserves the exact sampled coverage while reducing individual fill submissions from per-pixel to per-alpha-span. The 26.x GPU SDF paths remain unchanged.
+- **Performance QA:** Compare 1.21.11 GUI frame time with a full visible rule list, sidebar expanded, and detail pane open; check both idle and hover states. Use a profiler to confirm GUI fill submission cost before attributing all observed stutter to this path.
+
+
+## 2026-11-07 — Production mapping fix, translations and GUI performance
+
+- **Root cause of missing Carpet/CDA Chinese labels:** the language code was obtained by reflecting on Minecraft method names (`getLanguageManager`, `getSelected`). Loom remaps Minecraft bytecode names in production jars, but does not rewrite those reflection strings. The lookup therefore silently fell back to `en_us`. Use direct mapped calls so Loom rewrites the invocations. Read Carpet's language JSON from its Fabric `ModContainer` and invoke extension translation methods through the public Carpet API.
+- **Related singleplayer metadata fix:** use the directly mapped `getWorldPath(LevelResource.ROOT)` API on 1.16.1+; keep the pre-1.16.1 path explicitly unknown until its storage API is bridged without production-unsafe reflection. This avoids compiling obsolete storage methods into the 1.21.11 preprocess root. Unknown remains distinct from an empty/default state.
+- **Pre-26 rendering cost:** cache each 4×4 rounded-corner coverage mask by radius, calculate each corner scanline once, and batch adjacent pixels with identical alpha into horizontal spans. Mirror the same spans onto top and bottom rows. This preserves the sampled coverage while reducing per-pixel fill submissions to per-alpha-span submissions. The 26.x GPU SDF paths remain unchanged.
+- **QA:** verify 1.21.11 in a packaged instance (not only Loom dev), with zh_cn selected and CDA installed/uninstalled; confirm localized Carpet and CDA rule names/descriptions, local persisted defaults, and compare GUI frame time with a full rule list and expanded sidebar. Use a profiler before attributing all stutter to the renderer.
+
+- **LanguageManager return-type compatibility:** 1.14.4–1.19.3 returns a language object from `getSelected()`, so read `getCode()`; 1.19.4+ returns the code string. Keep this compile-time branch alongside direct mapped calls.
+
+
+## 2026-11-07 · Pre-merge audit: legacy outline and integrated disk polling
+
+- **Rounded outline regression:** PR #195 switched the camera selector's outline to the shared SDF renderer; the pre-26 implementation of `outline` is rectangular. Preserve its former cached 16×16 supersampled CPU outline and fill for pre-26, while delegating both to GPU SDF on 26.x. Keep the camera slot dimensions and hitboxes unchanged. Source contracts now assert both rendering paths.
+- **Singleplayer disk I/O:** The integrated Carpet snapshot is requested every 20 client ticks. Previously it reopened every registered manager's world `.conf` (or fallback) every request, on the integrated server thread. Cache the immutable default-config result for 5 seconds, use a weak server reference to avoid retaining a closed world, and invalidate immediately after a DT persistent command is successfully sent. Live rule-value polling is unchanged. External `/carpet` commands can take up to 5 seconds to be reflected in persisted-state icons; do not confuse this with their live value updates.
+- **Old Fabric Carpet extensions:** `customSettingsManager` is the legacy extension method; `extensionSettingsManager` is the newer method. Inspect both on the public CarpetExtension API, not on non-public implementation classes. This only supplies optional local metadata for already verified server rules.
+- **Unknown file states:** Distinguish `Files.notExists` from `Files.exists` returning false for an indeterminate-access file. Never treat permission errors as proof of an empty saved-default file.
+- **Release gate:** A successful 21-target CI is necessary, not sufficient. Runtime-check 1.21.11 zh_cn with/without CDA, source metadata and defaults, 1.20.1 + 1.21.11 rounded borders/hover behavior, 26.x SDF pipeline and resource pack override, and use profiler measurements for scrolling/frame-time regressions. Keep PR Draft until tested.

@@ -65,6 +65,20 @@ final class CameraQuickCommandOverlayContractTest {
         assertFalse(store.contains("sendServerCommandSilently"));
     }
 
+    @Test void popupPaletteMatchesCarpetRuleManagerAsOfPr187() throws Exception {
+        String style=read("src/main/java/ddstweak/feature/carpetrules/CarpetRuleUiStyle.java");
+        String overlay=read("src/main/java/ddstweak/feature/cameraplayerselector/CameraQuickCommandOverlay.java");
+        String palette=read("src/main/java/ddstweak/gui/DdsUiPalette.java");
+        for(String state:new String[]{"PANEL","ROW","HOVER","SELECTED"})
+            assertTrue(style.contains("DdsUiPalette."+state));
+        for(String state:new String[]{"ROW","HOVER","SELECTED"})
+            assertTrue(overlay.contains("DdsUiPalette."+state));
+        assertTrue(palette.contains("PANEL = 0x66000000"));
+        assertTrue(palette.contains("ROW = 0xE52B2D32"));
+        assertTrue(palette.contains("HOVER = 0xEC35383D"));
+        assertTrue(palette.contains("SELECTED = 0xE6254335"));
+    }
+
     @Test void threeLanguagesPresentAndBackdropIsShared() throws Exception {
         String editor=read("src/main/java/ddstweak/feature/cameraplayerselector/CameraQuickCommandEditorScreen.java");
         assertTrue(editor.contains("CameraBackground.NAV_HEIGHT+8"));

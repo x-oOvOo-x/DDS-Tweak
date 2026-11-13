@@ -4,6 +4,10 @@ package ddstweak.feature.bettersnowcoverage;
 import ddstweak.config.Configs;
 import net.minecraft.client.Minecraft;
 
+/**
+ * Registers snow model hooks and triggers visual refresh on config changes.
+ * 注册积雪模型适配，并在设置变更时刷新画面。
+ */
 public final class BetterSnowCoverage {
     private BetterSnowCoverage(){}
 

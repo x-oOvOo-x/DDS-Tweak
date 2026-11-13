@@ -12,6 +12,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+// Returns compact status-effect exclusion bounds to modern REI.
+// 向新版 REI 提供紧凑状态效果的排除区域。
 @Pseudo
 @Mixin(targets="me.shedaniel.rei.plugin.client.exclusionzones.DefaultPotionEffectExclusionZones",remap=false)
 public abstract class ModernReiPotionEffectExclusionMixin {

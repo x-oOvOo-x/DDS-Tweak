@@ -10,12 +10,14 @@ import static org.junit.jupiter.api.Assertions.*;
 final class DdsTweakConfigPathsTest {
     @TempDir Path root;
 
-    @Test void migratesAllFourLegacyNamesWithoutChangingContent() throws Exception {
+    @Test void migratesAllDtOwnedJsonFilesWithoutChangingContent() throws Exception {
         String[][] names = {
                 {"dds-tweak.json", "settings.json"},
                 {"dds-tweak-camera-command-profiles.json", "camera-command-profiles.json"},
                 {"dds-tweak-camera-destinations.json", "camera-destinations.json"},
-                {"dds-tweak-camera-quick-commands.json", "camera-quick-commands.json"}
+                {"dds-tweak-camera-quick-commands.json", "camera-quick-commands.json"},
+                {"dds-tweak-carpet-rules.json", "carpet-rules.json"},
+                {"dds-tweak-carpet-presets.json", "carpet-presets.json"}
         };
         for (int i = 0; i < names.length; i++) {
             String oldName = names[i][0];
@@ -82,4 +84,57 @@ final class DdsTweakConfigPathsTest {
                 () -> DdsTweakConfigPaths.migrate(root, "dds-tweak.json", "settings.json"));
         assertFalse(Files.exists(root.resolve("dds-tweak/settings.json")));
     }
+
+    @Test void migratesOnlyDtJsonExportsAndPreservesLegacyAndOtherModFiles() throws Exception {
+        Path oldExports = Files.createDirectories(root.resolve("dds-tweak-carpet-exports"));
+        Path legacy = oldExports.resolve("plan.json");
+        Files.write(legacy, "{\"version\":2}".getBytes(StandardCharsets.UTF_8));
+        Files.write(oldExports.resolve("notes.txt"), "keep".getBytes(StandardCharsets.UTF_8));
+        Path foreign = Files.createDirectories(root.resolve("carpet")).resolve("carpet.conf");
+        Files.write(foreign, "rule true".getBytes(StandardCharsets.UTF_8));
+
+        Path exports = DdsTweakConfigPaths.migrateExportDirectory(root);
+        assertEquals(root.resolve("dds-tweak/carpet-exports"), exports);
+        assertArrayEquals(Files.readAllBytes(legacy), Files.readAllBytes(exports.resolve("plan.json")));
+        assertTrue(Files.isRegularFile(legacy));
+        assertFalse(Files.exists(exports.resolve("notes.txt")));
+        assertEquals("rule true", new String(Files.readAllBytes(foreign), StandardCharsets.UTF_8));
+
+        Files.write(exports.resolve("plan.json"), "newer".getBytes(StandardCharsets.UTF_8));
+        DdsTweakConfigPaths.migrateExportDirectory(root);
+        assertEquals("newer", new String(Files.readAllBytes(exports.resolve("plan.json")),
+                StandardCharsets.UTF_8));
+        Files.delete(exports.resolve("plan.json"));
+        DdsTweakConfigPaths.migrateExportDirectory(root);
+        assertFalse(Files.exists(exports.resolve("plan.json")),
+                "Old exports must not reappear after the user deletes the new copy");
+    }
+
+    @Test void doesNotCreateExportDirectoryWithoutLegacyData() {
+        Path exports = DdsTweakConfigPaths.migrateExportDirectory(root);
+        assertFalse(Files.exists(exports));
+    }
+
+    @Test void malformedCarpetLegacyFileCannotReplaceExistingSettings() throws Exception {
+        Path legacy = root.resolve("dds-tweak-carpet-rules.json");
+        Files.write(legacy, "broken".getBytes(StandardCharsets.UTF_8));
+        assertThrows(IllegalStateException.class,
+                () -> DdsTweakConfigPaths.migrate(root,
+                        "dds-tweak-carpet-rules.json", "carpet-rules.json"));
+        assertFalse(Files.exists(root.resolve("dds-tweak/carpet-rules.json")));
+        assertEquals("broken", new String(Files.readAllBytes(legacy), StandardCharsets.UTF_8));
+    }
+
+    @Test void optionalExchangeCopiesOriginalBytesWithoutBlockingOnBadImportJson() throws Exception {
+        Path oldFile = root.resolve("dds-tweak-carpet-presets-transfer.json");
+        Files.write(oldFile, "invalid JSON".getBytes(StandardCharsets.UTF_8));
+        Path target = DdsTweakConfigPaths.migrateOptionalExchange(root);
+        assertEquals(root.resolve("dds-tweak/carpet-presets-transfer.json"), target);
+        assertArrayEquals(Files.readAllBytes(oldFile), Files.readAllBytes(target));
+        Files.write(target, "new transfer".getBytes(StandardCharsets.UTF_8));
+        DdsTweakConfigPaths.migrateOptionalExchange(root);
+        assertEquals("new transfer", new String(Files.readAllBytes(target), StandardCharsets.UTF_8));
+        assertEquals("invalid JSON", new String(Files.readAllBytes(oldFile), StandardCharsets.UTF_8));
+    }
+
 }

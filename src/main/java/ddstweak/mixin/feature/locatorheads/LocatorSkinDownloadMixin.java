@@ -15,7 +15,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Observe the same processed NativeImage the vanilla skin downloader registers. */
+/**
+ * Observe the same processed NativeImage the vanilla skin downloader registers.
+ * 从原版已处理的皮肤图像提取轮廓缓存。
+ */
 @Mixin(SkinTextureDownloader.class)
 public abstract class LocatorSkinDownloadMixin {
     //#if MC >= 12109

@@ -9,7 +9,10 @@ import net.minecraft.client.gui.GuiGraphics;
 //$$ import com.mojang.blaze3d.vertex.PoseStack;
 //#endif
 
-/** A single blurred world background is drawn by the owning vanilla Screen first. */
+/**
+ * A single blurred world background is drawn by the owning vanilla Screen first.
+ * 复用统一界面渲染器绘制相机导航背景。
+ */
 final class CameraBackground {
     static final int NAV_HEIGHT=SharedScreenBackground.NAV_HEIGHT;
     static final int HEADER_RULE_Y=SharedScreenBackground.HEADER_RULE_Y,FOOTER_RULE_Y=SharedScreenBackground.FOOTER_RULE_Y,FOOTER_ROW_Y=SharedScreenBackground.FOOTER_ROW_Y;

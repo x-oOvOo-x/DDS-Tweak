@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Older container screens inherit mouseScrolled instead of declaring it.
  * Listen at the native scroll entrypoint, then cancel only for a container GUI.
+ * 捕获旧版容器滚轮输入，不影响其他界面。
  */
 @Mixin(MouseHandler.class)
 public abstract class LegacyContainerScrollMixin {

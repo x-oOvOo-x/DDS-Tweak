@@ -16,7 +16,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Keep the XP bar while the separate locator markers are overlaid by LocatorExperienceMixin. */
+/**
+ * Keep the XP bar while the separate locator markers are overlaid by LocatorExperienceMixin.
+ * 定位标记单独叠加时保留经验条显示优先级。
+ */
 //#if MC >= 260200
 //$$ @Mixin(Hud.class)
 //#else

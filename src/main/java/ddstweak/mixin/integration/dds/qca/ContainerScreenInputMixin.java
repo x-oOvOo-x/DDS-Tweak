@@ -18,6 +18,10 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.*;
 import java.util.*;
 
+/**
+ * Routes QCA gestures through validated sessions before vanilla clicks.
+ * 在原版点击前校验并接管 QCA 手势。
+ */
 @Mixin(AbstractContainerScreen.class)
 public abstract class ContainerScreenInputMixin implements DdsQcaMouseInputBridge {
     @Shadow @Final protected AbstractContainerMenu menu;@Shadow protected int leftPos;@Shadow protected int topPos;

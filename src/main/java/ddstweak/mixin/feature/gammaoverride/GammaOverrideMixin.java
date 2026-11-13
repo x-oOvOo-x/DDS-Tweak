@@ -15,6 +15,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 //#if MC >= 260102
+//$$ // Overrides rendered gamma without rewriting the saved options value.
+//$$ // 只覆盖渲染亮度，不修改保存的设置值。
 //$$ @Mixin(LightmapRenderStateExtractor.class)
 //$$ public abstract class GammaOverrideMixin {
 //$$     @Definition(id="gamma",method="Lnet/minecraft/client/Options;gamma()Lnet/minecraft/client/OptionInstance;")

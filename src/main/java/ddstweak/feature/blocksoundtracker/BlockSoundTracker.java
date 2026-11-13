@@ -20,7 +20,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Client-only, bounded and world-scoped sound location cache. */
+/**
+ * Client-only, bounded and world-scoped sound location cache.
+ * 在当前客户端世界中缓存近期方块声音位置。
+ */
 public final class BlockSoundTracker {
     private static final int MAX_RECORDS=256;
     private static final Map<Key,Record> RECORDS=new LinkedHashMap<>();

@@ -14,6 +14,8 @@ package ddstweak.mixin.feature.helpfulhitboxes;
 //$$ import org.spongepowered.asm.mixin.injection.Inject;
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //$$
+//$$ // Adapts helpful selection shapes to legacy block-state methods.
+//$$ // 将辅助选取形状适配到旧版方块状态接口。
 //$$ @Mixin(BlockState.class)
 //$$ public abstract class LegacyBlockShapeMixin {
 //$$     @Shadow public abstract Block getBlock();

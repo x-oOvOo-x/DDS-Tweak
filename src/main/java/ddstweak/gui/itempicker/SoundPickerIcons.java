@@ -9,7 +9,10 @@ import net.minecraft.world.item.Items;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Representative icons for sound events; a shared sound is not proof of a unique block source. */
+/**
+ * Representative icons for sound events; a shared sound is not proof of a unique block source.
+ * 为声音提供示意图标，不推断唯一发声方块。
+ */
 public final class SoundPickerIcons {
     private SoundPickerIcons(){}
 

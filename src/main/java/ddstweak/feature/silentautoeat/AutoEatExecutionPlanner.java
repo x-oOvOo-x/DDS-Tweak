@@ -4,6 +4,7 @@ package ddstweak.feature.silentautoeat;
  * Selects a safe execution path without reading or mutating Inventory.
  * Source selection is owned by the existing SilentAutoEatRules.selectFoodSource.
  * No path here authorizes inventory clicks until it has its own ACK/restore code.
+ * 仅选择执行路径，不修改背包或授权点击操作。
  */
 final class AutoEatExecutionPlanner {
     enum Path {

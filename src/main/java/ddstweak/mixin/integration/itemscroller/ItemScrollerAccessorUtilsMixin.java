@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * ItemScroller's final valid-slot click gateway. Vanilla/player clicks do not
  * traverse this optional class and remain unchanged.
+ * 在 ItemScroller 最终点击入口校验统一背包槽位。
  */
 @Pseudo
 @Mixin(targets="fi.dy.masa.itemscroller.util.AccessorUtils",remap=false)

@@ -33,7 +33,10 @@ import org.joml.Matrix4f;
 //#endif
 //#endif
 
-/** Renders all nearby placement markers with a stronger outline and a faint depth-aware fill. */
+/**
+ * Renders all nearby placement markers with a stronger outline and a faint depth-aware fill.
+ * 绘制附近铁轨供电提示，并按深度处理填充。
+ */
 public final class RailPowerGuideRenderer implements IRenderer {
     public static final RailPowerGuideRenderer INSTANCE=new RailPowerGuideRenderer();
     private static final Color4f OUTLINE=new Color4f(1.0F,0.78F,0.08F,0.90F);

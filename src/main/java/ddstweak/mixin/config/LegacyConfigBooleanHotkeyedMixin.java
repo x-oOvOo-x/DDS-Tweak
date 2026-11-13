@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.Shadow;
 /**
  * Backports the fixed ConfigBooleanHotkeyed persistence/reset contract from MaLiLib 0.11.4.
  * The mixin is filtered out at runtime on Minecraft 1.18+.
+ * 为旧版 MaLiLib 补充可靠的布尔快捷键保存行为。
  */
 @Mixin(value=ConfigBooleanHotkeyed.class,remap=false)
 public abstract class LegacyConfigBooleanHotkeyedMixin extends ConfigBoolean implements IHotkeyTogglable {

@@ -5,6 +5,7 @@ import java.util.function.BooleanSupplier;
 /**
  * Keeps Tweak-initiated GUI commands out of chat's up-arrow history.
  * The scope only covers one synchronous vanilla dispatch; manual chat remains untouched.
+ * 防止 DT 界面指令污染玩家手动聊天历史。
  */
 public final class CommandHistoryGuard {
     private static final ThreadLocal<String> ACTIVE_COMMAND=new ThreadLocal<>();

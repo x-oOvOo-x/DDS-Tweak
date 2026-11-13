@@ -10,7 +10,10 @@ import net.minecraft.resources.RegistryOps;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
-/** Full-fidelity ItemStack transport for QCA Creative cursor transactions. */
+/**
+ * Full-fidelity ItemStack transport for QCA Creative cursor transactions.
+ * 在创造模式 QCA 光标传输中编码完整物品数据。
+ */
 public final class DdsQcaStackCodec {
     private DdsQcaStackCodec(){}
 

@@ -3,6 +3,10 @@ package ddstweak.feature.railpowerguide;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Selects candidate power sources to cover rail requirements.
+ * 选择覆盖铁轨供电需求的候选电源位置。
+ */
 public final class RailPowerPlanner {
     public static final int POWER_PROPAGATION_RADIUS=8;
 

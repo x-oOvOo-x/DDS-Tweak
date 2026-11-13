@@ -1,6 +1,9 @@
 package ddstweak.config;
 
-/** Persist an integer percentage, render a unitless multiplier. */
+/**
+ * Persist an integer percentage, render a unitless multiplier.
+ * 以整数百分比保存原始名称的显示缩放。
+ */
 public final class OriginalConfigNameScale {
     public static final int MIN_PERCENT=50;
     public static final int DEFAULT_PERCENT=65;

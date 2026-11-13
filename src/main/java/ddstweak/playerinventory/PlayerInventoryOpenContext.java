@@ -16,6 +16,7 @@ import net.minecraft.world.inventory.MenuType;
  * Short-lived client navigation context used when a provider fake-player inventory opens
  * a generic Ender Chest through QCA. It preserves the target identity while the server
  * remains authoritative for the new menu and its 3/6-row capacity.
+ * 短暂关联背包导航请求与下一次服务端菜单打开。
  */
 public final class PlayerInventoryOpenContext {
     private static final long TTL_NANOS=3_000_000_000L;
@@ -30,7 +31,10 @@ public final class PlayerInventoryOpenContext {
         pendingEnder=source;pendingAt=System.nanoTime();pendingEnderId=-1;
     }
 
-    /** The server ties this owner to the exact Ender menu, including returns that missed the click hook. */
+    /**
+     * The server ties this owner to the exact Ender menu, including returns that missed the click hook.
+     * 服务端将目标与具体末影箱菜单绑定，包括漏掉点击 Hook 的返回操作。
+     */
     public static synchronized void expectVerifiedEnder(int containerId,UUID ownerUuid,String ownerName,PlayerInventoryContext previous){
         if(containerId<0||ownerUuid==null||ownerName==null||ownerName.trim().isEmpty()||ownerName.length()>64)return;
         String source=previous==null?"dds_qca":previous.source();
@@ -42,7 +46,10 @@ public final class PlayerInventoryOpenContext {
         pendingEnderId=containerId;pendingAt=System.nanoTime();
     }
 
-    /** A verified QCA return reopens GCA's inventory with the target name as its title. */
+    /**
+     * A verified QCA return reopens GCA's inventory with the target name as its title.
+     * QCA 返回经过验证后，可按目标名称重新打开 GCA 背包。
+     */
     public static synchronized void expectInventory(PlayerInventoryContext source){
         if(source==null||!"gca".equals(source.source())||source.inventoryKind()!=PlayerInventoryKind.INVENTORY
                 ||!PlayerInventoryLayouts.GCA_INVENTORY_V1.equals(source.layoutId())||source.targetName().trim().isEmpty())return;
@@ -82,7 +89,10 @@ public final class PlayerInventoryOpenContext {
                 source.behaviorId(),actions,source.interactionCapabilities(),source.fallbackPolicy());
     }
 
-    /** An unbound title-based navigation hint must never grant FAKE menu identity. */
+    /**
+     * An unbound title-based navigation hint must never grant FAKE menu identity.
+     * 仅凭未绑定的菜单标题提示，不得授予假人身份。
+     */
     static boolean isUnverifiedFakeEnder(int boundMenuId,PlayerInventoryContext source){
         return boundMenuId<0&&source!=null
                 &&(source.targetType()==PlayerInventoryTargetType.FAKE

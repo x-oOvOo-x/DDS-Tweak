@@ -18,7 +18,10 @@ import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import java.util.Objects;
 
-/** Source-neutral client mirror. Vanilla container packets remain authoritative for slot and data state. */
+/**
+ * Source-neutral client mirror. Vanilla container packets remain authoritative for slot and data state.
+ * 镜像服务端背包槽位，不替代服务端权威状态。
+ */
 public final class UnifiedPlayerInventoryMirrorMenu extends AbstractContainerMenu implements DdsQcaSlotRoleProvider{
     public static final int INVENTORY_EQUIPMENT_END=5,INVENTORY_MAIN_END=32,INVENTORY_HOTBAR_START=32,INVENTORY_TARGET_END=41,CARRIED_SCRATCH_BUTTON=9;
     public static final int GCA_MAIN_START=18,GCA_MAIN_END=45,GCA_HOTBAR_START=45,GCA_TARGET_END=54,GCA_CONTROLLER_END=27,GCA_ENDER_STORAGE_START=27,GCA_ENDER_TARGET_END=54;

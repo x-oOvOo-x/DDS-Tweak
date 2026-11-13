@@ -4,6 +4,10 @@ package ddstweak.feature.bettersnowcoverage;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.util.StringUtils;
 
+/**
+ * Defines available visual snow coverage modes.
+ * 定义积雪覆盖的显示模式。
+ */
 public enum SnowCoverageMode implements IConfigOptionListEntry {
     PREFER_SNOW("prefer_snow"),
     ALL_SIDES("all_sides");

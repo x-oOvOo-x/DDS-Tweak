@@ -2,7 +2,10 @@ package ddstweak.playerinventory;
 
 import ddstweak.integration.dds.playerinventory.PlayerInventoryAction;
 
-/** Mirrors /player commands sent by this client into the non-authoritative local prediction cache. */
+/**
+ * Mirrors /player commands sent by this client into the non-authoritative local prediction cache.
+ * 监听本地发送的命令，仅更新非权威界面预测。
+ */
 public final class PlayerInventoryCommandStateObserver {
     private PlayerInventoryCommandStateObserver(){}
 

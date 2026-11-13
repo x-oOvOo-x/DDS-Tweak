@@ -10,6 +10,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import java.util.*;
 
+/**
+ * Adapts item registry IDs and candidate lists across versions.
+ * 适配跨版本物品注册 ID 与候选列表。
+ */
 public final class ItemRegistryCompat {
     private ItemRegistryCompat(){}
 

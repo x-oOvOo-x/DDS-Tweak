@@ -26,6 +26,10 @@ import net.minecraft.core.registries.BuiltInRegistries;
 //$$ import net.minecraft.core.Registry;
 //#endif
 
+/**
+ * Adapts inventory and input operations across Minecraft versions.
+ * 适配自动进食的跨版本背包与输入接口。
+ */
 final class SilentAutoEatCompat {
     private SilentAutoEatCompat(){}
 

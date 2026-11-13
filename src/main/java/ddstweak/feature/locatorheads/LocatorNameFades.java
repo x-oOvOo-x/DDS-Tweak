@@ -6,7 +6,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/** Short-lived HUD name transitions, separate from the waypoint renderer. */
+/**
+ * Short-lived HUD name transitions, separate from the waypoint renderer.
+ * 维护定位栏玩家名称的短时渐变状态。
+ */
 public final class LocatorNameFades {
     private static final long DURATION_NANOS=150_000_000L;
     private static final int MAX_ENTRIES=512;

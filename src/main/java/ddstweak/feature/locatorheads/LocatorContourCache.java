@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
  * Captures the alpha of downloaded skins once, and uploads small white contour
  * textures only when that skin + outer-layer + thickness combination is drawn.
  * The HUD only needs one tinted texture blit per player (not 8-16 skin blits).
+ * 缓存皮肤轮廓，并按需上传纹理。
  */
 public final class LocatorContourCache {
     private static final int MAX_TEXTURES=128;

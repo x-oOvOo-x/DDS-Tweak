@@ -14,6 +14,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+/**
+ * Suppresses unsafe QCA local inventory prediction until server authority applies.
+ * 服务端处理 QCA 操作前禁止不安全的本地预测。
+ */
 @Mixin(MultiPlayerGameMode.class)
 public abstract class ClientPredictionMixin {
     //#if MC >= 260102

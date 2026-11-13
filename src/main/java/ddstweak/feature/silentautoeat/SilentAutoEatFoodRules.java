@@ -3,6 +3,10 @@ package ddstweak.feature.silentautoeat;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+/**
+ * Checks food eligibility and configured exclusions.
+ * 检查食物可用性及配置排除条件。
+ */
 public final class SilentAutoEatFoodRules {
     private SilentAutoEatFoodRules(){}
 

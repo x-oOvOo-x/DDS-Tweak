@@ -18,6 +18,7 @@ import java.util.UUID;
 /**
  * Correlates one explicit Org inventory/Ender intent with one matching OpenScreen on the
  * current connection. Correlation is discovery metadata only; Org remains authoritative.
+ * 在同一连接内匹配一次 Org 操作意图与菜单打开事件。
  */
 public final class OrgPlayerInventoryOpenIntent {
     public enum Kind { INVENTORY, ENDER_CHEST }

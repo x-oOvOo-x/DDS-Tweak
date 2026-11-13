@@ -1,5 +1,9 @@
 package ddstweak.feature.clickthrough;
 
+/**
+ * Encodes pure interaction rules for supported foreground blocks.
+ * 集中判断前景功能方块是否需要保留交互。
+ */
 final class ClickThroughSupportRules {
     private ClickThroughSupportRules(){}
 

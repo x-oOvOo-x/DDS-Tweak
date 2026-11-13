@@ -16,6 +16,7 @@ import java.util.UUID;
  * Associates the next GCA or Org player menu with the player actually right-clicked.
  * A client interaction is discovery metadata, never proof that the target is FAKE
  * or that the server has authorized an action.
+ * 客户端点击仅用于定位 GCA/Org 菜单目标，不代表授权。
  */
 public final class GcaPlayerInteractionIntent {
     private static final boolean TRACE=Boolean.getBoolean("ddstweak.playerinventory.trace");

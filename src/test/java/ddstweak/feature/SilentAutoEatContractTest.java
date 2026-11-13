@@ -1030,6 +1030,18 @@ final class SilentAutoEatContractTest {
         assertTrue(hand.contains("SilentAutoEatPresentation.projectMainhand"));
     }
 
+    @Test void hudPopUsesExtractSlotFrom26_1_2() throws Exception {
+        String gui=read("src/main/java/ddstweak/mixin/feature/silentautoeat/GuiMixin.java");
+        String gradle=read("common.gradle");
+        int hook=gui.indexOf("private int ddstweak$silentAutoEatHideOwnedHotbarPop(");
+        int branch=gui.lastIndexOf("//#if MC >= 260100",hook);
+        int extract=gui.indexOf("//$$ method=\"extractSlot\",",branch);
+        int alternate=gui.indexOf("//#else",extract);
+        int render=gui.indexOf("method=\"renderSlot\",",alternate);
+        assertTrue(branch>=0&&branch<extract&&extract<alternate&&alternate<render&&render<hook);
+        assertTrue(gradle.contains("mcVersion >= 26_01_02 ? 'extractSlot' : 'renderSlot'"));
+    }
+
     @Test void ownedOffhandSwapMasksOnlyHudPopNotRealInventory() throws Exception {
         String feature=read("src/main/java/ddstweak/feature/silentautoeat/SilentAutoEat.java");
         String hud=read("src/main/java/ddstweak/mixin/feature/silentautoeat/GuiMixin.java");

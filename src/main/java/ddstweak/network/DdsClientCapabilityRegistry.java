@@ -5,7 +5,10 @@ import net.minecraft.nbt.CompoundTag;
 import java.util.*;
 import java.util.function.*;
 
-/** Local DDS client capability/handler registry. */
+/**
+ * Local DDS client capability/handler registry.
+ * 集中记录本地已注册的数据包能力与处理器。
+ */
 public final class DdsClientCapabilityRegistry {
     private final Set<String> c2s=new LinkedHashSet<>();
     private final Map<String,Consumer<CompoundTag>> asyncS2C=new LinkedHashMap<>();

@@ -5,7 +5,10 @@ import ddstweak.config.Hotkeys;
 import ddstweak.platform.minecraft.MinecraftCompat;
 import net.minecraft.client.Minecraft;
 
-/** Press-to-open Camera navigation screen. The server command tree remains authoritative. */
+/**
+ * Press-to-open Camera navigation screen. The server command tree remains authoritative.
+ * 负责打开相机导航界面，服务端仍决定指令权限。
+ */
 public final class CameraPlayerSelectorFeature {
     private static boolean initialized;
     private CameraPlayerSelectorFeature(){}

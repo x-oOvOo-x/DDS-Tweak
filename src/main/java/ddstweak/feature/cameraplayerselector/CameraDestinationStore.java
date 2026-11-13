@@ -11,6 +11,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Loads and persists the configured camera destinations.
+ * 读取并保存已配置的相机目的地。
+ */
 final class CameraDestinationStore {
     private static final String KEY="destinations";
     private CameraDestinationStore(){}

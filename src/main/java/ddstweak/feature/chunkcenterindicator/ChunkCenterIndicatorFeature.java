@@ -2,6 +2,10 @@ package ddstweak.feature.chunkcenterindicator;
 
 import ddstweak.config.Configs;
 
+/**
+ * Computes centered chunk marker coordinates and display settings.
+ * 计算区块中心标记位置并读取显示配置。
+ */
 public final class ChunkCenterIndicatorFeature {
     public static final double ARM=0.25D,VERTICAL=0.5D,Y_OFFSET=0.02D;
     public static final int COLOR_ARGB=0xE6FFC714;

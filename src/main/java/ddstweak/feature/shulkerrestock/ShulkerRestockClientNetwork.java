@@ -10,6 +10,7 @@ import java.util.List;
 /**
  * Local preferences are not server authority. Only the current DDS connection's
  * validated status may report effective enablement.
+ * 区分客户端补货偏好与服务端确认的生效状态。
  */
 public final class ShulkerRestockClientNetwork {
     public static final String PREFERENCES_C2S = "shulker_restock_preferences_c2s";
@@ -35,6 +36,10 @@ public final class ShulkerRestockClientNetwork {
         lastSent="";lastSentAt=0L;pendingSerial=0;
     }
 
+    /**
+     * Send changed preferences only while the current connection permits it.
+     * 仅在当前连接允许时同步有变化的补货偏好。
+     */
     public static void onClientTick(){
         if(!DdsClientNetwork.canSend(PREFERENCES_C2S)){
             // Do not pretend an old or disconnected server honored an opt-in.

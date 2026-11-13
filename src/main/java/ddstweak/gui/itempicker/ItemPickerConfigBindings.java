@@ -9,7 +9,10 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-/** Only registered DT config objects open the shared picker; unrelated string lists keep MaLiLib's editor. */
+/**
+ * Only registered DT config objects open the shared picker; unrelated string lists keep MaLiLib's editor.
+ * 将物品选择结果绑定到对应配置项。
+ */
 public final class ItemPickerConfigBindings {
     private static final Map<IConfigStringList, Binding> BINDINGS = new IdentityHashMap<>();
 

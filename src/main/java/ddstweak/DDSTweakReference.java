@@ -6,6 +6,10 @@ import fi.dy.masa.malilib.util.data.ModInfo;
 //#endif
 import net.fabricmc.loader.api.FabricLoader;
 
+/**
+ * Centralizes DT identity and version metadata for integrations.
+ * 集中提供 DT 的模组标识与版本信息。
+ */
 public final class DDSTweakReference {
     public static final String MOD_ID="dds-tweak",MOD_NAME="DDS Tweak";
     //#if MC >= 12101

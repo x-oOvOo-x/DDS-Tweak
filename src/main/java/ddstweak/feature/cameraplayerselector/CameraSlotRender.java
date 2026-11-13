@@ -1,6 +1,7 @@
 package ddstweak.feature.cameraplayerselector;
 
 import ddstweak.platform.minecraft.ScreenRenderCompat;
+import ddstweak.gui.SdfRoundedRectRenderer;
 //#if MC >= 260100
 //$$ import net.minecraft.client.gui.GuiGraphicsExtractor;
 //#elseif MC >= 12000
@@ -9,11 +10,15 @@ import net.minecraft.client.gui.GuiGraphics;
 //$$ import com.mojang.blaze3d.vertex.PoseStack;
 //#endif
 
-/** Small pixel-rounded slots. Keeps item textures, hitboxes and world blur untouched. */
+/**
+ * Exact CPU rounded slots before 26.x, shared SDF on 26.x; preserve 1px curved outline.
+ * 26.x 使用共享 SDF；旧版本保留 CPU 圆角和 1px 曲线描边，不改变物品贴图及命中区域。
+ */
 final class CameraSlotRender {
     private CameraSlotRender(){}
 
-    private static final int SAMPLES=16,MAX_RADIUS=7;
+    private static final int SAMPLES=16,MAX_RADIUS = 7;
+    //#if MC < 260100
     private static final int[][][] COVERAGE=new int[2][MAX_RADIUS+1][];
 
     static {
@@ -28,6 +33,7 @@ final class CameraSlotRender {
             }
         }
     }
+    //#endif
 
     static void fill(
             //#if MC >= 260100
@@ -40,7 +46,13 @@ final class CameraSlotRender {
             //$$ Object graphics,
             //#endif
             int x,int y,int w,int h,int color){
+        if(w<=0||h<=0)return;
+        //#if MC >= 260100
+        //$$ SdfRoundedRectRenderer.fill(graphics,x,y,x+w,y+h,
+        //$$         Math.min(MAX_RADIUS, Math.min(w, h) / 2),color);
+        //#else
         draw(graphics,x,y,w,h,color,false);
+        //#endif
     }
 
     static void outline(
@@ -54,9 +66,16 @@ final class CameraSlotRender {
             //$$ Object graphics,
             //#endif
             int x,int y,int w,int h,int color){
+        if(w<=0||h<=0)return;
+        //#if MC >= 260100
+        //$$ SdfRoundedRectRenderer.outline(graphics,x,y,x+w,y+h,
+        //$$         Math.min(MAX_RADIUS, Math.min(w, h) / 2),color);
+        //#else
         draw(graphics,x,y,w,h,color,true);
+        //#endif
     }
 
+    //#if MC < 260100
     /** Draw 16x16 sampled alpha edges without version-specific shaders or textures. */
     private static void draw(
             //#if MC >= 260100
@@ -133,5 +152,5 @@ final class CameraSlotRender {
         double t=Math.max(0,Math.min(1,distance+0.5));
         return t*t*(3-2*t);
     }
-
+    //#endif
 }

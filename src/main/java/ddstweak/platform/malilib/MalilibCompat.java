@@ -25,6 +25,10 @@ import java.nio.file.*;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Centralizes version-specific MaLiLib configuration and GUI APIs.
+ * 集中适配 MaLiLib 配置与界面的跨版本 API。
+ */
 public final class MalilibCompat {
     private MalilibCompat(){}
 

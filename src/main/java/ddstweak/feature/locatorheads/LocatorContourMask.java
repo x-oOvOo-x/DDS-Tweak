@@ -6,6 +6,7 @@ import java.util.Arrays;
 /**
  * A silhouette-only alpha mask. The face always occupies 32 mask texels;
  * extra padding lets even a small head retain a fixed-width GUI outline.
+ * 生成定位栏头像描边所需的透明度轮廓。
  */
 public final class LocatorContourMask {
     public static final int SIZE=128,FACE_START=48,FACE_SIZE=32;

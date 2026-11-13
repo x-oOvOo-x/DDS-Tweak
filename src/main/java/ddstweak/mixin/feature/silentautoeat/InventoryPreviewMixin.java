@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * Projects only the inventory preview's extracted render state.
  * Never changes the real player Inventory, held items, or the world renderer.
+ * 仅修改背包角色预览的渲染状态，不修改真实背包。
  */
 @Mixin(InventoryScreen.class)
 public abstract class InventoryPreviewMixin {

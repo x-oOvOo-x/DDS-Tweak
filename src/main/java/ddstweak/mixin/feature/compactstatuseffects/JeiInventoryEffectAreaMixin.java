@@ -13,6 +13,8 @@ package ddstweak.mixin.feature.compactstatuseffects;
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //$$
 //$$ @Pseudo
+//$$ // Publishes compact status-effect exclusions to legacy JEI.
+//$$ // 向旧版 JEI 提供紧凑状态效果排除区域。
 //$$ @Mixin(targets="mezz.jei.library.plugins.vanilla.gui.InventoryEffectRendererGuiHandler",remap=false)
 //$$ public abstract class JeiInventoryEffectAreaMixin {
 //$$     @Inject(method="getGuiExtraAreas",at=@At("HEAD"),cancellable=true,require=0,remap=false)

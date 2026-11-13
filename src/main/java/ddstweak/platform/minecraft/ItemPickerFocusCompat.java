@@ -2,7 +2,10 @@ package ddstweak.platform.minecraft;
 
 import net.minecraft.client.gui.components.EditBox;
 
-/** Isolate the renamed EditBox focus API from the version-mapped GUI screen. */
+/**
+ * Isolate the renamed EditBox focus API from the version-mapped GUI screen.
+ * 隔离不同版本文本输入框的焦点接口。
+ */
 public final class ItemPickerFocusCompat {
     private ItemPickerFocusCompat(){}
 

@@ -4,6 +4,10 @@ package ddstweak.feature.compactstatuseffects;
 import ddstweak.platform.minecraft.MinecraftCompat;
 import net.minecraft.world.effect.MobEffectInstance;
 
+/**
+ * Formats effect levels and durations for compact inventory display.
+ * 为紧凑背包界面格式化状态效果等级和时长。
+ */
 public final class CompactStatusEffectFormat {
     private CompactStatusEffectFormat(){}
 

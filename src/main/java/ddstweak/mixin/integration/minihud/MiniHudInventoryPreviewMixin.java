@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.lang.reflect.Method;
+// Normalizes optional MiniHUD previews without modifying entity inventories.
+// 适配可选 MiniHUD 背包预览，不修改实体物品。
 
 @Pseudo
 @Mixin(targets="fi.dy.masa.minihud.renderer.InventoryOverlayHandler",remap=false)

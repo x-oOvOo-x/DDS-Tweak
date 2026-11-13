@@ -21,6 +21,9 @@ import net.minecraft.client.gui.GuiGraphics;
 //$$ import com.mojang.blaze3d.platform.GlStateManager;
 //$$ import net.minecraft.client.gui.GuiComponent;
 //#endif
+//#if MC >= 12000
+//$$ import com.mojang.blaze3d.systems.RenderSystem;
+//#endif
 //#if MC >= 12106
 import net.minecraft.client.renderer.RenderPipelines;
 //#elseif MC >= 12102
@@ -33,7 +36,10 @@ import net.minecraft.resources.Identifier;
 //#endif
 import net.minecraft.world.item.ItemStack;
 
-/** Small rendering facade for extractor / GuiGraphics / PoseStack / pre-PoseStack boundaries. */
+/**
+ * Small rendering facade for extractor / GuiGraphics / PoseStack / pre-PoseStack boundaries.
+ * 适配新旧图形提取器与 GUI 绘制接口。
+ */
 public final class ScreenRenderCompat {
     private ScreenRenderCompat(){}
 
@@ -78,6 +84,111 @@ public final class ScreenRenderCompat {
         //$$ if(shadow)font.drawShadow(graphics,text,(float)x,(float)y,color);else font.draw(graphics,text,(float)x,(float)y,color);
         //#else
         //$$ if(shadow)font.drawShadow(text,(float)x,(float)y,color);else font.draw(text,(float)x,(float)y,color);
+        //#endif
+    }
+
+    /** Translate only the supplied draw call; supports half-GUI-pixel nudges without shifting hitboxes. */
+    public static void translated(
+            //#if MC >= 260100
+            //$$ GuiGraphicsExtractor graphics,
+            //#elseif MC >= 12000
+            GuiGraphics graphics,
+            //#elseif MC >= 11600
+            //$$ PoseStack graphics,
+            //#else
+            //$$ Object graphics,
+            //#endif
+            float dx,float dy,Runnable render){
+        if(dx==0.0F&&dy==0.0F){render.run();return;}
+        //#if MC >= 260100
+        //$$ graphics.pose().pushMatrix();
+        //$$ graphics.pose().translate(dx,dy);
+        //#elseif MC >= 12106
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(dx,dy);
+        //#elseif MC >= 12000
+        //$$ graphics.pose().pushPose();
+        //$$ graphics.pose().translate(dx,dy,0.0F);
+        //#elseif MC >= 11600
+        //$$ graphics.pushPose();
+        //$$ graphics.translate(dx,dy,0.0F);
+        //#elseif MC >= 11500
+        //$$ RenderSystem.pushMatrix();
+        //$$ RenderSystem.translated(dx,dy,0.0D);
+        //#else
+        //$$ GlStateManager.pushMatrix();
+        //$$ GlStateManager.translatef(dx,dy,0.0F);
+        //#endif
+        try{render.run();}
+        finally{
+            //#if MC >= 260100
+            //$$ graphics.pose().popMatrix();
+            //#elseif MC >= 12106
+            graphics.pose().popMatrix();
+            //#elseif MC >= 12000
+            //$$ graphics.pose().popPose();
+            //#elseif MC >= 11600
+            //$$ graphics.popPose();
+            //#elseif MC >= 11500
+            //$$ RenderSystem.popMatrix();
+            //#else
+            //$$ GlStateManager.popMatrix();
+            //#endif
+        }
+    }
+
+    /** Slightly enlarge UI labels while preserving each Minecraft version's render context. */
+    public static void scaledText(
+            //#if MC >= 260100
+            //$$ GuiGraphicsExtractor graphics,
+            //#elseif MC >= 12000
+            GuiGraphics graphics,
+            //#elseif MC >= 11600
+            //$$ PoseStack graphics,
+            //#else
+            //$$ Object graphics,
+            //#endif
+            Font font,String value,int x,int y,int color,float scale){
+        if(scale==1.0F){
+            text(graphics,font,value,x,y,color,false);
+            return;
+        }
+        //#if MC >= 260100
+        //$$ graphics.pose().pushMatrix();
+        //$$ graphics.pose().translate((float)x,(float)y);
+        //$$ graphics.pose().scale(scale,scale);
+        //$$ text(graphics,font,value,0,0,color,false);
+        //$$ graphics.pose().popMatrix();
+        //#elseif MC >= 12106
+        graphics.pose().pushMatrix();
+        graphics.pose().translate((float)x,(float)y);
+        graphics.pose().scale(scale,scale);
+        text(graphics,font,value,0,0,color,false);
+        graphics.pose().popMatrix();
+        //#elseif MC >= 12000
+        //$$ graphics.pose().pushPose();
+        //$$ graphics.pose().translate(x,y,0);
+        //$$ graphics.pose().scale(scale,scale,1.0F);
+        //$$ text(graphics,font,value,0,0,color,false);
+        //$$ graphics.pose().popPose();
+        //#elseif MC >= 11600
+        //$$ graphics.pushPose();
+        //$$ graphics.translate(x,y,0);
+        //$$ graphics.scale(scale,scale,1.0F);
+        //$$ text(graphics,font,value,0,0,color,false);
+        //$$ graphics.popPose();
+        //#elseif MC >= 11500
+        //$$ RenderSystem.pushMatrix();
+        //$$ RenderSystem.translated((double)x,(double)y,0.0D);
+        //$$ RenderSystem.scaled((double)scale,(double)scale,1.0D);
+        //$$ text(graphics,font,value,0,0,color,false);
+        //$$ RenderSystem.popMatrix();
+        //#else
+        //$$ GlStateManager.pushMatrix();
+        //$$ GlStateManager.translatef((float)x,(float)y,0.0F);
+        //$$ GlStateManager.scalef(scale,scale,1.0F);
+        //$$ text(graphics,font,value,0,0,color,false);
+        //$$ GlStateManager.popMatrix();
         //#endif
     }
 
@@ -287,4 +398,90 @@ public final class ScreenRenderCompat {
         //$$ GuiComponent.blit(x,y,(float)u,(float)v,width,height,textureWidth,textureHeight);
         //#endif
     }
+    //#if MC < 12002
+    //$$ /** Scale the full source texture to the requested icon bounds, preserving ARGB tint. */
+    //$$ public static void blitTinted(
+            //#if MC >= 12000
+            //$$ GuiGraphics graphics,
+            //#elseif MC >= 11600
+            //$$ PoseStack graphics,
+            //#else
+            //$$ Object graphics,
+            //#endif
+            //$$ ResourceLocation texture,
+            //$$ int x,int y,int u,int v,int width,int height,int textureWidth,int textureHeight,int tint){
+        //$$ float red=((tint>>>16)&255)/255.0F;
+        //$$ float green=((tint>>>8)&255)/255.0F;
+        //$$ float blue=(tint&255)/255.0F;
+        //$$ float alpha=((tint>>>24)&255)/255.0F;
+        //$$ float scaleX=width/(float)textureWidth,scaleY=height/(float)textureHeight;
+        //$$ setShaderColor(red,green,blue,alpha);
+        //#if MC >= 12000
+        //$$ graphics.pose().pushPose();
+        //$$ graphics.pose().translate(x,y,0.0D);
+        //$$ graphics.pose().scale(scaleX,scaleY,1.0F);
+        //#elseif MC >= 11600
+        //$$ graphics.pushPose();
+        //$$ graphics.translate(x,y,0.0D);
+        //$$ graphics.scale(scaleX,scaleY,1.0F);
+        //#elseif MC >= 11500
+        //$$ RenderSystem.pushMatrix();
+        //$$ RenderSystem.translated((double)x,(double)y,0.0D);
+        //$$ RenderSystem.scaled((double)scaleX,(double)scaleY,1.0D);
+        //#else
+        //$$ GlStateManager.pushMatrix();
+        //$$ GlStateManager.translatef((float)x,(float)y,0.0F);
+        //$$ GlStateManager.scalef(scaleX,scaleY,1.0F);
+        //#endif
+        //$$ try{
+            //$$ blit(graphics,texture,0,0,u,v,textureWidth,textureHeight,textureWidth,textureHeight);
+        //$$ }finally{
+            //#if MC >= 12000
+            //$$ graphics.pose().popPose();
+            //#elseif MC >= 11600
+            //$$ graphics.popPose();
+            //#elseif MC >= 11500
+            //$$ RenderSystem.popMatrix();
+            //#else
+            //$$ GlStateManager.popMatrix();
+            //#endif
+            //$$ setShaderColor(1.0F,1.0F,1.0F,1.0F);
+        //$$ }
+    //$$ }
+
+    //$$ /** Resolve a namespaced resource path on the active Minecraft version. */
+    //$$ public static void blitTintedResource(
+            //#if MC >= 260100
+            //$$ GuiGraphicsExtractor graphics,
+            //#elseif MC >= 12000
+            //$$ GuiGraphics graphics,
+            //#elseif MC >= 11600
+            //$$ PoseStack graphics,
+            //#else
+            //$$ Object graphics,
+            //#endif
+            //$$ String namespace,String path,
+            //$$ int x,int y,int u,int v,int width,int height,int textureWidth,int textureHeight,int tint){
+        //#if MC >= 12111
+        //$$ Identifier texture=Identifier.fromNamespaceAndPath(namespace,path);
+        //#elseif MC >= 12101
+        //$$ ResourceLocation texture=ResourceLocation.fromNamespaceAndPath(namespace,path);
+        //#else
+        //$$ ResourceLocation texture=new ResourceLocation(namespace,path);
+        //#endif
+        //$$ blitTinted(graphics,texture,x,y,u,v,width,height,textureWidth,textureHeight,tint);
+    //$$ }
+
+    //$$ private static void setShaderColor(float red,float green,float blue,float alpha){
+        //#if MC >= 11700
+        //$$ RenderSystem.setShaderColor(red,green,blue,alpha);
+        //#elseif MC >= 11500
+        //$$ RenderSystem.color4f(red,green,blue,alpha);
+        //#else
+        //$$ GlStateManager.color4f(red,green,blue,alpha);
+        //#endif
+    //$$ }
+
+    //#endif
+
 }

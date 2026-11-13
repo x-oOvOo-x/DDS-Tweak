@@ -13,6 +13,8 @@ package ddstweak.mixin.feature.compactstatuseffects;
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //$$
 //$$ @Pseudo
+//$$ // Adapts compact effect exclusions for legacy REI.
+//$$ // 为旧版 REI 适配紧凑状态效果的排除区域。
 //$$ @Mixin(targets="me.shedaniel.rei.plugin.client.exclusionzones.DefaultPotionEffectExclusionZones",remap=false)
 //$$ public abstract class ReiPotionEffectExclusionMixin {
 //$$     @Inject(method="provide",at=@At("HEAD"),cancellable=true,require=0,remap=false)

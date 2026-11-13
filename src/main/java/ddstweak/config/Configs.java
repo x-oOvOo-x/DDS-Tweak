@@ -30,6 +30,10 @@ import fi.dy.masa.malilib.config.options.ConfigStringList;
 import java.nio.file.*;
 import java.util.List;
 
+/**
+ * Defines and persists DDS Tweak configuration groups.
+ * 定义并持久化 DT 的配置分组。
+ */
 public final class Configs implements IConfigHandler {
     private static boolean loading;
     public static boolean isLoading(){return loading;}

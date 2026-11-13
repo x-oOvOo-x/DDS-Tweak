@@ -5,7 +5,10 @@ import ddstweak.integration.dds.playerinventory.screen.UnifiedPlayerInventoryScr
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
-/** DDS compatibility shell; Ender Chest intentionally keeps its previous IPN behavior. */
+/**
+ * DDS compatibility shell; Ender Chest intentionally keeps its previous IPN behavior.
+ * 保留 DDS 末影箱兼容入口，不重复实现界面。
+ */
 public final class DdsFakePlayerEnderChestScreen extends UnifiedPlayerInventoryScreen{
     public DdsFakePlayerEnderChestScreen(UnifiedPlayerInventoryMirrorMenu menu,Inventory inventory,Component title){super(menu,inventory,title);}
 }

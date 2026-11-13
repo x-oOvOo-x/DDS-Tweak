@@ -19,6 +19,7 @@ import net.minecraft.world.inventory.Slot;
  * Classifies known native Provider storage slots for optional CDA QCA input.
  * Server context takes precedence; local recognition only guides the mouse and
  * never authorizes a server action. Unknown layouts fail closed.
+ * 仅识别 Provider 槽位以辅助输入，不授予服务端权限。
  */
 public final class DdsQcaNativeMenuSlots {
     private static ClientPacketListener connection;

@@ -14,6 +14,10 @@ import org.lwjgl.system.MemoryStack;
 import org.apache.logging.log4j.*;
 import java.nio.ByteBuffer;
 
+/**
+ * Applies generated player-head icons to the game window.
+ * 将生成的玩家头像图标设置到游戏窗口。
+ */
 final class WindowIcon {
     private static final Logger LOGGER=LogManager.getLogger("DDS Tweak/PlayerHeadWindowIcon");
     static void set(Minecraft client,PlayerHeadRenderer.Icon[] icons){

@@ -19,6 +19,10 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Evaluates snow coverage from block states and configured rules.
+ * 结合方块状态与配置规则判断积雪覆盖。
+ */
 public final class SnowCoverageChecker {
     static final int MAX_HORIZONTAL_DISTANCE=8;
     static final int MAX_VERTICAL_DISTANCE=2;

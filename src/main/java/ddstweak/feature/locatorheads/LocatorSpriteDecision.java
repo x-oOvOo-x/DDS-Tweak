@@ -1,7 +1,10 @@
 package ddstweak.feature.locatorheads;
 
 //#if MC >= 12108
-/** One original waypoint sprite call has exactly one owner: vanilla, DT, or neither. */
+/**
+ * One original waypoint sprite call has exactly one owner: vanilla, DT, or neither.
+ * 决定每次原版定位图标由谁绘制，避免重复渲染。
+ */
 public final class LocatorSpriteDecision {
     public enum Outcome { ORIGINAL, HEAD, HIDDEN }
 

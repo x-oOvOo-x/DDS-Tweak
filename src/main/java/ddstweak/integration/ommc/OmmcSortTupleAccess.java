@@ -1,6 +1,9 @@
 package ddstweak.integration.ommc;
 
-/** Strict, optional bridge for OMMC v0.8's own public Tuple API. */
+/**
+ * Strict, optional bridge for OMMC v0.8's own public Tuple API.
+ * 通过反射创建 OMMC 元组，启动时无需依赖 OMMC。
+ */
 public final class OmmcSortTupleAccess {
     private OmmcSortTupleAccess(){}
 

@@ -18,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //#endif
 
 //#if MC >= 260300
+//$$ // Interposes confirmation before world item-drop actions.
+//$$ // 在世界中丢弃物品前执行确认。
 //$$ @Mixin(MultiPlayerGameMode.class)
 //$$ public abstract class WorldDropConfirmationMixin {
 //$$     @Inject(method="dropItem",at=@At("HEAD"),cancellable=true)

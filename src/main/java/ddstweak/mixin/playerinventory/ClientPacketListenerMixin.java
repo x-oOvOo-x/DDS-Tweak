@@ -14,7 +14,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //#endif
 
-/** Tracks Org player-inventory command intent. Connection state resets through DdsClientSessionHooks. */
+/**
+ * Tracks Org player-inventory command intent. Connection state resets through DdsClientSessionHooks.
+ * 跟踪 Org 背包导航意图，不授予菜单权限。
+ */
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPacketListenerMixin {
     //#if MC >= 11900

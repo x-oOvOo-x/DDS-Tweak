@@ -9,6 +9,10 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Resolves player skin images asynchronously for the window icon.
+ * 异步获取玩家皮肤，供窗口图标使用。
+ */
 final class PlayerSkinDownloader {
     private static final Logger LOGGER=LogManager.getLogger("DDS Tweak/PlayerHeadWindowIcon");
     static boolean successful(int status){return status>=200&&status<300;}

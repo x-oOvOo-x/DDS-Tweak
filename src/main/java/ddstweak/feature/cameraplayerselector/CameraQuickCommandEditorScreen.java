@@ -18,7 +18,10 @@ import net.minecraft.client.input.MouseButtonEvent;
 //#endif
 import java.util.function.Consumer;
 
-/** Edit a single command without leaving the Camera navigation screen permanently. */
+/**
+ * Edit a single command without leaving the Camera navigation screen permanently.
+ * 在保留导航上下文的同时编辑单条快捷指令。
+ */
 final class CameraQuickCommandEditorScreen extends Screen {
     private static final int BUTTON_H=20,FIELD_H=18,DELETE_ICON=14,FOOTER_WIDTH=72,FOOTER_GAP=4;
     private final CameraPlayerSelectorScreen parent;

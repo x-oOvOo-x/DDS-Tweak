@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+// Allows unified player inventory screens through optional IPN hints.
+// 让统一玩家背包界面正确参与 IPN 提示判断。
 @Pseudo
 @Mixin(targets="org.anti_ad.mc.ipnext.integration.HintsManagerNG",remap=false)
 public abstract class IpnHintsManagerMixin {

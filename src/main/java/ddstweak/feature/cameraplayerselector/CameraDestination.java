@@ -3,6 +3,10 @@ package ddstweak.feature.cameraplayerselector;
 import java.util.Locale;
 import java.util.UUID;
 
+/**
+ * Represents a configured camera destination and its identifier.
+ * 表示已配置的相机目的地及其标识。
+ */
 final class CameraDestination {
     static final String DEFAULT_ICON_ID="minecraft:compass";
     private static final double MAX_COORDINATE=3.2E7D;

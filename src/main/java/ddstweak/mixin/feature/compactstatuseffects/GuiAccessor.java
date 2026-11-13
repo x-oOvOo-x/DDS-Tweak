@@ -6,6 +6,8 @@ package ddstweak.mixin.feature.compactstatuseffects;
 //$$ import org.spongepowered.asm.mixin.Mixin;
 //$$ import org.spongepowered.asm.mixin.gen.Accessor;
 //$$
+//$$ // Reads the legacy status-effect background sprite on supported versions.
+//$$ // 读取受支持旧版的状态效果背景纹理。
 //$$ @Mixin(Gui.class)
 //$$ public interface GuiAccessor {
 //$$     @Accessor("EFFECT_BACKGROUND_SPRITE")

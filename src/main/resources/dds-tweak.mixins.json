@@ -10,6 +10,8 @@
   "client": [
     "network.ClientHandshakeMixin",
     "network.ClientCustomPayloadMixin",
+    "network.CarpetRuleClientboundPayloadMixin",
+    "network.CarpetRuleServerboundPayloadMixin",
     "network.ClientboundCustomPayloadPacketMixin",
     "network.ServerboundCustomPayloadPacketMixin",
     "integration.dds.qca.CreativeSlotWrapperAccessor",
@@ -93,7 +95,10 @@
     "feature.silentautoeat.ClientPacketListenerSlotEvidenceMixin",
     "feature.silentautoeat.MouseHandlerScrollMixin",
     "feature.silentautoeat.InventoryPreviewMixin",
-    "feature.silentautoeat.GuiMixin"
+    "feature.silentautoeat.GuiMixin",
+    "gui.SdfGuiRenderStateMixin",
+    "gui.RenderPipelinesAccess",
+    "feature.carpetrules.VanillaGameRulePacketMixin"
   ],
   "injectors": {
     "defaultRequire": 1

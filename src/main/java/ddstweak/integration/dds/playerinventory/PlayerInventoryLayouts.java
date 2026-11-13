@@ -1,5 +1,9 @@
 package ddstweak.integration.dds.playerinventory;
 
+/**
+ * Maps inventory context to supported menu layouts.
+ * 根据背包上下文判定支持的菜单布局。
+ */
 public final class PlayerInventoryLayouts{
     public static final String INVENTORY_V1="player_inventory_v1",ENDER_3_V1="player_ender_3_v1",ENDER_6_V1="player_ender_6_v1",
             GCA_INVENTORY_V1="gca_player_inventory_v1",GCA_CONTROLLER_3_V1="gca_player_controller_3_v1",GCA_ENDER_3_V1="gca_player_ender_3_v1",

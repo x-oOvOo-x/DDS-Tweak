@@ -1,6 +1,9 @@
 package ddstweak.network.ownership;
 
-/** Local co-install ownership state. Valid markers activate Tweak logical-client ownership while DDS may retain wire registration. */
+/**
+ * Local co-install ownership state. Valid markers activate Tweak logical-client ownership while DDS may retain wire registration.
+ * 表示本地双模组共存时的接管状态。
+ */
 public enum DdsLocalOwnershipDecision {
     TWEAK_STANDALONE(false,false,false),
     LEGACY_COMPAT(true,false,true),

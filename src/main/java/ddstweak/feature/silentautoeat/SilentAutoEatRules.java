@@ -2,6 +2,10 @@ package ddstweak.feature.silentautoeat;
 
 import java.util.function.IntPredicate;
 
+/**
+ * Evaluates food selection and transaction safety conditions.
+ * 判断自动进食的食物选择及事务安全条件。
+ */
 final class SilentAutoEatRules {
     private SilentAutoEatRules(){}
 

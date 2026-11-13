@@ -7,7 +7,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Editable, per-server command templates; the server still owns authorization. */
+/**
+ * Editable, per-server command templates; the server still owns authorization.
+ * 保存可编辑的相机指令模板，不替代服务端权限校验。
+ */
 final class CameraCommandProfile {
     enum Mode { TOGGLE, SEPARATE }
     enum Action {

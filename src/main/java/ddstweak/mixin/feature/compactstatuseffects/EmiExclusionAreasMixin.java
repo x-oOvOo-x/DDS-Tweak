@@ -14,6 +14,8 @@ import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+// Exposes compact effect bounds to optional EMI exclusion zones.
+// 向可选 EMI 提供紧凑状态效果的排除区域。
 @Pseudo
 @Mixin(targets="dev.emi.emi.registry.EmiExclusionAreas",remap=false)
 public abstract class EmiExclusionAreasMixin {

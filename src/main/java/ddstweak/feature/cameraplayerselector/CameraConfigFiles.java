@@ -11,7 +11,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
-/** Protect Camera JSON from corruption, partial writes and accidental reset. */
+/**
+ * Protect Camera JSON from corruption, partial writes and accidental reset.
+ * 安全读写相机 JSON，防止损坏和写入中断。
+ */
 final class CameraConfigFiles {
     private CameraConfigFiles(){}
 

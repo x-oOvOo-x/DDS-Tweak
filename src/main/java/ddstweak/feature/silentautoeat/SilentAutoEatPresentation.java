@@ -11,6 +11,7 @@ import net.minecraft.world.item.ItemStack;
  * <p>The upstream stack is whatever the active render chain resolved before DDS Tweak
  * participates. Non-target slots must preserve that value unchanged so other render
  * overlays can compose with this projection.</p>
+ * 仅投影临时手持与快捷栏画面，不修改实际物品槽位。
  */
 public final class SilentAutoEatPresentation {
     private SilentAutoEatPresentation(){}

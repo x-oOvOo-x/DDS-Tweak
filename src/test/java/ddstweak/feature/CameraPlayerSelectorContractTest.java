@@ -190,9 +190,9 @@ final class CameraPlayerSelectorContractTest {
         String backdrop=read("src/main/java/ddstweak/feature/cameraplayerselector/CameraBackground.java");
         assertTrue(rounded.contains("static void fill("));
         assertTrue(rounded.contains("static void outline("));
-        assertTrue(rounded.contains("int coverage=COVERAGE[border?1:0][radius][py*radius+px]"));
-        assertTrue(rounded.contains("private static final int SAMPLES=16,MAX_RADIUS=7"));
-        assertTrue(rounded.contains("int shaded=(color&0x00FFFFFF)"));
+        assertTrue(rounded.contains("SdfRoundedRectRenderer.fill("));
+        assertTrue(rounded.contains("MAX_RADIUS = 7"));
+        assertTrue(rounded.contains("SdfRoundedRectRenderer.outline("));
         assertTrue(screen.contains("CameraSlotRender.fill(graphics,x,y,SLOT,SLOT"));
         assertTrue(screen.contains("CameraSlotRender.outline(graphics,hoveredX,y,SLOT,SLOT"));
         assertTrue(screen.contains("CameraSlotRender.outline(graphics,addX,l.destinationY,SLOT,SLOT"));
@@ -206,25 +206,28 @@ final class CameraPlayerSelectorContractTest {
         assertFalse(rounded.contains("blurBeforeThisStratum"));
     }
 
-    @Test void roundedSlotsUseFeatheredAlphaEdges() throws Exception {
-        String rounded=read("src/main/java/ddstweak/feature/cameraplayerselector/CameraSlotRender.java");
-        assertTrue(rounded.contains("double outer=smooth(radius-distance)"));
-        assertTrue(rounded.contains("opacity+=border?outer-smooth(radius-1-distance):outer"));
-        assertTrue(rounded.contains("return t*t*(3-2*t)"));
-        assertTrue(rounded.contains("SAMPLES*SAMPLES*256"));
+    @Test void roundedSlotsKeepCachedCpuBordersBefore26AndGpuSdfOn26() throws Exception {
+        String slots=read("src/main/java/ddstweak/feature/cameraplayerselector/CameraSlotRender.java");
+        String renderer=read("src/main/java/ddstweak/gui/SdfRoundedRectRenderer.java");
+        assertTrue(slots.contains("SdfRoundedRectRenderer.fill("));
+        assertTrue(slots.contains("SdfRoundedRectRenderer.outline("));
+        assertTrue(renderer.contains("LegacyGpuSdfRenderer.draw("));
+        assertTrue(slots.contains("draw(graphics,x,y,w,h,color,true)"));
+        assertTrue(slots.contains("COVERAGE[border?1:0][radius]"));
+        assertTrue(slots.contains("private static double smooth(double distance)"));
+        assertTrue(slots.contains("//#if MC < 260100"));
+        assertFalse(Files.exists(Path.of("src/main/java/ddstweak/gui/SdfCornerCoverage.java")));
     }
 
-    @Test void roundedCoverageIsCachedAndRetainsFaintNormalState() throws Exception {
-        String rounded=read("src/main/java/ddstweak/feature/cameraplayerselector/CameraSlotRender.java");
+    @Test void cameraRetainsSlotStateAndHitGeometry() throws Exception {
+        String slots=read("src/main/java/ddstweak/feature/cameraplayerselector/CameraSlotRender.java");
         String screen=read("src/main/java/ddstweak/feature/cameraplayerselector/CameraPlayerSelectorScreen.java");
-        assertTrue(rounded.contains("private static final int[][][] COVERAGE"));
-        assertTrue(rounded.contains("for(int radius=2;radius<=MAX_RADIUS;radius++)"));
-        assertTrue(rounded.contains("mask[py*radius+px]=coverage(px,py,radius,kind==1)"));
-        assertTrue(rounded.contains("int radius=Math.min(MAX_RADIUS,Math.min(w,h)/2)"));
+        assertTrue(slots.contains("Math.min(MAX_RADIUS, Math.min(w, h) / 2)"));
+        assertTrue(slots.contains("SdfRoundedRectRenderer.outline("));
+        assertTrue(slots.contains("draw(graphics,x,y,w,h,color,true)"));
         assertTrue(screen.contains("hover?0x58000000:0x22000000"));
         assertTrue(screen.contains("addHover?0x65000000:0x22000000"));
         assertTrue(screen.contains("if(hover)CameraSlotRender.fill(graphics,x,y,SLOT,SLOT"));
-        assertFalse(screen.contains("CameraSlotRender.fill(graphics,x,y,SLOT,SLOT,0x22000000);\n            PlayerInfo info"));
     }
 
     @Test void reference4KSpacingUsesGuiCoordinatesAndSharedHeader() throws Exception {
@@ -412,9 +415,19 @@ final class CameraPlayerSelectorContractTest {
         assertTrue(editor.contains("shift&&hover"));
         assertTrue(editor.contains("delete_shift"));
         assertTrue(editor.contains("delete_ready"));
-        assertTrue(compat.contains("minecraft.hasShiftDown()"));
-        assertTrue(compat.contains("MC >= 12109"));
-        assertTrue(compat.contains("Screen.hasShiftDown()"));
+        // Camera and Carpet deliberately delegate to one version-aware helper.
+        String shared=read("src/main/java/ddstweak/platform/minecraft/MinecraftCompat.java");
+        String preset=read("src/main/java/ddstweak/feature/carpetrules/CarpetRulePresetScreen.java");
+        assertTrue(compat.contains("return MinecraftCompat.shiftDown(minecraft);"));
+        assertTrue(preset.contains("return MinecraftCompat.shiftDown(minecraft);"));
+        assertTrue(preset.contains("if(!shiftHeld())"));
+        assertTrue(shared.contains("public static boolean shiftDown(Minecraft minecraft)"));
+        assertTrue(shared.contains("if(minecraft==null)return false;"));
+        assertTrue(shared.contains("MC >= 12109"));
+        assertTrue(shared.contains("return minecraft.hasShiftDown();"));
+        assertTrue(shared.contains("//$$ return Screen.hasShiftDown();"));
+        assertFalse(compat.contains("Screen.hasShiftDown()"));
+        assertFalse(preset.contains("Screen.hasShiftDown()"));
     }
 
     @Test void cameraScreensUseSharedBackdropAndVersionAwareBlur() throws Exception {

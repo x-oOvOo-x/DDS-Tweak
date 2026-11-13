@@ -4,6 +4,7 @@ import java.util.function.IntPredicate;
 
 /** Choose a scratch slot other than the player's selected hotbar slot.
  * A slot with the same contents as the food cannot prove the staging SWAP happened.
+ * 选择安全暂存槽位，避免产生无法验证的交换结果。
  */
 final class AutoEatScratchSelection {
     private AutoEatScratchSelection(){}

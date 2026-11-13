@@ -2,7 +2,10 @@ package ddstweak.integration.dds.playerinventory;
 
 import java.util.*;
 
-/** Neutral client description of one authoritative player-inventory menu. It contains UI metadata only, never ItemStack state. */
+/**
+ * Neutral client description of one authoritative player-inventory menu. It contains UI metadata only, never ItemStack state.
+ * 仅保存服务端权威背包菜单的界面元数据。
+ */
 public final class PlayerInventoryContext {
     private final int containerId,contextSchema,layoutSchema;
     private final String source,targetName,layoutId,behaviorId;

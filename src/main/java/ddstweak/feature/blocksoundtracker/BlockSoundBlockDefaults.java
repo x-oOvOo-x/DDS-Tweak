@@ -3,7 +3,10 @@ package ddstweak.feature.blocksoundtracker;
 //#if MC >= 12111
 import com.google.common.collect.ImmutableList;
 
-/** Actual block registry IDs with commonly audible redstone interactions (not sound IDs). */
+/**
+ * Actual block registry IDs with commonly audible redstone interactions (not sound IDs).
+ * 提供常见红石发声方块的注册 ID。
+ */
 public final class BlockSoundBlockDefaults {
     private BlockSoundBlockDefaults(){}
 

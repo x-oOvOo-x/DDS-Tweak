@@ -7,6 +7,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.inventory.MenuType;
 import java.util.*;
 
+/**
+ * Describes a fake-player extension menu without owning authoritative inventory state.
+ * 描述假人扩展菜单，不持有权威背包状态。
+ */
 public final class DdsFakePlayerExtensionContext {
     private static final int MAX_NAME=64,MAX_ACTIONS_TEXT=512,MAX_ACTION_TOKENS=32,MAX_ACTION_TOKEN=64;
     private final int containerId,contextSchema,layoutSchema,selectedHotbar,attackMode,attackInterval,useMode,useInterval,canonicalSize;

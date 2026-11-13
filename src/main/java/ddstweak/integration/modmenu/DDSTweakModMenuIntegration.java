@@ -19,7 +19,10 @@ import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 //$$ import java.util.function.Function;
 //#endif
 
-/** Optional Mod Menu adapter; the existing MaLiLib config screen remains the owner. */
+/**
+ * Optional Mod Menu adapter; the existing MaLiLib config screen remains the owner.
+ * 为 Mod Menu 提供配置入口，不强制依赖。
+ */
 public final class DDSTweakModMenuIntegration implements ModMenuApi {
     //#if MC >= 11502
     @Override

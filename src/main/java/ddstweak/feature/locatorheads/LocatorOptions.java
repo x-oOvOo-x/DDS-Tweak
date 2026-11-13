@@ -3,7 +3,10 @@ package ddstweak.feature.locatorheads;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.util.StringUtils;
 
-/** User-visible options deliberately parallel Locator Heads without adding server-side identity rules. */
+/**
+ * User-visible options deliberately parallel Locator Heads without adding server-side identity rules.
+ * 定义定位栏外观选项，不引入服务端身份判断。
+ */
 public final class LocatorOptions {
     private LocatorOptions(){}
 

@@ -21,6 +21,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //#endif
 
+// Suppresses configured client command-confirmation prompts.
+// 按配置阻止客户端命令确认弹窗。
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPacketListenerMixin
 //#if MC >= 12002

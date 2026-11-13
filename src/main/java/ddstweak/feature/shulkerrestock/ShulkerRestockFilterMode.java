@@ -3,7 +3,10 @@ package ddstweak.feature.shulkerrestock;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.util.StringUtils;
 
-/** Exact registry-ID filters; no implicit food tags or wildcard matching. */
+/**
+ * Exact registry-ID filters; no implicit food tags or wildcard matching.
+ * 定义客户端补货筛选模式。
+ */
 public enum ShulkerRestockFilterMode implements IConfigOptionListEntry {
     ALL("all"), WHITELIST("whitelist"), BLACKLIST("blacklist");
     private final String value;

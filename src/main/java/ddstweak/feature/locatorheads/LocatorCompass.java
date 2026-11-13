@@ -18,7 +18,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 
-/** Optional cardinal-direction ribbon aligned to the vanilla locator/experience bar. */
+/**
+ * Optional cardinal-direction ribbon aligned to the vanilla locator/experience bar.
+ * 在定位栏旁绘制可选的方向提示。
+ */
 public final class LocatorCompass {
     private LocatorCompass(){}
     public static void initialize(){

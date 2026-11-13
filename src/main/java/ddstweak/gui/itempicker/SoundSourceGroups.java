@@ -8,7 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** UI-only grouping. Persist actual sound IDs so old configurations keep working. */
+/**
+ * UI-only grouping. Persist actual sound IDs so old configurations keep working.
+ * 仅在界面上分组声音选项，保存时保留原始声音 ID。
+ */
 public final class SoundSourceGroups {
     private SoundSourceGroups(){}
 

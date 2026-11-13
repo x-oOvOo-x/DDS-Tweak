@@ -9,7 +9,10 @@ import net.minecraft.world.entity.player.*;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 
-/** Client-side QCA intent classification; server remains authoritative. */
+/**
+ * Client-side QCA intent classification; server remains authoritative.
+ * 识别客户端 QCA 操作意图，实际操作仍由服务端裁定。
+ */
 public final class DdsQcaClient {
     public enum StorageDragMode{ABSORB,EXTRACT}
     private DdsQcaClient(){}

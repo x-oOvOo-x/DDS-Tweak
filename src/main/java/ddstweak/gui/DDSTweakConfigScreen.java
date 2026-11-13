@@ -1,6 +1,9 @@
 package ddstweak.gui;
 
 import ddstweak.DDSTweakReference;
+import ddstweak.feature.carpetrules.CarpetRuleManagerScreen;
+import ddstweak.platform.minecraft.MinecraftCompat;
+import net.minecraft.client.Minecraft;
 import ddstweak.config.Configs;
 import ddstweak.config.OriginalConfigNameScale;
 import fi.dy.masa.malilib.config.IConfigSlider;
@@ -33,6 +36,10 @@ import fi.dy.masa.malilib.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Renders the categorized configuration screen and its search and grouping behavior.
+ * 负责分类配置界面及搜索、分组交互。
+ */
 public final class DDSTweakConfigScreen extends GuiConfigsBase {
     private static ConfigGuiTab tab=ConfigGuiTab.FEATURES;
     private static final int LABEL_TO_CONTROL_GAP=8;
@@ -42,10 +49,15 @@ public final class DDSTweakConfigScreen extends GuiConfigsBase {
     private static final Map<IConfigBase,IConfigBase> PARENTS=createParents();
     private static final Set<IConfigBase> EXPANDED=Collections.newSetFromMap(new IdentityHashMap<>());
     public DDSTweakConfigScreen(){super(10,50,DDSTweakReference.MOD_ID,null,"dds-tweak.gui.title.configs",DDSTweakReference.MOD_VERSION);}
-    @Override public void initGui(){super.initGui();clearOptions();int x=10;for(ConfigGuiTab t:ConfigGuiTab.values())x+=createButton(x,26,t);}
+    @Override public void initGui(){super.initGui();clearOptions();int x=10;for(ConfigGuiTab t:ConfigGuiTab.values())x+=createButton(x,26,t);createCarpetButton(x,26);}
+    private void createCarpetButton(int x,int y){ButtonGeneric b=new ButtonGeneric(x,y,-1,20,StringUtils.translate("dds-tweak.gui.button.config_gui.carpet"));addButton(b,(button,mouse)->MinecraftCompat.setScreen(Minecraft.getInstance(),new CarpetRuleManagerScreen(this)));}
     private int createButton(int x,int y,ConfigGuiTab t){ButtonGeneric b=new ButtonGeneric(x,y,-1,20,t.display());b.setEnabled(tab!=t);addButton(b,new ButtonListener(t,this));return b.getWidth()+2;}
     @Override protected int getConfigWidth(){return 260;}
     @Override public List<ConfigOptionWrapper> getConfigs(){return rows(false);}
+    /**
+     * Expands child rows during search without changing the normal disclosure state.
+     * 搜索时展开子项显示，不修改日常折叠状态。
+     */
     private List<ConfigOptionWrapper> rows(boolean searching){
         return ConfigOptionWrapper.createFor(ConfigRowGrouping.visible(configsFor(tab),PARENTS,EXPANDED,searching));
     }
@@ -56,6 +68,10 @@ public final class DDSTweakConfigScreen extends GuiConfigsBase {
         //$$ return new LegacyConfigList(x,y,getBrowserWidth(),getBrowserHeight(),getConfigWidth(),useKeybindSearch(),this);
         //#endif
     }
+    /**
+     * Toggles only the view state and refreshes the current option rows.
+     * 仅切换界面折叠状态，并刷新配置列表。
+     */
     private void toggleGroup(IConfigBase parent){
         if(!PARENTS.containsValue(parent))return;
         if(!EXPANDED.add(parent))EXPANDED.remove(parent);
@@ -107,7 +123,6 @@ public final class DDSTweakConfigScreen extends GuiConfigsBase {
         c.add(Configs.Visual.BLOCK_SOUND_MAX_HIGHLIGHTS);
         c.add(Configs.Visual.BLOCK_SOUND_REPEATED_ONLY);
         //#endif
-        c.add(Hotkeys.OPEN_CONFIG_SCREEN);
         return c;
     }
     private static List<IConfigBase> tweakConfigs(){
@@ -168,6 +183,8 @@ public final class DDSTweakConfigScreen extends GuiConfigsBase {
     }
     private static List<IConfigBase> clientConfigs(){
         List<IConfigBase> c=new ArrayList<>();
+        c.add(Hotkeys.OPEN_CONFIG_SCREEN);
+        c.add(Hotkeys.OPEN_CARPET_RULE_MANAGER);
         c.add(Configs.Tweaks.SHOW_ORIGINAL_CONFIG_NAME);
         c.add(Configs.Tweaks.ORIGINAL_CONFIG_NAME_SCALE);
         c.add(Configs.Visual.PLAYER_HEAD_WINDOW_ICON);
@@ -182,6 +199,8 @@ public final class DDSTweakConfigScreen extends GuiConfigsBase {
     }
     /** Shared DT-only label renderer; no global MaLiLib widget mixin. */
     private static class OriginalNameConfigOption extends WidgetConfigOption {
+        // MaLiLib's config-name addLabel() uses white; match TweakerMore's RGB × 0.6.
+        private static final int SECONDARY_NAME_COLOR=ConfigRowGrouping.darkerColor(0xFFFFFFFF);
         private WidgetLabel nativeNameLabel;
         private int nativeNameY;
         private int keyX;
@@ -197,18 +216,20 @@ public final class DDSTweakConfigScreen extends GuiConfigsBase {
         protected final void captureOriginalName(int x,int y,int availableWidth,IConfigBase config){
             boolean statusRow=config==Configs.Tweaks.SHULKER_RESTOCK_ENABLED;
             if(!statusRow&&!ConfigRowGrouping.showOriginalName(config.getConfigGuiDisplayName(),config.getName()))return;
-            WidgetLabel plainLabel=null;
-            int labelCount=0;
+            WidgetLabel firstLabel=null,plainLabel=null;
             for(WidgetBase widget:subWidgets){
                 if(widget instanceof WidgetLabel){
-                    labelCount++;
-                    if(widget.getClass()==WidgetLabel.class)plainLabel=(WidgetLabel)widget;
+                    if(firstLabel==null)firstLabel=(WidgetLabel)widget;
+                    if(widget.getClass()==WidgetLabel.class&&plainLabel==null)plainLabel=(WidgetLabel)widget;
                 }
             }
-            // An external label renderer owns its own secondary text; do not draw it twice.
-            if(labelCount!=1||plainLabel==null)return;
-            nativeNameLabel=plainLabel;
-            nativeNameY=plainLabel.getY();
+            if(firstLabel==null)return;
+            // External mods may append a second label or replace the original one.
+            // Keep their widgets intact for the DT-disabled fallback.
+            nativeNameLabel=plainLabel!=null?plainLabel:new WidgetLabel(
+                    firstLabel.getX(),firstLabel.getY(),firstLabel.getWidth(),firstLabel.getHeight(),
+                    0xFFFFFFFF,config.getConfigGuiDisplayName());
+            nativeNameY=nativeNameLabel.getY();
             originalKey=config.getName();
             keyX=x;
             keyRowY=y;
@@ -230,47 +251,73 @@ public final class DDSTweakConfigScreen extends GuiConfigsBase {
             boolean enabled=originalKey!=null&&Configs.Tweaks.SHOW_ORIGINAL_CONFIG_NAME.getBooleanValue();
             String secondary=enabled?ConfigRowGrouping.fitOriginalName(
                     originalKey,availableNameWidth,this::getStringWidth,scale):"";
-            if(Configs.Tweaks.SHULKER_RESTOCK_ENABLED.getName().equals(originalKey)){
+            // With DT disabled, leave third-party labels entirely in charge.
+            // The parent constructor calls addConfigOption() before this subclass is initialized.
+            // Inspect MaLiLib's widgets at render time instead of storing a subclass field in captureOriginalName().
+            boolean hasExternalLabels=false;
+            for(WidgetBase widget:subWidgets){
+                if(widget instanceof WidgetLabel&&widget!=nativeNameLabel){
+                    hasExternalLabels=true;
+                    break;
+                }
+            }
+            boolean externalFallback=!enabled&&hasExternalLabels;
+            if(Configs.Tweaks.SHULKER_RESTOCK_ENABLED.getName().equals(originalKey)&&!externalFallback){
                 scale=0.65f;
                 secondary=restockStatusText();
             }
             boolean show=!secondary.isEmpty();
             int labelShift=Math.max(3,(int)Math.ceil(scale*fontHeight)-3);
             if(nativeNameLabel!=null)nativeNameLabel.setY(nativeNameY-(show?labelShift:0));
-            //#if MC >= 12108
-            super.render(ctx,mouseX,mouseY,selected);
-            //#elseif MC >= 11600
-            //$$ super.render(mouseX,mouseY,selected,ctx);
-            //#else
-            //$$ super.render(mouseX,mouseY,selected);
-            //#endif
+            // Replace foreign labels only for this DT row and only while DT's toggle is on.
+            // Restore the exact widget list after rendering, including when rendering fails.
+            List<WidgetBase> originalWidgets=null;
+            if(enabled&&hasExternalLabels){
+                originalWidgets=new ArrayList<>(subWidgets);
+                subWidgets.removeIf(widget->widget instanceof WidgetLabel&&widget!=nativeNameLabel);
+                if(!subWidgets.contains(nativeNameLabel))subWidgets.add(0,nativeNameLabel);
+            }
+            try{
+                //#if MC >= 12108
+                super.render(ctx,mouseX,mouseY,selected);
+                //#elseif MC >= 11600
+                //$$ super.render(mouseX,mouseY,selected,ctx);
+                //#else
+                //$$ super.render(mouseX,mouseY,selected);
+                //#endif
+            }finally{
+                if(originalWidgets!=null){
+                    subWidgets.clear();
+                    subWidgets.addAll(originalWidgets);
+                }
+            }
             if(!show)return;
             int secondaryY=keyRowY+Math.min(14,(int)Math.floor(height-scale*fontHeight-1));
             //#if MC >= 12106
             ctx.pose().pushMatrix();
             ctx.pose().translate((float)keyX,(float)secondaryY);
             ctx.pose().scale(scale,scale);
-            drawStringWithShadow(ctx,0,0,0xFF888888,secondary);
+            drawStringWithShadow(ctx,0,0,SECONDARY_NAME_COLOR,secondary);
             ctx.pose().popMatrix();
             //#elseif MC >= 12000
             //$$ ctx.pose().pushPose();ctx.pose().translate(keyX,secondaryY,0);ctx.pose().scale(scale,scale,1.0f);
-            //$$ drawStringWithShadow(0,0,0xFF888888,secondary,ctx);
+            //$$ drawStringWithShadow(0,0,SECONDARY_NAME_COLOR,secondary,ctx);
             //$$ ctx.pose().popPose();
             //#elseif MC >= 11600
             //$$ ctx.pushPose();ctx.translate(keyX,secondaryY,0);ctx.scale(scale,scale,1.0f);
-            //$$ drawStringWithShadow(0,0,0xFF888888,secondary,ctx);
+            //$$ drawStringWithShadow(0,0,SECONDARY_NAME_COLOR,secondary,ctx);
             //$$ ctx.popPose();
             //#elseif MC >= 11500
             //$$ com.mojang.blaze3d.systems.RenderSystem.pushMatrix();
             //$$ com.mojang.blaze3d.systems.RenderSystem.translated(keyX,secondaryY,0.0D);
             //$$ com.mojang.blaze3d.systems.RenderSystem.scaled(scale,scale,1.0D);
-            //$$ drawStringWithShadow(0,0,0xFF888888,secondary);
+            //$$ drawStringWithShadow(0,0,SECONDARY_NAME_COLOR,secondary);
             //$$ com.mojang.blaze3d.systems.RenderSystem.popMatrix();
             //#else
             //$$ com.mojang.blaze3d.platform.GlStateManager.pushMatrix();
             //$$ com.mojang.blaze3d.platform.GlStateManager.translatef(keyX,secondaryY,0);
             //$$ com.mojang.blaze3d.platform.GlStateManager.scalef(scale,scale,1);
-            //$$ drawStringWithShadow(0,0,0xFF888888,secondary);
+            //$$ drawStringWithShadow(0,0,SECONDARY_NAME_COLOR,secondary);
             //$$ com.mojang.blaze3d.platform.GlStateManager.popMatrix();
             //#endif
         }

@@ -4,6 +4,10 @@ package ddstweak.feature.blocksoundtracker;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.util.StringUtils;
 
+/**
+ * Defines how sound whitelist and blacklist rules are applied.
+ * 定义声音黑白名单的过滤模式。
+ */
 public enum BlockSoundFilterMode implements IConfigOptionListEntry {
     ALL("all"), BLACKLIST("blacklist"), WHITELIST("whitelist");
 
